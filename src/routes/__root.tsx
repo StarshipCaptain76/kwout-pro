@@ -90,6 +90,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Field Ops — Quote, Invoice & Plan" },
       { name: "twitter:description", content: "A billing and operations platform for independent operators. Quote, invoice, schedule and track expenses." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783745259345-invoice-app-for-iphone-bnr-4x.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783745259345-invoice-app-for-iphone-bnr-4x.webp" },
     ],
     links: [
       {
