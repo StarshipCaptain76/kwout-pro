@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useStore } from "../lib/store";
+import { ThemeInjector } from "../components/app/ThemeInjector";
 
 function NotFoundComponent() {
   return (
@@ -78,19 +79,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" },
-      { name: "theme-color", content: "#0A0A0A" },
+      { name: "theme-color", content: "#0f172a" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { title: "MOOVE — Quote & Invoice" },
-      { name: "description", content: "Quote, invoice, plan and analyse MOOVE moving jobs." },
-      { property: "og:title", content: "MOOVE — Quote & Invoice" },
-      { property: "og:description", content: "Quote, invoice, plan and analyse MOOVE moving jobs." },
+      { title: "Field Ops — Quote, Invoice & Plan" },
+      { name: "description", content: "A billing and operations platform for independent operators. Quote, invoice, schedule and track expenses." },
+      { property: "og:title", content: "Field Ops — Quote, Invoice & Plan" },
+      { property: "og:description", content: "A billing and operations platform for independent operators. Quote, invoice, schedule and track expenses." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "MOOVE — Quote & Invoice" },
-      { name: "twitter:description", content: "Quote, invoice, plan and analyse MOOVE moving jobs." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783599304240-Screenshot_2026-02-05_at_13.16.27.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783599304240-Screenshot_2026-02-05_at_13.16.27.webp" },
+      { name: "twitter:title", content: "Field Ops — Quote, Invoice & Plan" },
+      { name: "twitter:description", content: "A billing and operations platform for independent operators. Quote, invoice, schedule and track expenses." },
     ],
     links: [
       {
@@ -130,7 +129,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <ThemeInjector />
       <Outlet />
     </QueryClientProvider>
   );
