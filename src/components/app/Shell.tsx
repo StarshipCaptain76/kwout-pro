@@ -23,7 +23,7 @@ const nav = [
 export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const company = useStore((s) => s.company);
-  const brand = company.name || "Field Ops";
+  const brand = company.name || "On the MOOVE";
   return (
     <div className="min-h-[100svh] bg-background text-foreground">
       <header className="sticky top-0 z-40 bg-secondary text-secondary-foreground border-b-4 border-primary">

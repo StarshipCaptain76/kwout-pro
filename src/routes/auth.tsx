@@ -101,7 +101,7 @@ function AuthPage() {
     }
   }
 
-  const brand = company.name || "Field Ops";
+  const brand = company.name || "On the MOOVE";
 
   return (
     <div className="min-h-[100svh] grid place-items-center bg-background text-foreground p-4">
