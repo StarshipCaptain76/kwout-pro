@@ -282,97 +282,124 @@ async function loadAll() {
       if (r.error) throw r.error;
     }
 
-    suppressPush = true;
-    try {
-      const prev = useStore.getState();
-      const profileRow = profileRes.data;
-      const company = (profileRow?.company as Company | null) && Object.keys(profileRow!.company as object).length
-        ? (profileRow!.company as unknown as Company)
-        : prev.company;
-      const banking = (profileRow?.banking as Banking | null) && Object.keys(profileRow!.banking as object).length
-        ? (profileRow!.banking as unknown as Banking)
-        : prev.banking;
-      const billing = (profileRow?.billing as BillingSettings | null) && Object.keys(profileRow!.billing as object).length
-        ? (profileRow!.billing as unknown as BillingSettings)
-        : prev.billing;
-      const density = (profileRow?.density as Density | undefined) ?? prev.density;
+    const prev = useStore.getState();
+    const profileRow = profileRes.data;
 
-      const catalog: CatalogItem[] = (catRes.data ?? []).map((r) => ({
-        id: r.id,
-        name: r.name,
-        price: Number(r.price),
-        unit: r.unit as CatalogItem["unit"],
-      }));
+    // Remote-loaded collections
+    const remoteCatalog: CatalogItem[] = (catRes.data ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      price: Number(r.price),
+      unit: r.unit as CatalogItem["unit"],
+    }));
+    const remoteCustomers: Customer[] = (custRes.data ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      phone: r.phone,
+      email: r.email,
+      address: r.address ?? undefined,
+    }));
+    const remoteDocs: Doc[] = (docsRes.data ?? []).map((r) => ({
+      id: r.id,
+      number: r.number,
+      type: r.type as Doc["type"],
+      status: r.status as Doc["status"],
+      createdAt: r.created_at,
+      scheduledDate: r.scheduled_date ?? undefined,
+      dayOrder: r.day_order ?? undefined,
+      archived: r.archived,
+      customer: r.customer as unknown as Customer,
+      items: (r.items as unknown as Doc["items"]) ?? [],
+      notes: r.notes ?? undefined,
+      depositPct: Number(r.deposit_pct),
+      depositPaid: r.deposit_paid,
+      paymentMethod: (r.payment_method as Doc["paymentMethod"]) ?? undefined,
+      paidAt: r.paid_at ?? undefined,
+      fromAddress: r.from_address ?? undefined,
+      toAddress: r.to_address ?? undefined,
+      fromCoords: (r.from_coords as Doc["fromCoords"]) ?? undefined,
+      toCoords: (r.to_coords as Doc["toCoords"]) ?? undefined,
+      distanceKm: r.distance_km != null ? Number(r.distance_km) : undefined,
+    }));
+    const remoteExpenses: Expense[] = (expRes.data ?? []).map((r) => ({
+      id: r.id,
+      createdAt: r.created_at,
+      date: r.date,
+      category: r.category,
+      vendor: r.vendor,
+      description: r.description ?? undefined,
+      amount: Number(r.amount),
+      vatAmount: r.vat_amount != null ? Number(r.vat_amount) : undefined,
+      paymentMethod: (r.payment_method as Expense["paymentMethod"]) ?? undefined,
+      notes: r.notes ?? undefined,
+      receiptImage: r.receipt_image ?? undefined,
+      linkedDocId: r.linked_doc_id ?? undefined,
+    }));
+    const remoteCategoryNames = (catCatRes.data ?? []).map((r) => r.name);
 
-      const customers: Customer[] = (custRes.data ?? []).map((r) => ({
-        id: r.id,
-        name: r.name,
-        phone: r.phone,
-        email: r.email,
-        address: r.address ?? undefined,
-      }));
-
-      const docs: Doc[] = (docsRes.data ?? []).map((r) => ({
-        id: r.id,
-        number: r.number,
-        type: r.type as Doc["type"],
-        status: r.status as Doc["status"],
-        createdAt: r.created_at,
-        scheduledDate: r.scheduled_date ?? undefined,
-        dayOrder: r.day_order ?? undefined,
-        archived: r.archived,
-        customer: r.customer as unknown as Customer,
-        items: (r.items as unknown as Doc["items"]) ?? [],
-        notes: r.notes ?? undefined,
-        depositPct: Number(r.deposit_pct),
-        depositPaid: r.deposit_paid,
-        paymentMethod: (r.payment_method as Doc["paymentMethod"]) ?? undefined,
-        paidAt: r.paid_at ?? undefined,
-        fromAddress: r.from_address ?? undefined,
-        toAddress: r.to_address ?? undefined,
-        fromCoords: (r.from_coords as Doc["fromCoords"]) ?? undefined,
-        toCoords: (r.to_coords as Doc["toCoords"]) ?? undefined,
-        distanceKm: r.distance_km != null ? Number(r.distance_km) : undefined,
-      }));
-
-      const expenses: Expense[] = (expRes.data ?? []).map((r) => ({
-        id: r.id,
-        createdAt: r.created_at,
-        date: r.date,
-        category: r.category,
-        vendor: r.vendor,
-        description: r.description ?? undefined,
-        amount: Number(r.amount),
-        vatAmount: r.vat_amount != null ? Number(r.vat_amount) : undefined,
-        paymentMethod: (r.payment_method as Expense["paymentMethod"]) ?? undefined,
-        notes: r.notes ?? undefined,
-        receiptImage: r.receipt_image ?? undefined,
-        linkedDocId: r.linked_doc_id ?? undefined,
-      }));
-
-      const remoteCategoryNames = (catCatRes.data ?? []).map((r) => r.name);
-      const expenseCategories = remoteCategoryNames.length
-        ? remoteCategoryNames
+    // Merge remote with any local-only rows so signing in never wipes
+    // data the user created before authenticating. Remote wins on id conflicts.
+    const mergeById = <T extends { id: string }>(remote: T[], local: T[]): { merged: T[]; localOnly: T[] } => {
+      const remoteIds = new Set(remote.map((r) => r.id));
+      const localOnly = local.filter((l) => !remoteIds.has(l.id));
+      return { merged: [...remote, ...localOnly], localOnly };
+    };
+    const catMerge = mergeById(remoteCatalog, prev.catalog);
+    const custMerge = mergeById(remoteCustomers, prev.customers);
+    const docMerge = mergeById(remoteDocs, prev.docs);
+    const expMerge = mergeById(remoteExpenses, prev.expenses);
+    const remoteCatSet = new Set(remoteCategoryNames.map((n) => n.toLowerCase()));
+    const localOnlyCats = prev.expenseCategories.filter(
+      (n) => !remoteCatSet.has(n.toLowerCase()) && !DEFAULT_EXPENSE_CATEGORIES.some((d) => d.toLowerCase() === n.toLowerCase()),
+    );
+    const expenseCategories = remoteCategoryNames.length
+      ? [...remoteCategoryNames, ...localOnlyCats]
+      : prev.expenseCategories.length
+        ? prev.expenseCategories
         : DEFAULT_EXPENSE_CATEGORIES;
 
+    // Profile fields: prefer remote when present, else keep local.
+    const company = (profileRow?.company as Company | null) && Object.keys(profileRow!.company as object).length
+      ? (profileRow!.company as unknown as Company)
+      : prev.company;
+    const banking = (profileRow?.banking as Banking | null) && Object.keys(profileRow!.banking as object).length
+      ? (profileRow!.banking as unknown as Banking)
+      : prev.banking;
+    const billing = (profileRow?.billing as BillingSettings | null) && Object.keys(profileRow!.billing as object).length
+      ? (profileRow!.billing as unknown as BillingSettings)
+      : prev.billing;
+    const density = (profileRow?.density as Density | undefined) ?? prev.density;
+
+    suppressPush = true;
+    try {
       useStore.setState({
         company,
         banking,
         billing,
         density,
-        catalog,
-        customers,
-        docs,
-        expenses,
+        catalog: catMerge.merged,
+        customers: custMerge.merged,
+        docs: docMerge.merged,
+        expenses: expMerge.merged,
         expenseCategories,
       });
     } finally {
       suppressPush = false;
     }
 
-    // Seed defaults for a brand-new user.
+    // Push local-only rows up so they persist against this account.
+    catMerge.localOnly.forEach(pushCatalogItem);
+    custMerge.localOnly.forEach(pushCustomer);
+    docMerge.localOnly.forEach(pushDoc);
+    expMerge.localOnly.forEach(pushExpense);
+    localOnlyCats.forEach(pushExpenseCategory);
+
+    // Seed defaults / profile for a brand-new user.
     if (!profileRes.data) pushCompanyProfile();
-    if (!(catCatRes.data ?? []).length) DEFAULT_EXPENSE_CATEGORIES.forEach(pushExpenseCategory);
+    if (!(catCatRes.data ?? []).length) {
+      const seed = prev.expenseCategories.length ? prev.expenseCategories : DEFAULT_EXPENSE_CATEGORIES;
+      seed.forEach(pushExpenseCategory);
+    }
   } finally {
     state.loading = false;
     state.status = runningTask();
