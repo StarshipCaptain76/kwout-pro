@@ -1,17 +1,19 @@
 import jsPDF from "jspdf";
 import type { Doc, Company, Banking, BillingSettings } from "./store";
-import { docTotals, fmtMoney } from "./store";
-import logoAsset from "@/assets/moove-logo.png.asset.json";
+import { docTotals, fmtMoney, DEFAULT_THEME } from "./store";
 
-async function loadImage(url: string): Promise<string> {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(blob);
-  });
+function hexToRgb(hex: string): [number, number, number] {
+  const h = (hex || "#000000").replace("#", "").trim();
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+async function dataUrlToBase64Png(dataUrl: string): Promise<{ data: string; format: string } | null> {
+  if (!dataUrl.startsWith("data:")) return null;
+  const match = dataUrl.match(/^data:image\/(png|jpeg|jpg|webp)/i);
+  if (!match) return null; // svg not supported by jsPDF addImage
+  return { data: dataUrl, format: match[1].toUpperCase() === "JPG" ? "JPEG" : match[1].toUpperCase() };
 }
 
 export async function generatePdf(
@@ -23,17 +25,19 @@ export async function generatePdf(
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210;
   const M = 15;
-  const RED: [number, number, number] = [225, 29, 46];
+  const theme = company.theme ?? DEFAULT_THEME;
+  const PRIMARY: [number, number, number] = hexToRgb(theme.primary);
 
-  // header red bar
-  pdf.setFillColor(...RED);
+  pdf.setFillColor(...PRIMARY);
   pdf.rect(0, 0, W, 4, "F");
 
-  try {
-    const logo = await loadImage(logoAsset.url);
-    pdf.addImage(logo, "PNG", M, 8, 30, 26);
-  } catch {
-    // skip
+  if (company.logo) {
+    try {
+      const img = await dataUrlToBase64Png(company.logo);
+      if (img) pdf.addImage(img.data, img.format, M, 8, 30, 26);
+    } catch {
+      // skip
+    }
   }
 
   pdf.setFont("helvetica", "bold");
@@ -43,19 +47,17 @@ export async function generatePdf(
   pdf.setFontSize(10);
   pdf.setFont("helvetica", "normal");
   pdf.text(`No: ${doc.number}`, W - M, 27, { align: "right" });
-  pdf.text(`Date: ${new Date(doc.createdAt).toLocaleDateString("en-ZA")}`, W - M, 32, { align: "right" });
+  pdf.text(`Date: ${new Date(doc.createdAt).toLocaleDateString()}`, W - M, 32, { align: "right" });
 
-  // company block
   let y = 42;
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(11);
-  pdf.text(company.name, M, y);
+  pdf.text(company.name || "", M, y);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
-  const cLines = [company.tagline, company.address, company.phone, company.email].filter(Boolean);
+  const cLines = [company.tagline, company.address, company.phone, company.email].filter(Boolean) as string[];
   cLines.forEach((l, i) => pdf.text(l, M, y + 5 + i * 4));
 
-  // customer block
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
   pdf.text("BILL TO", W / 2, y);
@@ -64,7 +66,6 @@ export async function generatePdf(
   custLines.forEach((l, i) => pdf.text(l, W / 2, y + 5 + i * 4));
 
   y = 78;
-  // items table
   pdf.setFillColor(20, 20, 20);
   pdf.rect(M, y, W - 2 * M, 8, "F");
   pdf.setTextColor(255, 255, 255);
@@ -102,7 +103,7 @@ export async function generatePdf(
   };
   drawTot("Subtotal", fmtMoney(t.subtotal, billing.currency));
   if (billing.vatPct > 0) drawTot(`VAT (${billing.vatPct}%)`, fmtMoney(t.vat, billing.currency));
-  pdf.setFillColor(...RED);
+  pdf.setFillColor(...PRIMARY);
   pdf.rect(rx - 2, y - 3.5, W - M - rx + 4, 7, "F");
   pdf.setTextColor(255, 255, 255);
   drawTot("TOTAL", fmtMoney(t.total, billing.currency), true);
@@ -118,7 +119,7 @@ export async function generatePdf(
     pdf.setFontSize(9);
     pdf.setTextColor(80, 80, 80);
     pdf.text(
-      `This quote is valid for 7 days from the date of issue (valid until ${validUntil.toLocaleDateString("en-ZA")}).`,
+      `This quote is valid for 7 days from the date of issue (valid until ${validUntil.toLocaleDateString()}).`,
       M,
       y + 4,
     );
@@ -126,7 +127,6 @@ export async function generatePdf(
     y += 6;
   }
 
-  // banking block
   y = Math.max(y + 10, 235);
   pdf.setFillColor(245, 245, 245);
   pdf.rect(M, y, W - 2 * M, 40, "F");
@@ -136,13 +136,13 @@ export async function generatePdf(
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
   const b = [
-    `Account Name: ${banking.accountName}`,
-    `Bank: ${banking.bank}`,
-    `Account Number: ${banking.accountNumber}`,
-    `Branch Code: ${banking.branchCode}`,
-    `Branch: ${banking.branchName}`,
-    `Swift: ${banking.swiftCode}`,
-  ];
+    banking.accountName ? `Account Name: ${banking.accountName}` : "",
+    banking.bank ? `Bank: ${banking.bank}` : "",
+    banking.accountNumber ? `Account Number: ${banking.accountNumber}` : "",
+    banking.branchCode ? `Branch Code: ${banking.branchCode}` : "",
+    banking.branchName ? `Branch: ${banking.branchName}` : "",
+    banking.swiftCode ? `Swift: ${banking.swiftCode}` : "",
+  ].filter(Boolean);
   b.forEach((l, i) => pdf.text(l, M + 3 + (i % 2) * 90, y + 13 + Math.floor(i / 2) * 5));
 
   if (doc.notes) {
@@ -151,7 +151,7 @@ export async function generatePdf(
     pdf.text(doc.notes, M, y + 46);
   }
 
-  pdf.setFillColor(...RED);
+  pdf.setFillColor(...PRIMARY);
   pdf.rect(0, 293, W, 4, "F");
 
   return pdf;

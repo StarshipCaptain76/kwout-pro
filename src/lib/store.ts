@@ -14,7 +14,8 @@ import {
   renameExpenseCategoryRow,
 } from "./sync";
 
-export type Unit = "each" | "hour" | "km" | "job";
+export type Unit = string; // built-ins: "each" | "hour" | "km" | "job", plus user-defined
+export const BUILTIN_UNITS = ["each", "hour", "km", "job"] as const;
 export type PayMethod = "cash" | "eft" | "card";
 export type DocType = "quote" | "invoice";
 export type DocStatus = "draft" | "sent" | "accepted" | "paid" | "cancelled";
@@ -36,19 +37,15 @@ export interface Expense {
 }
 
 export const DEFAULT_EXPENSE_CATEGORIES = [
-  "Accommodation",
-  "Advertising",
-  "Asset Purchases",
-  "Data/Airtime",
-  "Diesel/Fuel",
-  "Entertainment",
-  "Food",
-  "Grass Purchase",
-  "Labour",
-  "Maintenance",
-  "Sand/Stone/Trailer Hire",
-  "Toll Fee",
-  "Truck Payment",
+  "Fuel",
+  "Vehicle",
+  "Tools & Materials",
+  "Subcontractors",
+  "Office",
+  "Software",
+  "Marketing",
+  "Travel",
+  "Meals",
   "Other",
 ];
 
@@ -82,7 +79,7 @@ export interface Doc {
   type: DocType;
   status: DocStatus;
   createdAt: string;
-  scheduledDate?: string; // ISO date (yyyy-mm-dd)
+  scheduledDate?: string;
   dayOrder?: number;
   archived?: boolean;
   customer: Customer;
@@ -99,6 +96,16 @@ export interface Doc {
   distanceKm?: number;
 }
 
+export interface Theme {
+  primary: string; // hex like "#2563eb"
+  accent: string; // hex like "#0f172a"
+}
+
+export const DEFAULT_THEME: Theme = {
+  primary: "#2563eb", // blue-600
+  accent: "#0f172a", // slate-900
+};
+
 export interface Company {
   name: string;
   tagline: string;
@@ -107,6 +114,8 @@ export interface Company {
   email: string;
   regNo?: string;
   vatNo?: string;
+  logo?: string; // data URL
+  theme?: Theme;
 }
 
 export interface Banking {
@@ -128,6 +137,8 @@ export interface BillingSettings {
   nextQuoteNo: number;
   nextInvoiceNo: number;
   currency: string;
+  primaryUnit?: Unit;
+  customUnits?: string[];
 }
 
 interface State {
@@ -171,37 +182,35 @@ export const useStore = create<State>()(
   persist(
     (set, get) => ({
       company: {
-        name: "MOOVE",
-        tagline: "Moving Company",
-        address: "Stilbaai, Western Cape, South Africa",
+        name: "",
+        tagline: "",
+        address: "",
         phone: "",
         email: "",
+        theme: DEFAULT_THEME,
       },
       banking: {
-        accountName: "MOOVE",
-        accountNumber: "63216547993",
-        bank: "FNB",
-        branchCode: "250655",
-        branchName: "FNB Remote Banking",
-        swiftCode: "FIRNZAJJ",
+        accountName: "",
+        accountNumber: "",
+        bank: "",
+        branchCode: "",
+        branchName: "",
+        swiftCode: "",
       },
       billing: {
-        ratePerKm: 15,
-        baseCallout: 500,
+        ratePerKm: 0,
+        baseCallout: 0,
         defaultDepositPct: 50,
         vatPct: 0,
         quotePrefix: "Q",
         invoicePrefix: "INV",
         nextQuoteNo: 1001,
         nextInvoiceNo: 1001,
-        currency: "R",
+        currency: "$",
+        primaryUnit: "km",
+        customUnits: [],
       },
-      catalog: [
-        { id: uid(), name: "Local Move (up to 3 rooms)", price: 3500, unit: "job" },
-        { id: uid(), name: "Packing Service (per hour)", price: 250, unit: "hour" },
-        { id: uid(), name: "Extra Labour (per hour)", price: 180, unit: "hour" },
-        { id: uid(), name: "Storage (per month)", price: 800, unit: "each" },
-      ],
+      catalog: [],
       customers: [],
       docs: [],
       expenses: [],
@@ -304,7 +313,6 @@ export const useStore = create<State>()(
         const n = newName.trim();
         if (n) {
           void renameExpenseCategoryRow(oldName, n);
-          // Push any expenses that changed category.
           get().expenses.forEach((e) => {
             if (e.category === n) pushExpense(e);
           });
@@ -372,24 +380,15 @@ export const useStore = create<State>()(
       },
     }),
     {
-      name: "moove-store-v1",
-      version: 2,
+      name: "app-store-v1",
+      version: 3,
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as State;
         if (!s) return s;
-        if (version < 2) {
-          // Fix mis-dated historical entries: Dec 2026 → Dec 2025.
-          const fix = (v?: string) => (v && v.startsWith("2026-12") ? v.replace("2026-12", "2025-12") : v);
-          s.docs = (s.docs || []).map((d) =>
-            d.id?.startsWith("hist-")
-              ? { ...d, paidAt: fix(d.paidAt) ?? d.paidAt, createdAt: fix(d.createdAt) ?? d.createdAt }
-              : d,
-          );
-          s.expenses = (s.expenses || []).map((e) =>
-            e.id?.startsWith("hist-")
-              ? { ...e, date: fix(e.date) ?? e.date, createdAt: fix(e.createdAt) ?? e.createdAt }
-              : e,
-          );
+        if (version < 3) {
+          if (s.company && !s.company.theme) s.company.theme = DEFAULT_THEME;
+          if (s.billing && !s.billing.primaryUnit) s.billing.primaryUnit = "km";
+          if (s.billing && !s.billing.customUnits) s.billing.customUnits = [];
         }
         return s;
       },
@@ -408,6 +407,6 @@ export function docTotals(d: Doc, vatPct: number) {
   return { subtotal, vat, total, deposit, balance };
 }
 
-export function fmtMoney(n: number, cur = "R") {
-  return `${cur} ${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function fmtMoney(n: number, cur = "$") {
+  return `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

@@ -1,6 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import logoAsset from "@/assets/moove-logo.png.asset.json";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Calendar, BarChart3, Settings,
@@ -23,13 +22,21 @@ const nav = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const company = useStore((s) => s.company);
+  const brand = company.name || "Field Ops";
   return (
     <div className="min-h-[100svh] bg-background text-foreground">
       <header className="sticky top-0 z-40 bg-secondary text-secondary-foreground border-b-4 border-primary">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 flex items-center gap-3 h-14 sm:h-16">
           <Link to="/" className="flex items-center gap-2 min-w-0">
-            <img src={logoAsset.url} alt="MOOVE" className="h-8 sm:h-10 w-auto bg-white rounded p-1" />
-            <span className="font-display text-2xl sm:text-3xl tracking-wider truncate">MOOVE</span>
+            {company.logo ? (
+              <img src={company.logo} alt={brand} className="h-8 sm:h-10 w-auto rounded" />
+            ) : (
+              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded bg-primary text-primary-foreground grid place-items-center font-bold text-sm sm:text-base">
+                {brand.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <span className="font-display text-xl sm:text-2xl tracking-wide truncate">{brand}</span>
           </Link>
           <nav className="hidden md:flex gap-1 ml-auto items-center">
             {nav.map((n) => {
@@ -236,7 +243,7 @@ function AuthButton() {
       className="ml-1 px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium bg-white/10 hover:bg-white/20"
     >
       <User className="h-3.5 w-3.5" />
-      <span>{email === "moove@mweb.co.za" ? "Dylan" : email}</span>
+      <span className="max-w-[140px] truncate">{email}</span>
       <LogOut className="h-3.5 w-3.5 opacity-60" />
     </button>
   );
