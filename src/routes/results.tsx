@@ -19,7 +19,7 @@ import { RangePicker, resolveRange, previousRange, type RangeValue } from "@/com
 export const Route = createFileRoute("/results")({
   head: () => ({
     meta: [
-      { title: "Revenue & Reports — MOOVE" },
+      { title: "Revenue & Reports" },
       { name: "description", content: "Revenue, expenses, cash flow and customer reports with flexible date ranges." },
     ],
   }),
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/results")({
 });
 
 const COLORS = ["#E11D2E", "#0A0A0A", "#6B6B6B", "#F5A623", "#16A34A", "#2563EB", "#7C3AED", "#0891B2"];
-const STORAGE_KEY = "moove-report-range";
+const STORAGE_KEY = "app-report-range";
 
 function inRange(dateStr: string | undefined, from: Date, to: Date) {
   if (!dateStr) return false;
@@ -201,7 +201,7 @@ function ResultsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `moove-report-${format(from, "yyyyMMdd")}-${format(to, "yyyyMMdd")}.csv`;
+    a.download = `report-${format(from, "yyyyMMdd")}-${format(to, "yyyyMMdd")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

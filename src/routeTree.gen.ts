@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResultsRouteImport } from './routes/results'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PlannerRouteImport } from './routes/planner'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocIdRouteImport } from './routes/doc.$id'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DocRouteImport } from './routes/doc.'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -27,6 +29,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ResultsRoute = ResultsRouteImport.update({
   id: '/results',
   path: '/results',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlannerRoute = PlannerRouteImport.update({
@@ -59,6 +66,11 @@ const DocIdRoute = DocIdRouteImport.update({
   path: '/doc/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
 const DocRoute = DocRouteImport.update({
   id: '/doc/',
   path: '/doc/',
@@ -67,36 +79,42 @@ const DocRoute = DocRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/expenses': typeof ExpensesRoute
   '/planner': typeof PlannerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/doc/': typeof DocRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/expenses': typeof ExpensesRoute
   '/planner': typeof PlannerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/doc': typeof DocRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/expenses': typeof ExpensesRoute
   '/planner': typeof PlannerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/doc/': typeof DocRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
 }
 export interface FileRouteTypes {
@@ -107,9 +125,11 @@ export interface FileRouteTypes {
     | '/docs'
     | '/expenses'
     | '/planner'
+    | '/reset-password'
     | '/results'
     | '/settings'
     | '/doc/'
+    | '/auth/callback'
     | '/doc/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -118,9 +138,11 @@ export interface FileRouteTypes {
     | '/docs'
     | '/expenses'
     | '/planner'
+    | '/reset-password'
     | '/results'
     | '/settings'
     | '/doc'
+    | '/auth/callback'
     | '/doc/$id'
   id:
     | '__root__'
@@ -129,18 +151,21 @@ export interface FileRouteTypes {
     | '/docs'
     | '/expenses'
     | '/planner'
+    | '/reset-password'
     | '/results'
     | '/settings'
     | '/doc/'
+    | '/auth/callback'
     | '/doc/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   DocsRoute: typeof DocsRoute
   ExpensesRoute: typeof ExpensesRoute
   PlannerRoute: typeof PlannerRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ResultsRoute: typeof ResultsRoute
   SettingsRoute: typeof SettingsRoute
   DocRoute: typeof DocRoute
@@ -161,6 +186,13 @@ declare module '@tanstack/react-router' {
       path: '/results'
       fullPath: '/results'
       preLoaderRoute: typeof ResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/planner': {
@@ -205,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/doc/': {
       id: '/doc/'
       path: '/doc'
@@ -215,12 +254,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   DocsRoute: DocsRoute,
   ExpensesRoute: ExpensesRoute,
   PlannerRoute: PlannerRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ResultsRoute: ResultsRoute,
   SettingsRoute: SettingsRoute,
   DocRoute: DocRoute,
