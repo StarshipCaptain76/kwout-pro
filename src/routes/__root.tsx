@@ -54,10 +54,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => {
+            onClick(() => {
               router.invalidate();
               reset();
-            }}
+            })
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Try again
@@ -82,15 +82,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#0f172a" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { title: "On the MOOVE — Quote, Invoice & Plan" },
-      { name: "description", content: "A billing and operations platform for independent operators. Quote, invoice, schedule and track expenses." },
-      { property: "og:title", content: "On the MOOVE — Quote, Invoice & Plan" },
-      { property: "og:description", content: "A billing and operations platform for independent operators. Quote, invoice, schedule and track expenses." },
+      // SEO: Primary title optimized for search (transport / moving / removal operators in SA)
+      { title: "On the MOOVE | Quote, Invoice & Job Planner for Transport & Removal Services" },
+      { name: "description", content: "Professional billing and operations platform for independent transport, removal and logistics operators in South Africa. Create quotes & invoices, plan jobs with drag-and-drop scheduler, track expenses with receipts, manage customers & catalog. Mobile-first, offline-capable, Supabase powered." },
+      { name: "keywords", content: "quote invoice planner, transport quote app, moving company billing software, removal services invoice, logistics planner South Africa, Cape Town transport app, job scheduler for movers, expense tracker with receipts, VAT invoice generator, Rand billing platform" },
+      // Open Graph / Social
+      { property: "og:title", content: "On the MOOVE | Quote, Invoice & Job Planner for Transport & Removal Services" },
+      { property: "og:description", content: "Professional billing and operations platform for independent transport, removal and logistics operators in South Africa. Create quotes & invoices, plan jobs with drag-and-drop scheduler, track expenses with receipts, manage customers & catalog. Mobile-first, offline-capable." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "On the MOOVE — Quote, Invoice & Plan" },
-      { name: "twitter:description", content: "A billing and operations platform for independent operators. Quote, invoice, schedule and track expenses." },
+      // TODO: Replace the placeholder og:image below with your own branded social image (recommended: upload logo + hero to Supabase Storage or Vercel and use the public URL). Current image is a generic placeholder.
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783745259345-invoice-app-for-iphone-bnr-4x.webp" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "On the MOOVE | Quote, Invoice & Job Planner for Transport & Removal Services" },
+      { name: "twitter:description", content: "Professional billing and operations platform for independent transport, removal and logistics operators in South Africa. Create quotes & invoices, plan jobs with drag-and-drop scheduler, track expenses with receipts." },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783745259345-invoice-app-for-iphone-bnr-4x.webp" },
     ],
     links: [
