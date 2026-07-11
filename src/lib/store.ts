@@ -206,7 +206,7 @@ export const useStore = create<State>()(
         invoicePrefix: "INV",
         nextQuoteNo: 1001,
         nextInvoiceNo: 1001,
-        currency: "$",
+        currency: "R",
         primaryUnit: "km",
         customUnits: [],
       },
