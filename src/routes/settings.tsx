@@ -18,10 +18,11 @@ import { ColorPicker } from "@/components/app/ColorPicker";
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
 const CURRENCIES = [
+  { code: "R", label: "ZAR (R)" },
+  { code: "N$", label: "NAD (N$)" },
   { code: "$", label: "USD ($)" },
   { code: "€", label: "EUR (€)" },
   { code: "£", label: "GBP (£)" },
-  { code: "R", label: "ZAR (R)" },
   { code: "A$", label: "AUD (A$)" },
   { code: "C$", label: "CAD (C$)" },
   { code: "NZ$", label: "NZD (NZ$)" },
