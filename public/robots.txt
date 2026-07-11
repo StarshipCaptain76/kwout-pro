@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# On the MOOVE - Professional billing & operations platform for transport operators
+# https://github.com/StarshipCaptain76/onthemoove
+
+Sitemap: /sitemap.xml  # Add if/when sitemap is generated
