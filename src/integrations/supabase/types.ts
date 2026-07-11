@@ -50,9 +50,13 @@ export type Database = {
           billing: Json
           company: Json
           created_at: string
+          custom_units: string[]
           density: string
+          logo_url: string | null
           migrated_at: string | null
           owner_user_id: string
+          primary_unit: string
+          theme: Json
           updated_at: string
         }
         Insert: {
@@ -60,9 +64,13 @@ export type Database = {
           billing?: Json
           company?: Json
           created_at?: string
+          custom_units?: string[]
           density?: string
+          logo_url?: string | null
           migrated_at?: string | null
           owner_user_id: string
+          primary_unit?: string
+          theme?: Json
           updated_at?: string
         }
         Update: {
@@ -70,9 +78,13 @@ export type Database = {
           billing?: Json
           company?: Json
           created_at?: string
+          custom_units?: string[]
           density?: string
+          logo_url?: string | null
           migrated_at?: string | null
           owner_user_id?: string
+          primary_unit?: string
+          theme?: Json
           updated_at?: string
         }
         Relationships: []
