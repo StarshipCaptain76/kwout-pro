@@ -310,6 +310,9 @@ function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClo
             </div>
           </div>
 
+          <CompensationSection staffId={draft.id} />
+
+
           <div className="border rounded-md p-3">
             <div className="text-sm font-semibold mb-2 flex items-center gap-1"><KeyRound className="h-4 w-4" /> Reset password</div>
             <div className="flex gap-2">
