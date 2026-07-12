@@ -558,3 +558,48 @@ function Stat({
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return <Card className="p-3 sm:p-4"><h3 className="font-semibold text-sm mb-2">{title}</h3>{children}</Card>;
 }
+
+function TrendBlock({
+  title, subtitle, cur, prev, currency,
+}: {
+  title: string;
+  subtitle: string;
+  cur: { Revenue: number; Expenses: number; Net: number; Jobs: number };
+  prev: { Revenue: number; Expenses: number; Net: number; Jobs: number };
+  currency: string;
+}) {
+  const rows: Array<{ k: keyof typeof cur; isMoney: boolean; invert?: boolean }> = [
+    { k: "Revenue", isMoney: true },
+    { k: "Expenses", isMoney: true, invert: true },
+    { k: "Net", isMoney: true },
+    { k: "Jobs", isMoney: false },
+  ];
+  return (
+    <div className="border rounded-md p-3">
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="text-[11px] text-muted-foreground mb-2">{subtitle}</div>
+      <table className="w-full text-sm">
+        <tbody>
+          {rows.map(({ k, isMoney, invert }) => {
+            const c = cur[k]; const p = prev[k];
+            const diff = c - p;
+            const pct = p === 0 ? (c === 0 ? 0 : null) : (diff / Math.abs(p)) * 100;
+            const up = diff >= 0;
+            const good = invert ? !up : up;
+            return (
+              <tr key={k} className="border-t first:border-t-0">
+                <td className="py-1.5 text-muted-foreground">{k}</td>
+                <td className="py-1.5 text-right tabular-nums font-semibold">
+                  {isMoney ? fmtMoney(c, currency) : c}
+                </td>
+                <td className={`py-1.5 text-right tabular-nums text-xs ${good ? "text-green-600" : "text-red-600"}`}>
+                  {pct == null ? "new" : `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%`}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
