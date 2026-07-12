@@ -407,6 +407,14 @@ export function docTotals(d: Doc, vatPct: number) {
   return { subtotal, vat, total, deposit, balance };
 }
 
+// VAT portion of a VAT-inclusive amount at the given rate (percent).
+// e.g. computeVat(115, 15) === 15
+export function computeVat(amountInclusive: number, vatPct: number) {
+  if (!amountInclusive || !vatPct || vatPct <= 0) return 0;
+  const net = amountInclusive / (1 + vatPct / 100);
+  return Math.round((amountInclusive - net) * 100) / 100;
+}
+
 export function fmtMoney(n: number, cur = "$") {
   return `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
