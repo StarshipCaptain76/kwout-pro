@@ -38,7 +38,19 @@ function inRange(dateStr: string | undefined, from: Date, to: Date) {
 }
 
 function ResultsPage() {
-  const { docs, billing, expenses } = useStore();
+  const { docs: allDocs, billing, expenses: allExpenses, staff, currentStaff, currentUserId } = useStore();
+
+  // Scope: field staff sees only their own jobs & their own expenses.
+  const canSeeAll = !currentStaff || currentStaff.role !== "staff" || !!currentStaff.permissions["reports.viewAll"];
+  const myId = currentStaff?.userId ?? currentUserId ?? "";
+  const docs = useMemo(
+    () => (canSeeAll ? allDocs : allDocs.filter((d) => d.assignedTo === myId)),
+    [allDocs, canSeeAll, myId],
+  );
+  const expenses = useMemo(
+    () => (canSeeAll ? allExpenses : allExpenses.filter((_e) => false)), // staff can't see expenses unless permission granted
+    [allExpenses, canSeeAll],
+  );
 
   const [range, setRange] = useState<RangeValue>({ preset: "this-month" });
   useEffect(() => {
