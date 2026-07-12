@@ -154,6 +154,13 @@ export async function generatePdf(
   pdf.setFillColor(...PRIMARY);
   pdf.rect(0, 293, W, 4, "F");
 
+  // Elegant, unobtrusive watermark
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(7);
+  pdf.setTextColor(160, 160, 160);
+  pdf.text("powered by ONTHEMOOVE.CO.ZA", W / 2, 290, { align: "center" });
+  pdf.setTextColor(20, 20, 20);
+
   return pdf;
 }
 
