@@ -447,3 +447,16 @@ export function computeVat(amountInclusive: number, vatPct: number) {
 export function fmtMoney(n: number, cur = "$") {
   return `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+import { can as canRaw, type Action } from "./permissions";
+
+// Reactive: re-renders when currentStaff changes.
+export function useCan(action: Action): boolean {
+  const cs = useStore((s) => s.currentStaff);
+  return canRaw(cs?.role ?? null, cs?.permissions, action);
+}
+export function useIsOwner(): boolean {
+  const cs = useStore((s) => s.currentStaff);
+  return !cs || cs.role === "owner";
+}
+
