@@ -108,6 +108,7 @@ const PRESETS: Record<Role, Permissions> = {
     "catalog.view": true, "catalog.edit": true,
     "reports.viewOwn": true, "reports.viewAll": true,
     "planner.view": true, "planner.edit": true,
+    "payslips.view": false, "payslips.manage": false,
     "settings.staff": false, "settings.company": false,
   },
   staff: {
