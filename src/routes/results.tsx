@@ -124,6 +124,52 @@ function ResultsPage() {
   const inputVat = exp.reduce((s, e) => s + (e.vatAmount || 0), 0);
   const netVat = outputVat - inputVat;
 
+  // Revenue by staff (within selected range)
+  const staffMap = useMemo(() => {
+    const m = new Map<string, string>();
+    staff.forEach((s) => m.set(s.userId, s.name || s.email));
+    if (currentStaff) m.set(currentStaff.userId, currentStaff.name || currentStaff.email);
+    return m;
+  }, [staff, currentStaff]);
+  const revenueByStaff = useMemo(() => {
+    const m = new Map<string, { name: string; total: number; jobs: number }>();
+    paid.forEach((d) => {
+      const key = d.assignedTo ?? "";
+      const name = key ? (staffMap.get(key) ?? "Unknown") : "Unassigned";
+      const t = docTotals(d, billing.vatPct).total;
+      const cur = m.get(key) ?? { name, total: 0, jobs: 0 };
+      cur.total += t; cur.jobs += 1;
+      m.set(key, cur);
+    });
+    return Array.from(m.values()).sort((a, b) => b.total - a.total);
+  }, [paid, staffMap, billing.vatPct]);
+  const staffTotal = revenueByStaff.reduce((s, x) => s + x.total, 0);
+
+  // MoM / YoY panels — independent of the range picker
+  const monthNow = useMemo(() => {
+    const d = new Date();
+    return { from: startOfMonth(d), to: new Date() };
+  }, []);
+  const monthPrev = useMemo(() => {
+    const d = new Date(monthNow.from);
+    d.setMonth(d.getMonth() - 1);
+    const endPrev = new Date(monthNow.from);
+    endPrev.setDate(0);
+    return { from: startOfMonth(d), to: endPrev };
+  }, [monthNow]);
+  const yearAgo = useMemo(() => {
+    const f = new Date(from); f.setFullYear(f.getFullYear() - 1);
+    const t = new Date(to); t.setFullYear(t.getFullYear() - 1);
+    return { from: f, to: t };
+  }, [from, to]);
+
+  const paidMom = paidAll.filter((d) => inRange(d.paidAt, monthNow.from, monthNow.to));
+  const paidMomPrev = paidAll.filter((d) => inRange(d.paidAt, monthPrev.from, monthPrev.to));
+  const expMom = expenses.filter((e) => inRange(e.date, monthNow.from, monthNow.to));
+  const expMomPrev = expenses.filter((e) => inRange(e.date, monthPrev.from, monthPrev.to));
+  const paidYoy = paidAll.filter((d) => inRange(d.paidAt, yearAgo.from, yearAgo.to));
+  const expYoy = expenses.filter((e) => inRange(e.date, yearAgo.from, yearAgo.to));
+
   // Bucket selection
   const bucket: "day" | "month" | "year" = days <= 62 ? "day" : days <= 550 ? "month" : "year";
   const buckets = useMemo(() => {
