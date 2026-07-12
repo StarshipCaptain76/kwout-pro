@@ -319,6 +319,25 @@ function DocPage() {
             <DatePicker value={doc.scheduledDate} onChange={(iso) => update({ scheduledDate: iso })} clearable />
           </Card>
 
+          <Card className="p-4">
+            <Label className="mb-1 block">Assigned to</Label>
+            {staff.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No staff members yet. Add them in Settings → Staff.</p>
+            ) : (
+              <select
+                className="h-11 w-full border rounded-md px-2 bg-background"
+                value={doc.assignedTo ?? ""}
+                disabled={!!currentStaff && currentStaff.role === "staff"}
+                onChange={(e) => update({ assignedTo: e.target.value || undefined })}
+              >
+                <option value="">— Unassigned —</option>
+                {staff.filter((s) => s.active).map((m) => (
+                  <option key={m.userId} value={m.userId}>{m.name || m.email}</option>
+                ))}
+              </select>
+            )}
+          </Card>
+
           <Card className="p-4 space-y-2">
             <h3 className="font-semibold text-sm">Send</h3>
             <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => send("wa")}>
