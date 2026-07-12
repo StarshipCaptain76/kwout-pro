@@ -164,6 +164,11 @@ interface State {
   expenses: Expense[];
   expenseCategories: string[];
   density: Density;
+  staff: StaffMember[];
+  currentUserId: string | null;
+  currentStaff: StaffMember | null;
+  setStaffList: (s: StaffMember[]) => void;
+  setCurrentUser: (userId: string | null, currentStaff: StaffMember | null) => void;
   upsertDoc: (d: Doc) => void;
   deleteDoc: (id: string) => void;
   upsertCatalog: (c: CatalogItem) => void;
