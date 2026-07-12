@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -288,9 +288,14 @@ function ResultsPage() {
             {label} · {format(from, "d MMM yy")} – {format(to, "d MMM yy")} · vs previous {days === 1 ? "day" : `${days} days`}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={exportCsv} className="shrink-0">
-          <Download className="h-4 w-4 mr-1.5" /> CSV
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button asChild size="sm" variant="outline">
+            <Link to="/statements">Customer statements</Link>
+          </Button>
+          <Button size="sm" variant="outline" onClick={exportCsv}>
+            <Download className="h-4 w-4 mr-1.5" /> CSV
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">

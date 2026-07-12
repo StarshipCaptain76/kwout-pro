@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StatementsRouteImport } from './routes/statements'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResultsRouteImport } from './routes/results'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -21,6 +22,11 @@ import { Route as DocIdRouteImport } from './routes/doc.$id'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DocRouteImport } from './routes/doc.'
 
+const StatementsRoute = StatementsRouteImport.update({
+  id: '/statements',
+  path: '/statements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
+  '/statements': typeof StatementsRoute
   '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
+  '/statements': typeof StatementsRoute
   '/doc': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
+  '/statements': typeof StatementsRoute
   '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/results'
     | '/settings'
+    | '/statements'
     | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/results'
     | '/settings'
+    | '/statements'
     | '/doc'
     | '/auth/callback'
     | '/doc/$id'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/results'
     | '/settings'
+    | '/statements'
     | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
@@ -168,12 +180,20 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ResultsRoute: typeof ResultsRoute
   SettingsRoute: typeof SettingsRoute
+  StatementsRoute: typeof StatementsRoute
   DocRoute: typeof DocRoute
   DocIdRoute: typeof DocIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/statements': {
+      id: '/statements'
+      path: '/statements'
+      fullPath: '/statements'
+      preLoaderRoute: typeof StatementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -273,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ResultsRoute: ResultsRoute,
   SettingsRoute: SettingsRoute,
+  StatementsRoute: StatementsRoute,
   DocRoute: DocRoute,
   DocIdRoute: DocIdRoute,
 }
