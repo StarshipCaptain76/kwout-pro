@@ -14,7 +14,6 @@ import {
 } from "./store";
 import { resolveWorkspace, listStaff } from "./staff.functions";
 import { buildBrandCache, writeBrandCookie, clearBrandCookie } from "./brand-cookie";
-import { DEFAULT_THEME } from "./store";
 
 type Status = "idle" | "loading" | "syncing" | "synced" | "error";
 type Listener = (s: { status: Status; authed: boolean; error?: string }) => void;
