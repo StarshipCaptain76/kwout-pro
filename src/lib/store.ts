@@ -234,6 +234,11 @@ export const useStore = create<State>()(
       expenses: [],
       expenseCategories: DEFAULT_EXPENSE_CATEGORIES,
       density: "normal" as Density,
+      staff: [],
+      currentUserId: null,
+      currentStaff: null,
+      setStaffList: (s) => set({ staff: s }),
+      setCurrentUser: (userId, currentStaff) => set({ currentUserId: userId, currentStaff }),
       upsertDoc: (d) =>
         {
           set((s) => ({
