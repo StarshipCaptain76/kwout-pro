@@ -191,6 +191,11 @@ function ResultsPage() {
     lines.push(`Margin %,${margin.toFixed(1)}`);
     lines.push(`Invoices Paid,${paidCount}`);
     lines.push(`Avg Invoice,${avg.toFixed(2)}`);
+    if (billing.vatPct > 0) {
+      lines.push(`Output VAT (collected),${outputVat.toFixed(2)}`);
+      lines.push(`Input VAT (paid),${inputVat.toFixed(2)}`);
+      lines.push(`Net VAT payable,${netVat.toFixed(2)}`);
+    }
     lines.push("");
     lines.push("Paid Invoices");
     lines.push("Number,Date Paid,Customer,Method,Total");
