@@ -305,7 +305,7 @@ export const listPayslips = createServerFn({ method: "POST" })
     const { data: rows, error } = await q;
     if (error) throw error;
     return (rows ?? []).map((r) => {
-      const rec = r as {
+      const rec = r as unknown as {
         id: string; staff_id: string; period_start: string; period_end: string;
         period_label: string; hours: number; gross: number; commission_amount: number;
         paye: number; uif_employee: number; uif_employer: number; sdl: number;
