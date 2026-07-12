@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useStore, newId, fmtMoney, type Expense, type PayMethod } from "@/lib/store";
+import { useStore, newId, fmtMoney, computeVat, type Expense, type PayMethod } from "@/lib/store";
 import { ReceiptCapture } from "@/components/app/ReceiptCapture";
 import { parseReceipt } from "@/lib/expenses.functions";
 import { DatePicker } from "@/components/app/DatePicker";
@@ -54,6 +54,7 @@ function ExpensesPage() {
       category: "Other",
       vendor: "",
       amount: 0,
+      vatAmount: billing.vatPct > 0 ? 0 : undefined,
     });
   };
 
@@ -143,28 +144,59 @@ function ExpensesPage() {
 }
 
 function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: () => void }) {
-  const { upsertExpense, deleteExpense, expenseCategories } = useStore();
+  const { upsertExpense, deleteExpense, expenseCategories, billing } = useStore();
   const [draft, setDraft] = useState<Expense | null>(expense);
+  const [vatManual, setVatManual] = useState(false);
   const [parsing, setParsing] = useState(false);
 
   // Reset draft when a different expense is opened
   if (expense && (!draft || draft.id !== expense.id)) {
     setDraft(expense);
+    setVatManual(false);
   }
   if (!expense || !draft) return null;
 
-  const set = (patch: Partial<Expense>) => setDraft((d) => (d ? { ...d, ...patch } : d));
+  const includesVat = draft.vatAmount !== undefined;
+
+  const set = (patch: Partial<Expense>) =>
+    setDraft((d) => {
+      if (!d) return d;
+      const next = { ...d, ...patch };
+      // Auto-recompute VAT when amount changes and user hasn't manually edited it
+      if ("amount" in patch && next.vatAmount !== undefined && !vatManual) {
+        next.vatAmount = computeVat(next.amount || 0, billing.vatPct);
+      }
+      return next;
+    });
+
+  const toggleIncludesVat = (on: boolean) => {
+    setVatManual(false);
+    if (on) {
+      set({ vatAmount: computeVat(draft.amount || 0, billing.vatPct) });
+    } else {
+      set({ vatAmount: undefined });
+    }
+  };
 
   const handleCapture = async (dataUrl: string) => {
     set({ receiptImage: dataUrl });
     setParsing(true);
     try {
       const r = await parseReceipt({ data: { imageDataUrl: dataUrl, categories: expenseCategories } });
+      const amount = r.total ?? draft.amount;
+      let vatAmount = draft.vatAmount;
+      if (r.vat != null) {
+        vatAmount = r.vat;
+        setVatManual(true);
+      } else if (billing.vatPct > 0 && amount) {
+        vatAmount = computeVat(amount, billing.vatPct);
+        setVatManual(false);
+      }
       set({
         date: r.date || draft.date,
         vendor: r.vendor || draft.vendor,
-        amount: r.total ?? draft.amount,
-        vatAmount: r.vat ?? draft.vatAmount,
+        amount,
+        vatAmount,
         category: r.category || draft.category,
         description: r.description || draft.description,
         paymentMethod: (r.paymentMethod as PayMethod | null) ?? draft.paymentMethod,
@@ -284,32 +316,57 @@ function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">VAT (optional)</Label>
-              <InlineTumbler
-                value={draft.vatAmount ?? 0}
-                onChange={(v) => set({ vatAmount: v > 0 ? v : undefined })}
-                step={1}
-                min={0}
-                label="VAT amount"
-              />
+          {billing.vatPct > 0 && (
+            <div className="rounded-md border p-2.5 bg-muted/30">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={includesVat}
+                  onChange={(e) => toggleIncludesVat(e.target.checked)}
+                />
+                <span className="text-sm font-medium">Includes VAT ({billing.vatPct}%)</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {includesVat ? "VAT-inclusive" : "Zero-rated / exempt"}
+                </span>
+              </label>
+              {includesVat && (
+                <div className="mt-2">
+                  <Label className="text-xs">VAT amount</Label>
+                  <InlineTumbler
+                    value={draft.vatAmount ?? 0}
+                    onChange={(v) => {
+                      setVatManual(true);
+                      set({ vatAmount: v });
+                    }}
+                    step={1}
+                    min={0}
+                    label="VAT amount"
+                  />
+                  {!vatManual && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Auto-calculated from total. Tap to override.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div>
-              <Label className="text-xs">Paid with</Label>
-              <select
-                className="h-11 w-full border rounded-md px-2 bg-background"
-                value={draft.paymentMethod ?? ""}
-                onChange={(e) =>
-                  set({ paymentMethod: (e.target.value || undefined) as PayMethod | undefined })
-                }
-              >
-                <option value="">—</option>
-                <option value="cash">Cash</option>
-                <option value="eft">EFT</option>
-                <option value="card">Card</option>
-              </select>
-            </div>
+          )}
+
+          <div>
+            <Label className="text-xs">Paid with</Label>
+            <select
+              className="h-11 w-full border rounded-md px-2 bg-background"
+              value={draft.paymentMethod ?? ""}
+              onChange={(e) =>
+                set({ paymentMethod: (e.target.value || undefined) as PayMethod | undefined })
+              }
+            >
+              <option value="">—</option>
+              <option value="cash">Cash</option>
+              <option value="eft">EFT</option>
+              <option value="card">Card</option>
+            </select>
           </div>
 
           <div>
