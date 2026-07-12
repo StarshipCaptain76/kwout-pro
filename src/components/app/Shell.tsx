@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { readBrandCookie } from "@/lib/brand-cookie";
 
 const nav = [
   { to: "/", label: "Home", icon: LayoutDashboard },
@@ -23,20 +24,37 @@ const nav = [
 export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const company = useStore((s) => s.company);
-  const brand = company.name || "On the MOOVE";
+
+  // Read the cookie only after hydration to avoid SSR/client mismatch.
+  const [cookieBrand, setCookieBrand] = useState<{ name?: string; logo?: string } | null>(null);
+  useEffect(() => {
+    const b = readBrandCookie();
+    if (b) setCookieBrand({ name: b.n, logo: b.l });
+  }, []);
+
+  const name = company.name || cookieBrand?.name || "";
+  const logo = company.logo || cookieBrand?.logo || "";
+  const knowBrand = Boolean(name);
+
   return (
     <div className="min-h-[100svh] bg-background text-foreground">
       <header className="sticky top-0 z-40 bg-secondary text-secondary-foreground border-b-4 border-primary">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 flex items-center gap-3 h-14 sm:h-16">
-          <Link to="/" className="flex items-center gap-2 min-w-0">
-            {company.logo ? (
-              <img src={company.logo} alt={brand} className="h-8 sm:h-10 w-auto rounded" />
-            ) : (
+          <Link to="/" className="flex items-center gap-2 min-w-0" aria-label={name || "Home"}>
+            {logo ? (
+              <img src={logo} alt={name} className="h-8 sm:h-10 w-auto rounded" />
+            ) : knowBrand ? (
               <div className="h-8 sm:h-10 w-8 sm:w-10 rounded bg-primary text-primary-foreground grid place-items-center font-bold text-sm sm:text-base">
-                {brand.slice(0, 1).toUpperCase()}
+                {name.slice(0, 1).toUpperCase()}
               </div>
+            ) : (
+              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded bg-white/10 animate-pulse" aria-hidden />
             )}
-            <span className="font-display text-xl sm:text-2xl tracking-wide truncate">{brand}</span>
+            {knowBrand ? (
+              <span className="font-display text-xl sm:text-2xl tracking-wide truncate">{name}</span>
+            ) : (
+              <span className="h-5 sm:h-6 w-28 sm:w-36 rounded bg-white/10 animate-pulse" aria-hidden />
+            )}
           </Link>
           <nav className="hidden md:flex gap-1 ml-auto items-center">
             {nav.map((n) => {

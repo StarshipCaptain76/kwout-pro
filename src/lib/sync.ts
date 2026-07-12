@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   useStore,
   DEFAULT_EXPENSE_CATEGORIES,
+  DEFAULT_THEME,
   type Doc,
   type Customer,
   type CatalogItem,
@@ -13,6 +14,7 @@ import {
   type StaffMember,
 } from "./store";
 import { resolveWorkspace, listStaff } from "./staff.functions";
+import { buildBrandCache, writeBrandCookie, clearBrandCookie } from "./brand-cookie";
 
 type Status = "idle" | "loading" | "syncing" | "synced" | "error";
 type Listener = (s: { status: Status; authed: boolean; error?: string }) => void;
@@ -393,6 +395,18 @@ async function loadAll() {
       suppressPush = false;
     }
 
+    // Refresh the brand cookie so the next page load / device paints
+    // with the correct company name, logo and colours from frame one.
+    const theme = company.theme ?? DEFAULT_THEME;
+    writeBrandCookie(
+      buildBrandCache({
+        name: company.name,
+        logo: company.logo,
+        primary: theme.primary,
+        accent: theme.accent,
+      }),
+    );
+
     // Push local-only rows up so they persist against this account.
     catMerge.localOnly.forEach(pushCatalogItem);
     custMerge.localOnly.forEach(pushCustomer);
@@ -490,6 +504,7 @@ export async function initSync() {
       state.workspaceOwnerId = null;
       useStore.getState().setCurrentUser(null, null);
       useStore.getState().setStaffList([]);
+      clearBrandCookie();
     }
     emit();
     if (newUid) void resolveAndLoad();

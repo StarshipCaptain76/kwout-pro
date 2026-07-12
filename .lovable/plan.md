@@ -1,83 +1,59 @@
-## Payslips module (Reports → Payslips)
+## Problem
 
-Owner-only feature that generates SA-compliant payslips for staff, wired as a second tab on the Reports page.
+On first paint (fresh login, new device, or hard refresh), the app briefly shows the default "On the MOOVE" name and the default blue/slate theme before the customer's real company name, logo and brand colours load from the cloud. This creates a visible flash of unbranded content (FOUC).
 
-### 1. Data model (one migration)
+**Why it happens today:**
+1. Zustand's `persist` reads from `localStorage` on the client only — on a new device/browser it's empty, so `company` and `theme` start at their built-in defaults.
+2. `ThemeInjector` writes CSS vars in a `useEffect`, so it can't run until after hydration.
+3. The Shell falls back to the literal string `"On the MOOVE"` and the default logo slot whenever `company.name` is empty.
+4. The cloud fetch of `company_profile` happens after auth resolves and after the first render, so defaults flash for a few hundred ms up to a second.
 
-Add compensation fields to `staff_members`:
-- `pay_type` text: `salary` | `hourly` | `commission` | `manual` (default `salary`)
-- `base_salary` numeric (monthly, for `salary`)
-- `hourly_rate` numeric (for `hourly`)
-- `commission_pct` numeric (0–100, % of assigned/completed jobs revenue in period)
-- `id_number` text (SA ID, appears on payslip)
-- `tax_status` text: `paye` | `provisional` | `exempt` (default `paye`)
+## Fix
 
-New table `payslips` (owner-scoped, owner-only RLS):
-- `workspace_owner_id`, `staff_id`, `period_start`, `period_end`, `period_label`
-- `hours` numeric, `gross` numeric, `commission_amount` numeric
-- `paye`, `uif_employee`, `uif_employer`, `sdl`, `other_deductions` numeric
-- `deductions_breakdown` jsonb (line items shown on the payslip)
-- `net` numeric, `status` text (`draft` | `finalized`), `finalized_at`, `sent_at`
-- Standard `id`, `created_at`, `updated_at`, GRANTs, RLS `workspace_owner_id = auth.uid()`, updated_at trigger.
+Cache the customer's brand (name, logo URL, primary, accent) in a **cookie** the moment we know it, then use it during SSR / very first client paint so the app renders branded from frame one. Where the brand truly isn't known yet, show a neutral skeleton instead of the default name/colours.
 
-### 2. Statutory calculations (`src/lib/payroll.ts`)
+### 1. Brand cookie (client-writable, SSR-readable)
 
-Pure functions, easy to unit-test, using SA 2025/26 tables (annualise monthly gross, apply brackets, primary rebate R17,235; +65 rebate; +75 rebate; UIF 1% employee + 1% employer capped at R177.12 each on R17,712 ceiling; SDL 1% employer if payroll > R500k p.a. — owner toggle in settings; tax_status `provisional` skips PAYE, `exempt` skips PAYE+UIF).
+- New helper `src/lib/brand-cookie.ts` with `readBrandCookie()` / `writeBrandCookie(brand)`.
+- Cookie name: `otm_brand`. Value: compact JSON `{ n, l, p, a }` (name, logoUrl-or-null, primaryHex, accentHex). ~200 B, safe for a cookie.
+- Written whenever `setCompany` runs and after the cloud hydrate in `sync.ts` populates `company`. (Not written for logos larger than a threshold — for those we store only the primary/accent + name and continue to load the logo async, but at least the colours + name are correct on first paint.)
+- Cleared on sign-out.
 
-Exports:
-- `calcPAYE(monthlyGross, age)` → number
-- `calcUIF(monthlyGross)` → `{ employee, employer }`
-- `calcSDL(monthlyGross, enabled)` → number
-- `computeGross(staff, { hours, periodStart, periodEnd, docs })` → `{ gross, commissionAmount, breakdown }`
+### 2. SSR uses the cookie for first paint
 
-### 3. Server functions (`src/lib/payslips.functions.ts`, owner-only)
+- `__root.tsx` `beforeLoad` reads the cookie via `getWebRequest()` and returns `brand` on the router context.
+- `head()` injects an inline `<style id="brand-vars">:root{--primary:...;--primary-foreground:...;--secondary:...;--accent:...;--ring:...}</style>` derived from the cookie. This means the very first painted frame already has the customer's colours — no blue flash.
+- `RootShell` also passes `brand.name` down so `<title>` and the shell header can render the real name immediately on SSR.
 
-All use `requireSupabaseAuth` and check the caller is the workspace owner (not staff).
-- `listPayslips({ from, to })`
-- `generatePayslipDraft({ staffId, periodStart, periodEnd, hours?, manualGross? })` — computes gross from staff config + jobs assigned in period, applies statutory calcs, returns draft (not saved).
-- `savePayslip(draft)` / `finalizePayslip(id)` / `deletePayslip(id)`
-- `markPayslipSent(id, channel)` — records `sent_at`.
+### 3. Shell: no default-name fallback until brand is known
 
-### 4. UI
+- `Shell.tsx` replaces the literal `"On the MOOVE"` fallback with a small skeleton (a neutral rounded bar) when both cookie and store are empty. This only shows on a genuine first visit (no cookie yet) and disappears the moment cloud hydrate completes.
+- Same treatment for the logo slot: skeleton square instead of the missing-image placeholder.
 
-**Reports page** — convert single view into tabs (shadcn `Tabs`): "Overview" (existing content) + "Payslips" (owner-only; hidden for staff via `can()` check on a new `payslips.view` action, defaulted true for owner role only).
+### 4. Hydrate order
 
-**Payslips tab** (`src/components/payslips/PayslipsTab.tsx`):
-- Period picker (month selector, defaults to previous month) + "Include SDL" toggle.
-- Staff table: name, pay type, hours input (only for hourly), commission auto-preview, gross, PAYE, UIF, net, status chip, actions.
-- "Generate all" button creates drafts for every active staff member.
-- Row click → `PayslipDialog` showing formatted payslip (company header from `company_profile`, employee details, earnings lines, deductions lines, net pay, YTD totals if available).
-- Dialog actions: **Download PDF**, **Email**, **WhatsApp**, **Finalize**.
+- `ThemeInjector` keeps working for live edits, but it now no-ops when the CSS vars already match the cookie values (avoids a redundant repaint).
+- On login, `sync.ts` writes the cookie as soon as `company_profile` arrives so subsequent navigations/refreshes are instant-branded even before cloud data reloads.
 
-**PDF generation** (`src/lib/payslip-pdf.ts`) — client-side using `jspdf` + `jspdf-autotable` (already in the stack for docs; if not, add). Filename `payslip-{staffName}-{period}.pdf`.
+### 5. Preload the logo
 
-**Email send** — calls a new server route `/api/payslips/send-email` that renders a React Email template (`src/lib/email-templates/payslip.tsx`) and calls `sendTemplateEmail('payslip', staff.email, { templateData })`. Requires `email_domain--scaffold_transactional_email_templates` if not yet done + email domain setup (checked in-flow; prompts owner to set it up first if missing).
+- When the cookie has a `logoUrl`, add `<link rel="preload" as="image" href={logoUrl}>` in `head()` so the logo image request starts alongside the HTML, not after React mounts.
 
-**WhatsApp send** — `wa.me/{phone}?text=` link with pre-filled message ("Your payslip for {period}: Gross Rxx, Net Rxx. PDF attached separately."); PDF must be downloaded and attached manually (WhatsApp deep-links don't support attachments).
+## Out of scope
 
-**Compensation fields** — add a "Compensation" section to the existing staff edit dialog in Settings: pay type dropdown, base salary / hourly rate / commission %, ID number, tax status.
+- Server-rendering the full authenticated app (still client-hydrated).
+- Storing the logo binary in the cookie (too large — logo still loads via URL; only colours + name are inlined).
+- Changing the default theme values themselves.
 
-### 5. Access & scope
+## Files touched
 
-- Owner-only across the board (no staff self-view in this iteration, matching answer to Access question).
-- `can("payslips.view")` gates the Reports tab and Settings compensation section.
-- All server fns re-verify the caller is the workspace owner (not just a manager) before returning data.
+- New: `src/lib/brand-cookie.ts`
+- Edit: `src/routes/__root.tsx` (beforeLoad + head + shell prop)
+- Edit: `src/components/app/Shell.tsx` (skeleton fallbacks)
+- Edit: `src/components/app/ThemeInjector.tsx` (skip redundant writes)
+- Edit: `src/lib/sync.ts` (write cookie after hydrate; clear on sign-out)
+- Edit: `src/lib/store.ts` (`setCompany` writes cookie)
 
-### 6. Files touched / added
+## Result
 
-Added:
-- `supabase/migrations/*_payslips.sql`
-- `src/lib/payroll.ts`, `src/lib/payslips.functions.ts`, `src/lib/payslip-pdf.ts`
-- `src/lib/email-templates/payslip.tsx` (+ registry update)
-- `src/routes/api/payslips.send-email.ts`
-- `src/components/payslips/PayslipsTab.tsx`, `PayslipDialog.tsx`, `CompensationSection.tsx`
-
-Edited:
-- `src/routes/results.tsx` — wrap in Tabs, mount `PayslipsTab`
-- `src/routes/settings.tsx` — add Compensation section inside staff edit
-- `src/lib/permissions.ts` — new `payslips.view` / `payslips.manage` actions (owner-only default)
-- `src/lib/store.ts` — extend `StaffMember` type with compensation fields
-
-### 7. Out of scope (per your "Standard" choice)
-
-Loans / IOU / salary advances, YTD PAYE certificates (IRP5), multi-currency, staff self-service payslip inbox — all deferrable to a later iteration.
+First paint on any device with an existing session shows the correct company name, logo request already in flight, and correct brand colours. Only a first-ever visit (no cookie) sees a neutral skeleton for ~1 frame instead of the wrong-branded flash.
