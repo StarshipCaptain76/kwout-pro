@@ -33,14 +33,19 @@ function SettingsPage() {
   return (
     <Shell>
       <Tabs defaultValue="company">
-        <TabsList className="mb-4 w-full grid grid-cols-6">
+        <TabsList className="mb-4 w-full grid grid-cols-7">
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="banking">Banking</TabsTrigger>
+          <TabsTrigger value="staff">Staff</TabsTrigger>
           <TabsTrigger value="catalog">Catalog</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="staff">
+          <StaffSection />
+        </TabsContent>
 
         <TabsContent value="company">
           <div className="grid gap-4 max-w-2xl">
