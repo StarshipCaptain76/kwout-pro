@@ -14,6 +14,7 @@ import { InlineTumbler } from "@/components/app/InlineTumbler";
 import { Slider } from "@/components/ui/slider";
 import { LogoUploader } from "@/components/app/LogoUploader";
 import { ColorPicker } from "@/components/app/ColorPicker";
+import { StaffSection } from "@/components/app/StaffSection";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
