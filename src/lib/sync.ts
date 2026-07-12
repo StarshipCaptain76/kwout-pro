@@ -18,12 +18,14 @@ type Listener = (s: { status: Status; authed: boolean; error?: string }) => void
 const state: {
   status: Status;
   userId: string | null;
+  workspaceOwnerId: string | null;
   error?: string;
   loading: boolean;
   pending: number;
 } = {
   status: "idle",
   userId: null,
+  workspaceOwnerId: null,
   loading: false,
   pending: 0,
 };
