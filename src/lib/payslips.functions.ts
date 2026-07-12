@@ -51,17 +51,8 @@ export interface StaffCompensationDTO {
 
 // ------------- Helpers -------------
 
-async function assertOwner(supabase: {
-  from: (t: string) => {
-    select: (c: string) => {
-      eq: (col: string, val: unknown) => {
-        eq: (col: string, val: unknown) => {
-          maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
-        };
-      };
-    };
-  };
-}, userId: string): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function assertOwner(supabase: any, userId: string): Promise<void> {
   const { data } = await supabase
     .from("staff_members")
     .select("workspace_owner_id")
