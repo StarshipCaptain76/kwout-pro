@@ -413,6 +413,69 @@ async function loadAll() {
   }
 }
 
+async function resolveAndLoad() {
+  if (!state.userId) return;
+  try {
+    const info = await resolveWorkspace();
+    state.workspaceOwnerId = info.workspaceOwnerId;
+    const me: StaffMember | null = info.me
+      ? {
+          id: info.me.id,
+          userId: info.me.userId,
+          name: info.me.name,
+          email: info.me.email,
+          role: info.me.role,
+          permissions: info.me.permissions ?? {},
+          active: info.me.active,
+        }
+      : null;
+    useStore.getState().setCurrentUser(state.userId, me);
+  } catch (e) {
+    console.error("[sync resolveWorkspace]", e);
+    state.workspaceOwnerId = state.userId; // fall back to own workspace
+    useStore.getState().setCurrentUser(state.userId, null);
+  }
+
+  await loadAll();
+
+  // Load staff list in the background (owner and members both see it).
+  try {
+    const list = await listStaff();
+    useStore.getState().setStaffList(
+      list.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        permissions: r.permissions ?? {},
+        active: r.active,
+      })),
+    );
+  } catch (e) {
+    console.error("[sync listStaff]", e);
+  }
+}
+
+export async function refreshStaff() {
+  try {
+    const list = await listStaff();
+    useStore.getState().setStaffList(
+      list.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        permissions: r.permissions ?? {},
+        active: r.active,
+      })),
+    );
+  } catch (e) {
+    console.error("[sync refreshStaff]", e);
+  }
+}
+
 let started = false;
 export async function initSync() {
   if (started || typeof window === "undefined") return;
@@ -423,14 +486,19 @@ export async function initSync() {
     const newUid = session?.user.id ?? null;
     if (newUid === state.userId) return;
     state.userId = newUid;
+    if (!newUid) {
+      state.workspaceOwnerId = null;
+      useStore.getState().setCurrentUser(null, null);
+      useStore.getState().setStaffList([]);
+    }
     emit();
-    if (newUid) void loadAll();
+    if (newUid) void resolveAndLoad();
   });
 
   const { data: userRes } = await supabase.auth.getUser();
   state.userId = userRes.user?.id ?? null;
   emit();
-  if (state.userId) await loadAll();
+  if (state.userId) await resolveAndLoad();
 }
 
 // Legacy helpers kept as no-ops so we don't break any straggling import.
