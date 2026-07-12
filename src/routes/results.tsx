@@ -453,6 +453,69 @@ function ResultsPage() {
           </ChartCard>
         )}
 
+        {revenueByStaff.length > 0 && (
+          <ChartCard title="Revenue by staff">
+            <ul className="space-y-2">
+              {revenueByStaff.map((s, i) => {
+                const pct = staffTotal > 0 ? (s.total / staffTotal) * 100 : 0;
+                return (
+                  <li key={s.name}>
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="truncate pr-2">{s.name} · <span className="text-muted-foreground">{s.jobs} job{s.jobs === 1 ? "" : "s"}</span></span>
+                      <span className="tabular-nums font-semibold shrink-0">
+                        {fmtMoney(s.total, billing.currency)} · {pct.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded overflow-hidden">
+                      <div className="h-full rounded" style={{ width: `${pct}%`, background: COLORS[i % COLORS.length] }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </ChartCard>
+        )}
+
+        <ChartCard title="Trends">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <TrendBlock
+              title="Month over month"
+              subtitle={`${format(monthNow.from, "MMM yyyy")} vs ${format(monthPrev.from, "MMM yyyy")}`}
+              cur={{
+                Revenue: sumRev(paidMom),
+                Expenses: sumExp(expMom),
+                Net: sumRev(paidMom) - sumExp(expMom),
+                Jobs: paidMom.length,
+              }}
+              prev={{
+                Revenue: sumRev(paidMomPrev),
+                Expenses: sumExp(expMomPrev),
+                Net: sumRev(paidMomPrev) - sumExp(expMomPrev),
+                Jobs: paidMomPrev.length,
+              }}
+              currency={billing.currency}
+            />
+            <TrendBlock
+              title="Year over year"
+              subtitle={`${format(from, "d MMM yy")}–${format(to, "d MMM yy")} vs ${format(yearAgo.from, "d MMM yy")}–${format(yearAgo.to, "d MMM yy")}`}
+              cur={{
+                Revenue: revenue,
+                Expenses: totalExp,
+                Net: revenue - totalExp,
+                Jobs: paidCount,
+              }}
+              prev={{
+                Revenue: sumRev(paidYoy),
+                Expenses: sumExp(expYoy),
+                Net: sumRev(paidYoy) - sumExp(expYoy),
+                Jobs: paidYoy.length,
+              }}
+              currency={billing.currency}
+            />
+          </div>
+        </ChartCard>
+
+
         {paid.length === 0 && exp.length === 0 && (
           <Card className="p-6 text-center text-sm text-muted-foreground">
             No data in this period. Try a different range.
