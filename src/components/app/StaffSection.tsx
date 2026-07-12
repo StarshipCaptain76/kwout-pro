@@ -360,3 +360,117 @@ function CredentialsDialog({ creds, onClose }: { creds: { email: string; passwor
     </div>
   );
 }
+
+// ---------- Compensation (payroll) ----------
+
+import { listStaffCompensation, updateStaffCompensation, type PayType } from "@/lib/payslips.functions";
+import type { TaxStatus } from "@/lib/payroll";
+
+function CompensationSection({ staffId }: { staffId: string }) {
+  const [payType, setPayType] = useState<PayType>("salary");
+  const [baseSalary, setBaseSalary] = useState(0);
+  const [hourlyRate, setHourlyRate] = useState(0);
+  const [commissionPct, setCommissionPct] = useState(0);
+  const [idNumber, setIdNumber] = useState("");
+  const [taxStatus, setTaxStatus] = useState<TaxStatus>("paye");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    setLoading(true);
+    listStaffCompensation()
+      .then((list) => {
+        if (cancel) return;
+        const s = list.find((x) => x.id === staffId);
+        if (s) {
+          setPayType(s.payType);
+          setBaseSalary(s.baseSalary);
+          setHourlyRate(s.hourlyRate);
+          setCommissionPct(s.commissionPct);
+          setIdNumber(s.idNumber ?? "");
+          setTaxStatus(s.taxStatus);
+        }
+      })
+      .finally(() => !cancel && setLoading(false));
+    return () => { cancel = true; };
+  }, [staffId]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await updateStaffCompensation({
+        data: {
+          id: staffId, payType, baseSalary, hourlyRate, commissionPct,
+          idNumber: idNumber || null, taxStatus,
+        },
+      });
+      toast.success("Compensation saved");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="text-sm font-semibold mb-2">Compensation (payroll)</div>
+      {loading ? (
+        <div className="text-xs text-muted-foreground">Loading…</div>
+      ) : (
+        <div className="grid gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Pay type</Label>
+              <select
+                className="h-10 w-full border rounded-md px-2 bg-background text-sm"
+                value={payType}
+                onChange={(e) => setPayType(e.target.value as PayType)}
+              >
+                <option value="salary">Fixed monthly salary</option>
+                <option value="hourly">Hourly</option>
+                <option value="commission">Commission only</option>
+                <option value="manual">Manual per period</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">Tax status</Label>
+              <select
+                className="h-10 w-full border rounded-md px-2 bg-background text-sm"
+                value={taxStatus}
+                onChange={(e) => setTaxStatus(e.target.value as TaxStatus)}
+              >
+                <option value="paye">PAYE (deduct tax)</option>
+                <option value="provisional">Provisional (no PAYE)</option>
+                <option value="exempt">Exempt (no PAYE/UIF)</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <Label className="text-xs">Monthly salary</Label>
+              <Input type="number" className="h-10" value={baseSalary} onChange={(e) => setBaseSalary(Number(e.target.value) || 0)} />
+            </div>
+            <div>
+              <Label className="text-xs">Hourly rate</Label>
+              <Input type="number" className="h-10" value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value) || 0)} />
+            </div>
+            <div>
+              <Label className="text-xs">Commission %</Label>
+              <Input type="number" className="h-10" value={commissionPct} onChange={(e) => setCommissionPct(Number(e.target.value) || 0)} />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">SA ID number (for payslip)</Label>
+            <Input className="h-10" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} maxLength={13} />
+          </div>
+          <Button size="sm" variant="outline" onClick={save} disabled={saving} className="self-start">
+            {saving ? "Saving…" : "Save compensation"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
