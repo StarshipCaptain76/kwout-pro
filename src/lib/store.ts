@@ -106,6 +106,7 @@ export interface Doc {
   fromCoords?: { lat: number; lng: number };
   toCoords?: { lat: number; lng: number };
   distanceKm?: number;
+  assignedTo?: string; // staff user_id
 }
 
 export interface Theme {
