@@ -107,6 +107,11 @@ function ResultsPage() {
       && d.scheduledDate && parseISO(d.scheduledDate) < now,
   ).length;
 
+  // VAT tracking (SARS)
+  const outputVat = paid.reduce((s, d) => s + docTotals(d, billing.vatPct).vat, 0);
+  const inputVat = exp.reduce((s, e) => s + (e.vatAmount || 0), 0);
+  const netVat = outputVat - inputVat;
+
   // Bucket selection
   const bucket: "day" | "month" | "year" = days <= 62 ? "day" : days <= 550 ? "month" : "year";
   const buckets = useMemo(() => {
