@@ -325,6 +325,7 @@ async function loadAll() {
       fromCoords: (r.from_coords as Doc["fromCoords"]) ?? undefined,
       toCoords: (r.to_coords as Doc["toCoords"]) ?? undefined,
       distanceKm: r.distance_km != null ? Number(r.distance_km) : undefined,
+      assignedTo: (r as { assigned_to?: string | null }).assigned_to ?? undefined,
     }));
     const remoteExpenses: Expense[] = (expRes.data ?? []).map((r) => ({
       id: r.id,
