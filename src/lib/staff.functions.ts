@@ -156,14 +156,19 @@ export const updateStaffMember = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      name?: string;
+      role?: Role;
+      permissions?: Permissions;
+      active?: boolean;
+    } = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.role !== undefined) patch.role = data.role;
-    if (data.permissions !== undefined) patch.permissions = data.permissions ?? {};
+    if (data.permissions !== undefined) patch.permissions = (data.permissions ?? {}) as Permissions;
     if (data.active !== undefined) patch.active = data.active;
     const { error } = await supabase
       .from("staff_members")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id)
       .eq("workspace_owner_id", userId);
     if (error) throw error;
