@@ -27,6 +27,9 @@ export type Action =
   // Planner
   | "planner.view"
   | "planner.edit"
+  // Payslips (owner-only feature)
+  | "payslips.view"
+  | "payslips.manage"
   // Settings — always owner only, kept here for a single source of truth
   | "settings.staff"
   | "settings.company";
