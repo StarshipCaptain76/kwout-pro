@@ -125,6 +125,7 @@ export type Database = {
       docs: {
         Row: {
           archived: boolean
+          assigned_to: string | null
           created_at: string
           customer: Json
           day_order: number | null
@@ -149,6 +150,7 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
+          assigned_to?: string | null
           created_at?: string
           customer?: Json
           day_order?: number | null
@@ -173,6 +175,7 @@ export type Database = {
         }
         Update: {
           archived?: boolean
+          assigned_to?: string | null
           created_at?: string
           customer?: Json
           day_order?: number | null
@@ -272,6 +275,69 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_members: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string
+          id: string
+          name: string
+          permissions: Json
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+          workspace_owner_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          permissions?: Json
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+          workspace_owner_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          permissions?: Json
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+          workspace_owner_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+          workspace_owner_id?: string
+        }
+        Relationships: []
+      }
       workspaces: {
         Row: {
           data: Json
@@ -301,10 +367,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_workspace_member: { Args: { _owner_id: string }; Returns: boolean }
+      workspace_owner_for: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "manager" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -431,6 +505,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "manager", "staff"],
+    },
   },
 } as const
