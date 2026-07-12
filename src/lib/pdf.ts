@@ -158,7 +158,7 @@ export async function generatePdf(
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(7);
   pdf.setTextColor(160, 160, 160);
-  pdf.text("powered by ONTHEMOOVE.CO.ZA", W / 2, 290, { align: "center" });
+  pdf.text("powered by KWOUT.CO.ZA", W / 2, 290, { align: "center" });
   pdf.setTextColor(20, 20, 20);
 
   return pdf;

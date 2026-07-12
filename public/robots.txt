@@ -1,7 +1,6 @@
 User-agent: *
 Allow: /
 
-# On the MOOVE - Professional billing & operations platform for transport & removal operators
-# https://github.com/StarshipCaptain76/onthemoove
+# KWOUT - Simple accounting & billing for entrepreneurs and small businesses
 
 Sitemap: https://your-app-domain.com/sitemap.xml
