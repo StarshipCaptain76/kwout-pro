@@ -316,32 +316,57 @@ function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">VAT (optional)</Label>
-              <InlineTumbler
-                value={draft.vatAmount ?? 0}
-                onChange={(v) => set({ vatAmount: v > 0 ? v : undefined })}
-                step={1}
-                min={0}
-                label="VAT amount"
-              />
+          {billing.vatPct > 0 && (
+            <div className="rounded-md border p-2.5 bg-muted/30">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={includesVat}
+                  onChange={(e) => toggleIncludesVat(e.target.checked)}
+                />
+                <span className="text-sm font-medium">Includes VAT ({billing.vatPct}%)</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {includesVat ? "VAT-inclusive" : "Zero-rated / exempt"}
+                </span>
+              </label>
+              {includesVat && (
+                <div className="mt-2">
+                  <Label className="text-xs">VAT amount</Label>
+                  <InlineTumbler
+                    value={draft.vatAmount ?? 0}
+                    onChange={(v) => {
+                      setVatManual(true);
+                      set({ vatAmount: v });
+                    }}
+                    step={1}
+                    min={0}
+                    label="VAT amount"
+                  />
+                  {!vatManual && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Auto-calculated from total. Tap to override.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div>
-              <Label className="text-xs">Paid with</Label>
-              <select
-                className="h-11 w-full border rounded-md px-2 bg-background"
-                value={draft.paymentMethod ?? ""}
-                onChange={(e) =>
-                  set({ paymentMethod: (e.target.value || undefined) as PayMethod | undefined })
-                }
-              >
-                <option value="">—</option>
-                <option value="cash">Cash</option>
-                <option value="eft">EFT</option>
-                <option value="card">Card</option>
-              </select>
-            </div>
+          )}
+
+          <div>
+            <Label className="text-xs">Paid with</Label>
+            <select
+              className="h-11 w-full border rounded-md px-2 bg-background"
+              value={draft.paymentMethod ?? ""}
+              onChange={(e) =>
+                set({ paymentMethod: (e.target.value || undefined) as PayMethod | undefined })
+              }
+            >
+              <option value="">—</option>
+              <option value="cash">Cash</option>
+              <option value="eft">EFT</option>
+              <option value="card">Card</option>
+            </select>
           </div>
 
           <div>
