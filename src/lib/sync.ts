@@ -395,6 +395,18 @@ async function loadAll() {
       suppressPush = false;
     }
 
+    // Refresh the brand cookie so the next page load / device paints
+    // with the correct company name, logo and colours from frame one.
+    const theme = company.theme ?? DEFAULT_THEME;
+    writeBrandCookie(
+      buildBrandCache({
+        name: company.name,
+        logo: company.logo,
+        primary: theme.primary,
+        accent: theme.accent,
+      }),
+    );
+
     // Push local-only rows up so they persist against this account.
     catMerge.localOnly.forEach(pushCatalogItem);
     custMerge.localOnly.forEach(pushCustomer);
