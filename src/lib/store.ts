@@ -405,6 +405,12 @@ export const useStore = create<State>()(
     {
       name: "app-store-v1",
       version: 3,
+      partialize: (s) => {
+        // Never persist per-session identity or staff list to localStorage.
+        const { staff: _s, currentUserId: _u, currentStaff: _c, ...rest } = s;
+        void _s; void _u; void _c;
+        return rest as unknown as State;
+      },
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as State;
         if (!s) return s;
