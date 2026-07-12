@@ -10,7 +10,9 @@ import {
   type Banking,
   type BillingSettings,
   type Density,
+  type StaffMember,
 } from "./store";
+import { resolveWorkspace, listStaff } from "./staff.functions";
 
 type Status = "idle" | "loading" | "syncing" | "synced" | "error";
 type Listener = (s: { status: Status; authed: boolean; error?: string }) => void;
