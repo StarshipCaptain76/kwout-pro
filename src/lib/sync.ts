@@ -80,7 +80,7 @@ async function withPush<T>(fn: () => Promise<T>): Promise<T | void> {
 
 export function pushCompanyProfile() {
   const s = useStore.getState();
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("company_profile").upsert({
@@ -95,7 +95,7 @@ export function pushCompanyProfile() {
 }
 
 export function pushCatalogItem(c: CatalogItem) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("catalog_items").upsert({
@@ -118,7 +118,7 @@ export function deleteCatalogItemRow(id: string) {
 }
 
 export function pushCustomer(c: Customer) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("customers").upsert({
@@ -142,7 +142,7 @@ export function deleteCustomerRow(id: string) {
 }
 
 export function pushDoc(d: Doc) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("docs").upsert({
@@ -181,7 +181,7 @@ export function deleteDocRow(id: string) {
 }
 
 export function pushExpense(e: Expense) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("expenses").upsert({
@@ -212,7 +212,7 @@ export function deleteExpenseRow(id: string) {
 }
 
 export function pushExpenseCategory(name: string) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase
@@ -223,7 +223,7 @@ export function pushExpenseCategory(name: string) {
 }
 
 export function deleteExpenseCategoryRow(name: string) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase
@@ -236,7 +236,7 @@ export function deleteExpenseCategoryRow(name: string) {
 }
 
 export async function renameExpenseCategoryRow(oldName: string, newName: string) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   await withPush(async () => {
     // Insert new (if not exists), delete old.
@@ -264,7 +264,7 @@ export function pushMany(docs: Doc[], expenses: Expense[], catalog: CatalogItem[
 // ============ initial load ============
 
 async function loadAll() {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
 
   state.loading = true;
