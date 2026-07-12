@@ -17,7 +17,7 @@ import { Download, TrendingDown, TrendingUp } from "lucide-react";
 import { RangePicker, resolveRange, previousRange, type RangeValue } from "@/components/app/RangePicker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PayslipsTab } from "@/components/payslips/PayslipsTab";
-import { can } from "@/lib/store";
+import { useCan, useIsOwner } from "@/lib/store";
 
 export const Route = createFileRoute("/results")({
   head: () => ({
