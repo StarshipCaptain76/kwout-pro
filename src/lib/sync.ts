@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   useStore,
   DEFAULT_EXPENSE_CATEGORIES,
+  DEFAULT_THEME,
   type Doc,
   type Customer,
   type CatalogItem,
