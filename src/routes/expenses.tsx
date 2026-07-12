@@ -144,8 +144,9 @@ function ExpensesPage() {
 }
 
 function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: () => void }) {
-  const { upsertExpense, deleteExpense, expenseCategories } = useStore();
+  const { upsertExpense, deleteExpense, expenseCategories, billing } = useStore();
   const [draft, setDraft] = useState<Expense | null>(expense);
+  const [vatManual, setVatManual] = useState(false);
   const [parsing, setParsing] = useState(false);
 
   // Reset draft when a different expense is opened
