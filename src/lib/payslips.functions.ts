@@ -186,7 +186,7 @@ export const generatePayslipDraft = createServerFn({ method: "POST" })
       const { data: docs } = await supabase
         .from("docs")
         .select("subtotal, paid_at, assigned_to")
-        .eq("workspace_owner_id", userId)
+        .eq("owner_user_id", userId)
         .eq("assigned_to", staffUserId)
         .eq("status", "paid")
         .gte("paid_at", data.periodStart)
