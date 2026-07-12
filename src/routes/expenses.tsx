@@ -183,11 +183,20 @@ function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: 
     setParsing(true);
     try {
       const r = await parseReceipt({ data: { imageDataUrl: dataUrl, categories: expenseCategories } });
+      const amount = r.total ?? draft.amount;
+      let vatAmount = draft.vatAmount;
+      if (r.vat != null) {
+        vatAmount = r.vat;
+        setVatManual(true);
+      } else if (billing.vatPct > 0 && amount) {
+        vatAmount = computeVat(amount, billing.vatPct);
+        setVatManual(false);
+      }
       set({
         date: r.date || draft.date,
         vendor: r.vendor || draft.vendor,
-        amount: r.total ?? draft.amount,
-        vatAmount: r.vat ?? draft.vatAmount,
+        amount,
+        vatAmount,
         category: r.category || draft.category,
         description: r.description || draft.description,
         paymentMethod: (r.paymentMethod as PayMethod | null) ?? draft.paymentMethod,
