@@ -84,20 +84,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#0f172a" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      // SEO: Primary title optimized for search (transport / moving / removal operators in SA)
-      { title: "On the MOOVE | Quote, Invoice & Job Planner for Transport & Removal Services" },
-      { name: "description", content: "Professional billing and operations platform for independent transport, removal and logistics operators in South Africa. Create quotes & invoices, plan jobs with drag-and-drop scheduler, track expenses with receipts, manage customers & catalog. Mobile-first, offline-capable, Supabase powered." },
-      { name: "keywords", content: "quote invoice planner, transport quote app, moving company billing software, removal services invoice, logistics planner South Africa, Cape Town transport app, job scheduler for movers, expense tracker with receipts, VAT invoice generator, Rand billing platform" },
+      // SEO: Simple accounting & billing for entrepreneurs and small businesses
+      { title: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
+      { name: "description", content: "KWOUT is a simple, mobile-first accounting and billing app for entrepreneurs and small businesses. Create quotes and invoices, track expenses with receipts, manage customers, send monthly statements and stay on top of cash flow." },
+      { name: "keywords", content: "small business accounting, invoicing app, quote and invoice software, expense tracker, customer statements, entrepreneur billing, VAT invoice generator, mobile bookkeeping, freelancer invoicing" },
       // Open Graph / Social
-      { property: "og:title", content: "On the MOOVE | Quote, Invoice & Job Planner for Transport & Removal Services" },
-      { property: "og:description", content: "Professional billing and operations platform for independent transport, removal and logistics operators in South Africa. Create quotes & invoices, plan jobs with drag-and-drop scheduler, track expenses with receipts, manage customers & catalog. Mobile-first, offline-capable." },
+      { property: "og:title", content: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
+      { property: "og:description", content: "Simple, mobile-first accounting and billing for entrepreneurs. Quotes, invoices, expenses, customer statements and reports — all in one place." },
       { property: "og:type", content: "website" },
-      // TODO: Replace the placeholder og:image below with your own branded social image (recommended: upload logo + hero to Supabase Storage or Vercel and use the public URL). Current image is a generic placeholder.
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783745259345-invoice-app-for-iphone-bnr-4x.webp" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "On the MOOVE | Quote, Invoice & Job Planner for Transport & Removal Services" },
-      { name: "twitter:description", content: "Professional billing and operations platform for independent transport, removal and logistics operators in South Africa. Create quotes & invoices, plan jobs with drag-and-drop scheduler, track expenses with receipts." },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783745259345-invoice-app-for-iphone-bnr-4x.webp" },
+      { name: "twitter:title", content: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
+      { name: "twitter:description", content: "Quotes, invoices, expenses and customer statements for entrepreneurs. Simple, mobile-first, cloud synced." },
     ],
     links: [
       {
