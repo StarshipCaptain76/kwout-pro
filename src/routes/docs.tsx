@@ -65,7 +65,7 @@ function DocsListPage() {
               key={k}
               size="sm"
               variant={effectiveWho === k ? "default" : "outline"}
-              onClick={() => nav({ search: (s) => ({ ...s, who: k }) })}
+              onClick={() => nav({ search: (s: Record<string, unknown>) => ({ ...s, who: k }) })}
               className="capitalize"
             >
               {k}
