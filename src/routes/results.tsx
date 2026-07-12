@@ -277,6 +277,8 @@ function ResultsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const canPayslips = useCan("payslips.view") && useIsOwner();
+
   return (
     <Shell>
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -291,6 +293,13 @@ function ResultsPage() {
         </Button>
       </div>
 
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="mb-3">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          {canPayslips && <TabsTrigger value="payslips">Payslips</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-0">
       <Card className="p-2 mb-3">
         <RangePicker value={range} onChange={setRange} />
       </Card>
