@@ -117,6 +117,9 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Applies cached brand colours from the otm_brand cookie before
+            React hydrates, so first paint uses the customer's palette. */}
+        <ScriptOnce>{BRAND_BOOTSTRAP_SCRIPT}</ScriptOnce>
       </head>
       <body>
         {children}
