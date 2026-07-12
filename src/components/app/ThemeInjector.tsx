@@ -1,14 +1,13 @@
 import { useEffect } from "react";
 import { useStore, DEFAULT_THEME } from "@/lib/store";
+import { buildBrandCache, writeBrandCookie, readBrandCookie } from "@/lib/brand-cookie";
 
-// Convert #rrggbb to "R G B" (space-separated) for CSS var use with alpha, plus rgb string.
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const h = hex.replace("#", "").trim();
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
   const n = parseInt(full, 16);
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
-
 function luminance(hex: string): number {
   const { r, g, b } = hexToRgb(hex);
   const a = [r, g, b].map((v) => {
@@ -17,18 +16,17 @@ function luminance(hex: string): number {
   });
   return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
 }
-
 function foregroundFor(hex: string): string {
   return luminance(hex) > 0.55 ? "oklch(0.145 0 0)" : "oklch(0.985 0 0)";
 }
-
-function toOklchLike(hex: string): string {
+function toRgb(hex: string): string {
   const { r, g, b } = hexToRgb(hex);
   return `rgb(${r} ${g} ${b})`;
 }
 
 export function ThemeInjector() {
-  const theme = useStore((s) => s.company.theme) ?? DEFAULT_THEME;
+  const company = useStore((s) => s.company);
+  const theme = company.theme ?? DEFAULT_THEME;
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -36,14 +34,43 @@ export function ThemeInjector() {
     const primary = theme.primary || DEFAULT_THEME.primary;
     const accent = theme.accent || DEFAULT_THEME.accent;
 
-    root.style.setProperty("--primary", toOklchLike(primary));
-    root.style.setProperty("--primary-foreground", foregroundFor(primary));
-    root.style.setProperty("--secondary", toOklchLike(accent));
-    root.style.setProperty("--secondary-foreground", foregroundFor(accent));
-    root.style.setProperty("--accent", toOklchLike(primary));
-    root.style.setProperty("--accent-foreground", foregroundFor(primary));
-    root.style.setProperty("--ring", toOklchLike(primary));
-  }, [theme.primary, theme.accent]);
+    const pRgb = toRgb(primary);
+    const pFg = foregroundFor(primary);
+    const aRgb = toRgb(accent);
+    const aFg = foregroundFor(accent);
+
+    // Skip redundant repaint if the pre-hydration script already applied
+    // matching values from the cookie.
+    if (root.style.getPropertyValue("--primary") !== pRgb) {
+      root.style.setProperty("--primary", pRgb);
+      root.style.setProperty("--primary-foreground", pFg);
+      root.style.setProperty("--accent", pRgb);
+      root.style.setProperty("--accent-foreground", pFg);
+      root.style.setProperty("--ring", pRgb);
+    }
+    if (root.style.getPropertyValue("--secondary") !== aRgb) {
+      root.style.setProperty("--secondary", aRgb);
+      root.style.setProperty("--secondary-foreground", aFg);
+    }
+
+    // Update the brand cookie so the next load / device paints branded.
+    const cache = buildBrandCache({
+      name: company.name,
+      logo: company.logo,
+      primary,
+      accent,
+    });
+    const prev = readBrandCookie();
+    if (
+      !prev ||
+      prev.n !== cache.n ||
+      prev.l !== cache.l ||
+      prev.p !== cache.p ||
+      prev.a !== cache.a
+    ) {
+      writeBrandCookie(cache);
+    }
+  }, [theme.primary, theme.accent, company.name, company.logo]);
 
   return null;
 }
