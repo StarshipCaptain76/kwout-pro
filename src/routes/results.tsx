@@ -247,6 +247,44 @@ function ResultsPage() {
         <Stat label="Overdue" v={String(overdueCount)} sub="unpaid, past date" />
       </div>
 
+      {billing.vatPct > 0 && (
+        <Card className="p-4 mb-4">
+          <div className="flex items-baseline justify-between mb-2">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">VAT (SARS)</div>
+              <div className="text-sm text-muted-foreground">Rate: {billing.vatPct}% · {label}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Output VAT</div>
+              <div className="text-lg sm:text-xl font-display tabular-nums mt-0.5">
+                {fmtMoney(outputVat, billing.currency)}
+              </div>
+              <div className="text-[10px] text-muted-foreground">collected on invoices</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Input VAT</div>
+              <div className="text-lg sm:text-xl font-display tabular-nums mt-0.5">
+                {fmtMoney(inputVat, billing.currency)}
+              </div>
+              <div className="text-[10px] text-muted-foreground">paid on expenses</div>
+            </div>
+            <div className="border-l pl-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {netVat >= 0 ? "Net payable" : "Refund due"}
+              </div>
+              <div className={`text-lg sm:text-xl font-display tabular-nums mt-0.5 ${netVat >= 0 ? "text-red-600" : "text-green-600"}`}>
+                {fmtMoney(Math.abs(netVat), billing.currency)}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                {netVat >= 0 ? "owed to SARS" : "claim from SARS"}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <div className="space-y-3">
         <ChartCard title={`Revenue trend (${bucket === "day" ? "daily" : bucket === "month" ? "monthly" : "yearly"})`}>
           <ResponsiveContainer width="100%" height={220}>
