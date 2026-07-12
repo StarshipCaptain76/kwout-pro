@@ -534,6 +534,14 @@ function ResultsPage() {
           </Card>
         )}
       </div>
+        </TabsContent>
+
+        {canPayslips && (
+          <TabsContent value="payslips" className="mt-0">
+            <PayslipsTab />
+          </TabsContent>
+        )}
+      </Tabs>
     </Shell>
   );
 }
