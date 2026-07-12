@@ -1,0 +1,359 @@
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import { useStore, useIsOwner, type StaffMember } from "@/lib/store";
+import { ACTION_GROUPS, presetFor, type Action, type Permissions, type Role } from "@/lib/permissions";
+import {
+  createStaffAccount, updateStaffMember, deleteStaffMember, resetStaffPassword,
+} from "@/lib/staff.functions";
+import { refreshStaff } from "@/lib/sync";
+import { Plus, Trash2, KeyRound, Copy, Users } from "lucide-react";
+import { toast } from "sonner";
+
+const ROLE_LABEL: Record<Role, string> = {
+  owner: "Owner",
+  manager: "Manager",
+  staff: "Field staff",
+};
+
+function randomPassword() {
+  const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+export function StaffSection() {
+  const isOwner = useIsOwner();
+  const staff = useStore((s) => s.staff);
+  const [editing, setEditing] = useState<StaffMember | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [justCreated, setJustCreated] = useState<{ email: string; password: string } | null>(null);
+
+  useEffect(() => {
+    void refreshStaff();
+  }, []);
+
+  if (!isOwner) {
+    return (
+      <Card className="p-6 text-sm text-muted-foreground">
+        Only the workspace owner can manage staff.
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          <h2 className="font-semibold">Staff members</h2>
+        </div>
+        <Button size="sm" onClick={() => setCreating(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Add staff
+        </Button>
+      </div>
+
+      <Card className="p-2 divide-y">
+        {staff.length === 0 && (
+          <div className="p-4 text-sm text-muted-foreground text-center">
+            No staff yet. Add your first team member.
+          </div>
+        )}
+        {staff.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => setEditing(m)}
+            className="w-full text-left flex items-center gap-3 p-3 hover:bg-muted/50 rounded"
+          >
+            <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-display flex items-center justify-center">
+              {(m.name || m.email || "?").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium truncate">{m.name || "—"}</div>
+              <div className="text-xs text-muted-foreground truncate">{m.email}</div>
+            </div>
+            <span className="text-[10px] uppercase font-bold px-2 py-1 rounded bg-secondary text-secondary-foreground">
+              {ROLE_LABEL[m.role]}
+            </span>
+            {!m.active && <span className="text-[10px] text-red-600 ml-2">disabled</span>}
+          </button>
+        ))}
+      </Card>
+
+      <CreateStaffSheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={(email, password) => setJustCreated({ email, password })}
+      />
+
+      <EditStaffSheet member={editing} onClose={() => setEditing(null)} />
+
+      {justCreated && (
+        <CredentialsDialog creds={justCreated} onClose={() => setJustCreated(null)} />
+      )}
+    </div>
+  );
+}
+
+function CreateStaffSheet({
+  open, onClose, onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: (email: string, password: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState(() => randomPassword());
+  const [role, setRole] = useState<Role>("staff");
+  const [busy, setBusy] = useState(false);
+
+  const reset = () => {
+    setName(""); setEmail(""); setPassword(randomPassword()); setRole("staff");
+  };
+
+  const save = async () => {
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      toast.error("Fill in name, email and password"); return;
+    }
+    setBusy(true);
+    try {
+      await createStaffAccount({
+        data: { name: name.trim(), email: email.trim().toLowerCase(), password, role, permissions: presetFor(role) },
+      });
+      await refreshStaff();
+      onCreated(email.trim().toLowerCase(), password);
+      reset();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create staff");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92vh] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="font-display text-2xl">ADD STAFF</SheetTitle>
+        </SheetHeader>
+        <div className="grid gap-3 mt-3 pb-[env(safe-area-inset-bottom)]">
+          <div>
+            <Label>Name</Label>
+            <Input className="h-11" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" />
+          </div>
+          <div>
+            <Label>Email</Label>
+            <Input className="h-11" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" />
+          </div>
+          <div>
+            <Label>Temporary password</Label>
+            <div className="flex gap-2">
+              <Input className="h-11 font-mono" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Button type="button" variant="outline" onClick={() => setPassword(randomPassword())}>New</Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Share with the staff member — they can change it after logging in.</p>
+          </div>
+          <div>
+            <Label>Role</Label>
+            <select className="h-11 w-full border rounded-md px-2 bg-background" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+              <option value="staff">Field staff — assigned jobs only</option>
+              <option value="manager">Manager — all except staff and settings</option>
+              <option value="owner">Owner — full access</option>
+            </select>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
+            <Button onClick={save} disabled={busy} className="flex-1">
+              {busy ? "Creating…" : "Create account"}
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClose: () => void }) {
+  const [draft, setDraft] = useState<StaffMember | null>(member);
+  const [busy, setBusy] = useState(false);
+  const [newPass, setNewPass] = useState("");
+
+  if (member && (!draft || draft.id !== member.id)) {
+    setDraft(member);
+    setNewPass("");
+  }
+  if (!member || !draft) return null;
+
+  const effective = { ...presetFor(draft.role), ...draft.permissions };
+
+  const setPerm = (key: Action, checked: boolean) => {
+    const preset = presetFor(draft.role);
+    const next: Permissions = { ...(draft.permissions ?? {}) };
+    if (preset[key] === checked) delete next[key]; // matches preset → drop override
+    else next[key] = checked;
+    setDraft({ ...draft, permissions: next });
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await updateStaffMember({
+        data: {
+          id: draft.id,
+          name: draft.name,
+          role: draft.role,
+          permissions: draft.permissions,
+          active: draft.active,
+        },
+      });
+      await refreshStaff();
+      toast.success("Saved");
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Delete ${draft.name || draft.email}? Their login will be removed.`)) return;
+    setBusy(true);
+    try {
+      await deleteStaffMember({ data: { id: draft.id } });
+      await refreshStaff();
+      toast.success("Removed");
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doResetPass = async () => {
+    if (!newPass || newPass.length < 6) return toast.error("Password needs at least 6 characters");
+    setBusy(true);
+    try {
+      await resetStaffPassword({ data: { id: draft.id, newPassword: newPass } });
+      toast.success("Password updated — share it with your staff");
+      setNewPass("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet open={!!member} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92vh] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="font-display text-2xl">{draft.name || draft.email}</SheetTitle>
+        </SheetHeader>
+
+        <div className="grid gap-4 mt-3 pb-[env(safe-area-inset-bottom)]">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Name</Label>
+              <Input className="h-11" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+            </div>
+            <div>
+              <Label>Role</Label>
+              <select
+                className="h-11 w-full border rounded-md px-2 bg-background"
+                value={draft.role}
+                onChange={(e) => setDraft({ ...draft, role: e.target.value as Role, permissions: {} })}
+              >
+                <option value="staff">Field staff</option>
+                <option value="manager">Manager</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
+            Active (can sign in)
+          </label>
+
+          <div>
+            <div className="text-sm font-semibold mb-2">Permissions</div>
+            <p className="text-xs text-muted-foreground mb-2">Tick to grant. Defaults come from the role; changes override the preset.</p>
+            <div className="grid gap-3">
+              {ACTION_GROUPS.map((g) => (
+                <div key={g.title} className="border rounded-md p-2.5">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5">{g.title}</div>
+                  <div className="grid gap-1.5">
+                    {g.actions.map((a) => (
+                      <label key={a.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={!!effective[a.key]}
+                          onChange={(e) => setPerm(a.key, e.target.checked)}
+                        />
+                        <span>{a.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border rounded-md p-3">
+            <div className="text-sm font-semibold mb-2 flex items-center gap-1"><KeyRound className="h-4 w-4" /> Reset password</div>
+            <div className="flex gap-2">
+              <Input className="h-11 font-mono" placeholder="new password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
+              <Button type="button" variant="outline" onClick={() => setNewPass(randomPassword())}>Gen</Button>
+              <Button onClick={doResetPass} disabled={busy}>Set</Button>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="ghost" className="text-destructive" onClick={remove} disabled={busy}>
+              <Trash2 className="h-4 w-4 mr-1" /> Delete
+            </Button>
+            <div className="flex-1" />
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button onClick={save} disabled={busy}>Save</Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function CredentialsDialog({ creds, onClose }: { creds: { email: string; password: string }; onClose: () => void }) {
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(`Email: ${creds.email}\nPassword: ${creds.password}`);
+      toast.success("Copied");
+    } catch { toast.error("Copy failed"); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <Card className="w-full max-w-sm p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="font-display text-xl mb-2">Account created</div>
+        <p className="text-sm text-muted-foreground mb-3">Share these credentials once — they won't be shown again.</p>
+        <div className="space-y-2 text-sm font-mono bg-muted/50 rounded-md p-3">
+          <div><span className="text-muted-foreground">Email:</span> {creds.email}</div>
+          <div><span className="text-muted-foreground">Password:</span> {creds.password}</div>
+        </div>
+        <div className="flex gap-2 mt-3">
+          <Button variant="outline" onClick={copy} className="flex-1"><Copy className="h-4 w-4 mr-1" /> Copy</Button>
+          <Button onClick={onClose} className="flex-1">Done</Button>
+        </div>
+      </Card>
+    </div>
+  );
+}

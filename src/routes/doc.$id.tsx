@@ -41,7 +41,7 @@ export const Route = createFileRoute("/doc/$id")({ component: DocPage });
 function DocPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
-  const { docs, company, banking, billing, catalog, customers, upsertDoc, deleteDoc, nextDocNumber } = useStore();
+  const { docs, company, banking, billing, catalog, customers, staff, currentStaff, upsertDoc, deleteDoc, nextDocNumber } = useStore();
   const doc = docs.find((d) => d.id === id);
   const distanceFn = useServerFn(routeDistance);
   const [calcing, setCalcing] = useState(false);
@@ -317,6 +317,25 @@ function DocPage() {
           <Card className="p-4">
             <Label className="flex items-center gap-1 mb-1"><CalendarIcon className="h-3.5 w-3.5" /> Scheduled date</Label>
             <DatePicker value={doc.scheduledDate} onChange={(iso) => update({ scheduledDate: iso })} clearable />
+          </Card>
+
+          <Card className="p-4">
+            <Label className="mb-1 block">Assigned to</Label>
+            {staff.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No staff members yet. Add them in Settings → Staff.</p>
+            ) : (
+              <select
+                className="h-11 w-full border rounded-md px-2 bg-background"
+                value={doc.assignedTo ?? ""}
+                disabled={!!currentStaff && currentStaff.role === "staff"}
+                onChange={(e) => update({ assignedTo: e.target.value || undefined })}
+              >
+                <option value="">— Unassigned —</option>
+                {staff.filter((s) => s.active).map((m) => (
+                  <option key={m.userId} value={m.userId}>{m.name || m.email}</option>
+                ))}
+              </select>
+            )}
           </Card>
 
           <Card className="p-4 space-y-2">

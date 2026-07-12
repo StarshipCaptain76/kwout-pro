@@ -13,6 +13,18 @@ import {
   deleteExpenseCategoryRow,
   renameExpenseCategoryRow,
 } from "./sync";
+import type { Role, Permissions } from "./permissions";
+export type { Role, Permissions } from "./permissions";
+
+export interface StaffMember {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: Role;
+  permissions: Permissions;
+  active: boolean;
+}
 
 export type Unit = string; // built-ins: "each" | "hour" | "km" | "job", plus user-defined
 export const BUILTIN_UNITS = ["each", "hour", "km", "job"] as const;
@@ -94,6 +106,7 @@ export interface Doc {
   fromCoords?: { lat: number; lng: number };
   toCoords?: { lat: number; lng: number };
   distanceKm?: number;
+  assignedTo?: string; // staff user_id
 }
 
 export interface Theme {
@@ -151,6 +164,11 @@ interface State {
   expenses: Expense[];
   expenseCategories: string[];
   density: Density;
+  staff: StaffMember[];
+  currentUserId: string | null;
+  currentStaff: StaffMember | null;
+  setStaffList: (s: StaffMember[]) => void;
+  setCurrentUser: (userId: string | null, currentStaff: StaffMember | null) => void;
   upsertDoc: (d: Doc) => void;
   deleteDoc: (id: string) => void;
   upsertCatalog: (c: CatalogItem) => void;
@@ -216,6 +234,11 @@ export const useStore = create<State>()(
       expenses: [],
       expenseCategories: DEFAULT_EXPENSE_CATEGORIES,
       density: "normal" as Density,
+      staff: [],
+      currentUserId: null,
+      currentStaff: null,
+      setStaffList: (s) => set({ staff: s }),
+      setCurrentUser: (userId, currentStaff) => set({ currentUserId: userId, currentStaff }),
       upsertDoc: (d) =>
         {
           set((s) => ({
@@ -382,6 +405,12 @@ export const useStore = create<State>()(
     {
       name: "app-store-v1",
       version: 3,
+      partialize: (s) => {
+        // Never persist per-session identity or staff list to localStorage.
+        const { staff: _s, currentUserId: _u, currentStaff: _c, ...rest } = s;
+        void _s; void _u; void _c;
+        return rest as unknown as State;
+      },
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as State;
         if (!s) return s;
@@ -418,3 +447,16 @@ export function computeVat(amountInclusive: number, vatPct: number) {
 export function fmtMoney(n: number, cur = "$") {
   return `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+import { can as canRaw, type Action } from "./permissions";
+
+// Reactive: re-renders when currentStaff changes.
+export function useCan(action: Action): boolean {
+  const cs = useStore((s) => s.currentStaff);
+  return canRaw(cs?.role ?? null, cs?.permissions, action);
+}
+export function useIsOwner(): boolean {
+  const cs = useStore((s) => s.currentStaff);
+  return !cs || cs.role === "owner";
+}
+

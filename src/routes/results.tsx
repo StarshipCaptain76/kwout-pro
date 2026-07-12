@@ -38,7 +38,19 @@ function inRange(dateStr: string | undefined, from: Date, to: Date) {
 }
 
 function ResultsPage() {
-  const { docs, billing, expenses } = useStore();
+  const { docs: allDocs, billing, expenses: allExpenses, staff, currentStaff, currentUserId } = useStore();
+
+  // Scope: field staff sees only their own jobs & their own expenses.
+  const canSeeAll = !currentStaff || currentStaff.role !== "staff" || !!currentStaff.permissions["reports.viewAll"];
+  const myId = currentStaff?.userId ?? currentUserId ?? "";
+  const docs = useMemo(
+    () => (canSeeAll ? allDocs : allDocs.filter((d) => d.assignedTo === myId)),
+    [allDocs, canSeeAll, myId],
+  );
+  const expenses = useMemo(
+    () => (canSeeAll ? allExpenses : allExpenses.filter((_e) => false)), // staff can't see expenses unless permission granted
+    [allExpenses, canSeeAll],
+  );
 
   const [range, setRange] = useState<RangeValue>({ preset: "this-month" });
   useEffect(() => {
@@ -111,6 +123,52 @@ function ResultsPage() {
   const outputVat = paid.reduce((s, d) => s + docTotals(d, billing.vatPct).vat, 0);
   const inputVat = exp.reduce((s, e) => s + (e.vatAmount || 0), 0);
   const netVat = outputVat - inputVat;
+
+  // Revenue by staff (within selected range)
+  const staffMap = useMemo(() => {
+    const m = new Map<string, string>();
+    staff.forEach((s) => m.set(s.userId, s.name || s.email));
+    if (currentStaff) m.set(currentStaff.userId, currentStaff.name || currentStaff.email);
+    return m;
+  }, [staff, currentStaff]);
+  const revenueByStaff = useMemo(() => {
+    const m = new Map<string, { name: string; total: number; jobs: number }>();
+    paid.forEach((d) => {
+      const key = d.assignedTo ?? "";
+      const name = key ? (staffMap.get(key) ?? "Unknown") : "Unassigned";
+      const t = docTotals(d, billing.vatPct).total;
+      const cur = m.get(key) ?? { name, total: 0, jobs: 0 };
+      cur.total += t; cur.jobs += 1;
+      m.set(key, cur);
+    });
+    return Array.from(m.values()).sort((a, b) => b.total - a.total);
+  }, [paid, staffMap, billing.vatPct]);
+  const staffTotal = revenueByStaff.reduce((s, x) => s + x.total, 0);
+
+  // MoM / YoY panels — independent of the range picker
+  const monthNow = useMemo(() => {
+    const d = new Date();
+    return { from: startOfMonth(d), to: new Date() };
+  }, []);
+  const monthPrev = useMemo(() => {
+    const d = new Date(monthNow.from);
+    d.setMonth(d.getMonth() - 1);
+    const endPrev = new Date(monthNow.from);
+    endPrev.setDate(0);
+    return { from: startOfMonth(d), to: endPrev };
+  }, [monthNow]);
+  const yearAgo = useMemo(() => {
+    const f = new Date(from); f.setFullYear(f.getFullYear() - 1);
+    const t = new Date(to); t.setFullYear(t.getFullYear() - 1);
+    return { from: f, to: t };
+  }, [from, to]);
+
+  const paidMom = paidAll.filter((d) => inRange(d.paidAt, monthNow.from, monthNow.to));
+  const paidMomPrev = paidAll.filter((d) => inRange(d.paidAt, monthPrev.from, monthPrev.to));
+  const expMom = expenses.filter((e) => inRange(e.date, monthNow.from, monthNow.to));
+  const expMomPrev = expenses.filter((e) => inRange(e.date, monthPrev.from, monthPrev.to));
+  const paidYoy = paidAll.filter((d) => inRange(d.paidAt, yearAgo.from, yearAgo.to));
+  const expYoy = expenses.filter((e) => inRange(e.date, yearAgo.from, yearAgo.to));
 
   // Bucket selection
   const bucket: "day" | "month" | "year" = days <= 62 ? "day" : days <= 550 ? "month" : "year";
@@ -395,6 +453,69 @@ function ResultsPage() {
           </ChartCard>
         )}
 
+        {revenueByStaff.length > 0 && (
+          <ChartCard title="Revenue by staff">
+            <ul className="space-y-2">
+              {revenueByStaff.map((s, i) => {
+                const pct = staffTotal > 0 ? (s.total / staffTotal) * 100 : 0;
+                return (
+                  <li key={s.name}>
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="truncate pr-2">{s.name} · <span className="text-muted-foreground">{s.jobs} job{s.jobs === 1 ? "" : "s"}</span></span>
+                      <span className="tabular-nums font-semibold shrink-0">
+                        {fmtMoney(s.total, billing.currency)} · {pct.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded overflow-hidden">
+                      <div className="h-full rounded" style={{ width: `${pct}%`, background: COLORS[i % COLORS.length] }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </ChartCard>
+        )}
+
+        <ChartCard title="Trends">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <TrendBlock
+              title="Month over month"
+              subtitle={`${format(monthNow.from, "MMM yyyy")} vs ${format(monthPrev.from, "MMM yyyy")}`}
+              cur={{
+                Revenue: sumRev(paidMom),
+                Expenses: sumExp(expMom),
+                Net: sumRev(paidMom) - sumExp(expMom),
+                Jobs: paidMom.length,
+              }}
+              prev={{
+                Revenue: sumRev(paidMomPrev),
+                Expenses: sumExp(expMomPrev),
+                Net: sumRev(paidMomPrev) - sumExp(expMomPrev),
+                Jobs: paidMomPrev.length,
+              }}
+              currency={billing.currency}
+            />
+            <TrendBlock
+              title="Year over year"
+              subtitle={`${format(from, "d MMM yy")}–${format(to, "d MMM yy")} vs ${format(yearAgo.from, "d MMM yy")}–${format(yearAgo.to, "d MMM yy")}`}
+              cur={{
+                Revenue: revenue,
+                Expenses: totalExp,
+                Net: revenue - totalExp,
+                Jobs: paidCount,
+              }}
+              prev={{
+                Revenue: sumRev(paidYoy),
+                Expenses: sumExp(expYoy),
+                Net: sumRev(paidYoy) - sumExp(expYoy),
+                Jobs: paidYoy.length,
+              }}
+              currency={billing.currency}
+            />
+          </div>
+        </ChartCard>
+
+
         {paid.length === 0 && exp.length === 0 && (
           <Card className="p-6 text-center text-sm text-muted-foreground">
             No data in this period. Try a different range.
@@ -436,4 +557,49 @@ function Stat({
 }
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return <Card className="p-3 sm:p-4"><h3 className="font-semibold text-sm mb-2">{title}</h3>{children}</Card>;
+}
+
+function TrendBlock({
+  title, subtitle, cur, prev, currency,
+}: {
+  title: string;
+  subtitle: string;
+  cur: { Revenue: number; Expenses: number; Net: number; Jobs: number };
+  prev: { Revenue: number; Expenses: number; Net: number; Jobs: number };
+  currency: string;
+}) {
+  const rows: Array<{ k: keyof typeof cur; isMoney: boolean; invert?: boolean }> = [
+    { k: "Revenue", isMoney: true },
+    { k: "Expenses", isMoney: true, invert: true },
+    { k: "Net", isMoney: true },
+    { k: "Jobs", isMoney: false },
+  ];
+  return (
+    <div className="border rounded-md p-3">
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="text-[11px] text-muted-foreground mb-2">{subtitle}</div>
+      <table className="w-full text-sm">
+        <tbody>
+          {rows.map(({ k, isMoney, invert }) => {
+            const c = cur[k]; const p = prev[k];
+            const diff = c - p;
+            const pct = p === 0 ? (c === 0 ? 0 : null) : (diff / Math.abs(p)) * 100;
+            const up = diff >= 0;
+            const good = invert ? !up : up;
+            return (
+              <tr key={k} className="border-t first:border-t-0">
+                <td className="py-1.5 text-muted-foreground">{k}</td>
+                <td className="py-1.5 text-right tabular-nums font-semibold">
+                  {isMoney ? fmtMoney(c, currency) : c}
+                </td>
+                <td className={`py-1.5 text-right tabular-nums text-xs ${good ? "text-green-600" : "text-red-600"}`}>
+                  {pct == null ? "new" : `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%`}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }

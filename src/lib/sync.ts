@@ -10,7 +10,9 @@ import {
   type Banking,
   type BillingSettings,
   type Density,
+  type StaffMember,
 } from "./store";
+import { resolveWorkspace, listStaff } from "./staff.functions";
 
 type Status = "idle" | "loading" | "syncing" | "synced" | "error";
 type Listener = (s: { status: Status; authed: boolean; error?: string }) => void;
@@ -18,12 +20,14 @@ type Listener = (s: { status: Status; authed: boolean; error?: string }) => void
 const state: {
   status: Status;
   userId: string | null;
+  workspaceOwnerId: string | null;
   error?: string;
   loading: boolean;
   pending: number;
 } = {
   status: "idle",
   userId: null,
+  workspaceOwnerId: null,
   loading: false,
   pending: 0,
 };
@@ -78,7 +82,7 @@ async function withPush<T>(fn: () => Promise<T>): Promise<T | void> {
 
 export function pushCompanyProfile() {
   const s = useStore.getState();
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("company_profile").upsert({
@@ -93,7 +97,7 @@ export function pushCompanyProfile() {
 }
 
 export function pushCatalogItem(c: CatalogItem) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("catalog_items").upsert({
@@ -116,7 +120,7 @@ export function deleteCatalogItemRow(id: string) {
 }
 
 export function pushCustomer(c: Customer) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("customers").upsert({
@@ -140,7 +144,7 @@ export function deleteCustomerRow(id: string) {
 }
 
 export function pushDoc(d: Doc) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("docs").upsert({
@@ -165,6 +169,7 @@ export function pushDoc(d: Doc) {
       from_coords: (d.fromCoords ?? null) as unknown as never,
       to_coords: (d.toCoords ?? null) as unknown as never,
       distance_km: d.distanceKm ?? null,
+      assigned_to: d.assignedTo ?? null,
     });
     if (error) throw error;
   });
@@ -179,7 +184,7 @@ export function deleteDocRow(id: string) {
 }
 
 export function pushExpense(e: Expense) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase.from("expenses").upsert({
@@ -210,7 +215,7 @@ export function deleteExpenseRow(id: string) {
 }
 
 export function pushExpenseCategory(name: string) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase
@@ -221,7 +226,7 @@ export function pushExpenseCategory(name: string) {
 }
 
 export function deleteExpenseCategoryRow(name: string) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   void withPush(async () => {
     const { error } = await supabase
@@ -234,7 +239,7 @@ export function deleteExpenseCategoryRow(name: string) {
 }
 
 export async function renameExpenseCategoryRow(oldName: string, newName: string) {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
   await withPush(async () => {
     // Insert new (if not exists), delete old.
@@ -262,7 +267,7 @@ export function pushMany(docs: Doc[], expenses: Expense[], catalog: CatalogItem[
 // ============ initial load ============
 
 async function loadAll() {
-  const uid = state.userId;
+  const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
 
   state.loading = true;
@@ -320,6 +325,7 @@ async function loadAll() {
       fromCoords: (r.from_coords as Doc["fromCoords"]) ?? undefined,
       toCoords: (r.to_coords as Doc["toCoords"]) ?? undefined,
       distanceKm: r.distance_km != null ? Number(r.distance_km) : undefined,
+      assignedTo: (r as { assigned_to?: string | null }).assigned_to ?? undefined,
     }));
     const remoteExpenses: Expense[] = (expRes.data ?? []).map((r) => ({
       id: r.id,
@@ -407,6 +413,69 @@ async function loadAll() {
   }
 }
 
+async function resolveAndLoad() {
+  if (!state.userId) return;
+  try {
+    const info = await resolveWorkspace();
+    state.workspaceOwnerId = info.workspaceOwnerId;
+    const me: StaffMember | null = info.me
+      ? {
+          id: info.me.id,
+          userId: info.me.userId,
+          name: info.me.name,
+          email: info.me.email,
+          role: info.me.role,
+          permissions: info.me.permissions ?? {},
+          active: info.me.active,
+        }
+      : null;
+    useStore.getState().setCurrentUser(state.userId, me);
+  } catch (e) {
+    console.error("[sync resolveWorkspace]", e);
+    state.workspaceOwnerId = state.userId; // fall back to own workspace
+    useStore.getState().setCurrentUser(state.userId, null);
+  }
+
+  await loadAll();
+
+  // Load staff list in the background (owner and members both see it).
+  try {
+    const list = await listStaff();
+    useStore.getState().setStaffList(
+      list.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        permissions: r.permissions ?? {},
+        active: r.active,
+      })),
+    );
+  } catch (e) {
+    console.error("[sync listStaff]", e);
+  }
+}
+
+export async function refreshStaff() {
+  try {
+    const list = await listStaff();
+    useStore.getState().setStaffList(
+      list.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        permissions: r.permissions ?? {},
+        active: r.active,
+      })),
+    );
+  } catch (e) {
+    console.error("[sync refreshStaff]", e);
+  }
+}
+
 let started = false;
 export async function initSync() {
   if (started || typeof window === "undefined") return;
@@ -417,14 +486,19 @@ export async function initSync() {
     const newUid = session?.user.id ?? null;
     if (newUid === state.userId) return;
     state.userId = newUid;
+    if (!newUid) {
+      state.workspaceOwnerId = null;
+      useStore.getState().setCurrentUser(null, null);
+      useStore.getState().setStaffList([]);
+    }
     emit();
-    if (newUid) void loadAll();
+    if (newUid) void resolveAndLoad();
   });
 
   const { data: userRes } = await supabase.auth.getUser();
   state.userId = userRes.user?.id ?? null;
   emit();
-  if (state.userId) await loadAll();
+  if (state.userId) await resolveAndLoad();
 }
 
 // Legacy helpers kept as no-ops so we don't break any straggling import.
