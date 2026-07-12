@@ -504,6 +504,7 @@ export async function initSync() {
       state.workspaceOwnerId = null;
       useStore.getState().setCurrentUser(null, null);
       useStore.getState().setStaffList([]);
+      clearBrandCookie();
     }
     emit();
     if (newUid) void resolveAndLoad();
