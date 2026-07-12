@@ -275,39 +275,137 @@ export type Database = {
         }
         Relationships: []
       }
+      payslips: {
+        Row: {
+          commission_amount: number
+          created_at: string
+          deductions_breakdown: Json
+          finalized_at: string | null
+          gross: number
+          hours: number
+          id: string
+          net: number
+          other_deductions: number
+          paye: number
+          period_end: string
+          period_label: string
+          period_start: string
+          sdl: number
+          sent_at: string | null
+          staff_id: string
+          status: string
+          uif_employee: number
+          uif_employer: number
+          updated_at: string
+          workspace_owner_id: string
+        }
+        Insert: {
+          commission_amount?: number
+          created_at?: string
+          deductions_breakdown?: Json
+          finalized_at?: string | null
+          gross?: number
+          hours?: number
+          id?: string
+          net?: number
+          other_deductions?: number
+          paye?: number
+          period_end: string
+          period_label: string
+          period_start: string
+          sdl?: number
+          sent_at?: string | null
+          staff_id: string
+          status?: string
+          uif_employee?: number
+          uif_employer?: number
+          updated_at?: string
+          workspace_owner_id: string
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string
+          deductions_breakdown?: Json
+          finalized_at?: string | null
+          gross?: number
+          hours?: number
+          id?: string
+          net?: number
+          other_deductions?: number
+          paye?: number
+          period_end?: string
+          period_label?: string
+          period_start?: string
+          sdl?: number
+          sent_at?: string | null
+          staff_id?: string
+          status?: string
+          uif_employee?: number
+          uif_employer?: number
+          updated_at?: string
+          workspace_owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_members: {
         Row: {
           active: boolean
+          base_salary: number
+          commission_pct: number
           created_at: string
           email: string
+          hourly_rate: number
           id: string
+          id_number: string | null
           name: string
+          pay_type: string
           permissions: Json
           role: Database["public"]["Enums"]["app_role"]
+          tax_status: string
           updated_at: string
           user_id: string
           workspace_owner_id: string
         }
         Insert: {
           active?: boolean
+          base_salary?: number
+          commission_pct?: number
           created_at?: string
           email?: string
+          hourly_rate?: number
           id?: string
+          id_number?: string | null
           name?: string
+          pay_type?: string
           permissions?: Json
           role?: Database["public"]["Enums"]["app_role"]
+          tax_status?: string
           updated_at?: string
           user_id: string
           workspace_owner_id: string
         }
         Update: {
           active?: boolean
+          base_salary?: number
+          commission_pct?: number
           created_at?: string
           email?: string
+          hourly_rate?: number
           id?: string
+          id_number?: string | null
           name?: string
+          pay_type?: string
           permissions?: Json
           role?: Database["public"]["Enums"]["app_role"]
+          tax_status?: string
           updated_at?: string
           user_id?: string
           workspace_owner_id?: string

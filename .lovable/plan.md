@@ -1,85 +1,83 @@
-## Overview
+## Payslips module (Reports → Payslips)
 
-Add staff/team support: the owner creates login accounts for staff, assigns each a role plus optional per-permission overrides, and can assign jobs (quotes/invoices) to them. Reports get a revenue-by-staff breakdown and month-over-month / year-over-year comparisons.
+Owner-only feature that generates SA-compliant payslips for staff, wired as a second tab on the Reports page.
 
-## Data model
+### 1. Data model (one migration)
 
-New tables (backend):
+Add compensation fields to `staff_members`:
+- `pay_type` text: `salary` | `hourly` | `commission` | `manual` (default `salary`)
+- `base_salary` numeric (monthly, for `salary`)
+- `hourly_rate` numeric (for `hourly`)
+- `commission_pct` numeric (0–100, % of assigned/completed jobs revenue in period)
+- `id_number` text (SA ID, appears on payslip)
+- `tax_status` text: `paye` | `provisional` | `exempt` (default `paye`)
 
-- `staff_members` — one row per team member of a workspace
-  - `workspace_owner_id` (= owner's auth user id), `user_id` (auth user, unique), `name`, `email`, `role` (`owner` / `manager` / `staff`), `permissions` (jsonb overrides), `active`
-- `user_roles` — enum (`owner`, `manager`, `staff`) with security-definer `has_role()` helper (never store roles on profile)
-- Security-definer helper `is_workspace_member(_owner_id uuid)` used by RLS
+New table `payslips` (owner-scoped, owner-only RLS):
+- `workspace_owner_id`, `staff_id`, `period_start`, `period_end`, `period_label`
+- `hours` numeric, `gross` numeric, `commission_amount` numeric
+- `paye`, `uif_employee`, `uif_employer`, `sdl`, `other_deductions` numeric
+- `deductions_breakdown` jsonb (line items shown on the payslip)
+- `net` numeric, `status` text (`draft` | `finalized`), `finalized_at`, `sent_at`
+- Standard `id`, `created_at`, `updated_at`, GRANTs, RLS `workspace_owner_id = auth.uid()`, updated_at trigger.
 
-Existing tables (`docs`, `customers`, `catalog_items`, `expenses`, `company_profile`, `expense_categories`) currently gate by `owner_user_id = auth.uid()`. RLS is widened to `owner_user_id = auth.uid() OR is_workspace_member(owner_user_id)` so staff read/write the owner's workspace data. Field-level filtering (e.g. field staff only sees their own jobs) is applied in the app layer for the UI, since the tables share one dataset per workspace.
+### 2. Statutory calculations (`src/lib/payroll.ts`)
 
-Add column `docs.assigned_to uuid` (nullable, references staff user) for job assignment.
+Pure functions, easy to unit-test, using SA 2025/26 tables (annualise monthly gross, apply brackets, primary rebate R17,235; +65 rebate; +75 rebate; UIF 1% employee + 1% employer capped at R177.12 each on R17,712 ceiling; SDL 1% employer if payroll > R500k p.a. — owner toggle in settings; tax_status `provisional` skips PAYE, `exempt` skips PAYE+UIF).
 
-## Permission model
+Exports:
+- `calcPAYE(monthlyGross, age)` → number
+- `calcUIF(monthlyGross)` → `{ employee, employer }`
+- `calcSDL(monthlyGross, enabled)` → number
+- `computeGross(staff, { hours, periodStart, periodEnd, docs })` → `{ gross, commissionAmount, breakdown }`
 
-Three presets:
+### 3. Server functions (`src/lib/payslips.functions.ts`, owner-only)
 
-- **Owner** — full access, cannot be removed. Auto-created for the account holder.
-- **Manager** — everything except Staff management, Company/Banking settings, and deleting historical data.
-- **Field staff** — only jobs assigned to them, log own expenses, view own reports.
+All use `requireSupabaseAuth` and check the caller is the workspace owner (not staff).
+- `listPayslips({ from, to })`
+- `generatePayslipDraft({ staffId, periodStart, periodEnd, hours?, manualGross? })` — computes gross from staff config + jobs assigned in period, applies statutory calcs, returns draft (not saved).
+- `savePayslip(draft)` / `finalizePayslip(id)` / `deletePayslip(id)`
+- `markPayslipSent(id, channel)` — records `sent_at`.
 
-Per-staff override tick-boxes (stored in `permissions` jsonb, default `{}` = use preset):
+### 4. UI
 
-```text
-Jobs        [ ] view all jobs (not just assigned)  [ ] create  [ ] edit  [ ] mark paid  [ ] delete
-Expenses    [ ] add own  [ ] view all  [ ] edit any
-Customers   [ ] view  [ ] add  [ ] edit
-Catalog     [ ] view  [ ] edit
-Reports     [ ] view own  [ ] view all staff
-Planner     [ ] view  [ ] edit schedule
-```
+**Reports page** — convert single view into tabs (shadcn `Tabs`): "Overview" (existing content) + "Payslips" (owner-only; hidden for staff via `can()` check on a new `payslips.view` action, defaulted true for owner role only).
 
-Each preset seeds the tick-boxes; owner ticks/unticks to override. Owner sees an "Effective permissions" summary.
+**Payslips tab** (`src/components/payslips/PayslipsTab.tsx`):
+- Period picker (month selector, defaults to previous month) + "Include SDL" toggle.
+- Staff table: name, pay type, hours input (only for hourly), commission auto-preview, gross, PAYE, UIF, net, status chip, actions.
+- "Generate all" button creates drafts for every active staff member.
+- Row click → `PayslipDialog` showing formatted payslip (company header from `company_profile`, employee details, earnings lines, deductions lines, net pay, YTD totals if available).
+- Dialog actions: **Download PDF**, **Email**, **WhatsApp**, **Finalize**.
 
-## Server work (`createServerFn`, admin-loaded inside handler)
+**PDF generation** (`src/lib/payslip-pdf.ts`) — client-side using `jspdf` + `jspdf-autotable` (already in the stack for docs; if not, add). Filename `payslip-{staffName}-{period}.pdf`.
 
-- `createStaffAccount({email, password, name, role, permissions})` — verifies caller is owner via `has_role`, calls `supabaseAdmin.auth.admin.createUser` (email confirmed), inserts `staff_members` and `user_roles`. Returns the temporary credentials to show once.
-- `updateStaffMember({id, name?, role?, permissions?, active?})` — owner-only.
-- `deleteStaffMember({id})` — owner-only; disables login via admin API and marks inactive.
-- `listStaffMembers()` — returns all staff for the caller's workspace (owner or member).
-- `resetStaffPassword({id, newPassword})` — owner-only.
+**Email send** — calls a new server route `/api/payslips/send-email` that renders a React Email template (`src/lib/email-templates/payslip.tsx`) and calls `sendTemplateEmail('payslip', staff.email, { templateData })`. Requires `email_domain--scaffold_transactional_email_templates` if not yet done + email domain setup (checked in-flow; prompts owner to set it up first if missing).
 
-## Client changes
+**WhatsApp send** — `wa.me/{phone}?text=` link with pre-filled message ("Your payslip for {period}: Gross Rxx, Net Rxx. PDF attached separately."); PDF must be downloaded and attached manually (WhatsApp deep-links don't support attachments).
 
-**Store (`src/lib/store.ts`)**
-- Add `staff: StaffMember[]`, `currentStaff: StaffMember | null` (resolved after sign-in).
-- Add `assignedTo?: string` to `Doc`.
-- Helper `can(action)` reading role + permission overrides.
+**Compensation fields** — add a "Compensation" section to the existing staff edit dialog in Settings: pay type dropdown, base salary / hourly rate / commission %, ID number, tax status.
 
-**Sync (`src/lib/sync.ts`)**
-- On sign-in, resolve which workspace the user belongs to. If they're a staff member (not owner), load the workspace-owner's data instead of their own; treat `owner_user_id` as the workspace id for reads and writes. Push writes with the workspace-owner id so RLS lets owner + all staff see them.
-- Fetch staff list.
+### 5. Access & scope
 
-**Settings page (`src/routes/settings.tsx`)**
-- New "Staff" section (owner-only): list members with role chip, add button, edit sheet with role dropdown + permission tick-boxes, remove.
-- Add-staff sheet: name, email, temp password (generate button), role. On save show one-time credentials with "Copy" + "Send via WhatsApp" buttons.
+- Owner-only across the board (no staff self-view in this iteration, matching answer to Access question).
+- `can("payslips.view")` gates the Reports tab and Settings compensation section.
+- All server fns re-verify the caller is the workspace owner (not just a manager) before returning data.
 
-**Doc editor (`src/routes/doc.$id.tsx`)**
-- "Assigned to" dropdown near the customer block, populated from active staff. Owner + managers can reassign; field staff can only see (not change).
+### 6. Files touched / added
 
-**Docs list (`src/routes/docs.tsx`) & Planner**
-- Show assignee chip on each row. Add "All / Mine / Unassigned" filter. Field-staff view is auto-filtered to their own.
+Added:
+- `supabase/migrations/*_payslips.sql`
+- `src/lib/payroll.ts`, `src/lib/payslips.functions.ts`, `src/lib/payslip-pdf.ts`
+- `src/lib/email-templates/payslip.tsx` (+ registry update)
+- `src/routes/api/payslips.send-email.ts`
+- `src/components/payslips/PayslipsTab.tsx`, `PayslipDialog.tsx`, `CompensationSection.tsx`
 
-**Reports (`src/routes/results.tsx`)**
-- New **Revenue by staff** card: table of staff → jobs paid, revenue, avg, % of total, plus a horizontal bar chart.
-- New **Trends** panel with two comparison rows always visible:
-  - **Month-over-month** — this calendar month vs previous; revenue, expenses, net, jobs paid.
-  - **Year-over-year** — same period last year vs current selected range; same metrics.
-  Each shown as value + delta % with up/down arrow, matching existing `Stat` styling.
-- Reports respect permissions: field staff sees only their own numbers; managers/owner see everyone. Existing "vs previous period" logic stays.
+Edited:
+- `src/routes/results.tsx` — wrap in Tabs, mount `PayslipsTab`
+- `src/routes/settings.tsx` — add Compensation section inside staff edit
+- `src/lib/permissions.ts` — new `payslips.view` / `payslips.manage` actions (owner-only default)
+- `src/lib/store.ts` — extend `StaffMember` type with compensation fields
 
-**Route guards**
-- Hide nav items the user cannot access (e.g. Settings → Staff for non-owners; Reports for staff without report permission).
-- Action buttons are hidden or disabled based on `can()`.
+### 7. Out of scope (per your "Standard" choice)
 
-## User-facing notes
-
-- Owner sets up a staff member by entering their name, email, and a starter password. Staff logs in with those credentials and can change the password from Settings.
-- All staff share the same workspace data (customers, catalog, expenses). Job visibility for field staff is limited to jobs assigned to them.
-- Revenue-by-staff needs an assigned person on the job; unassigned jobs show under "Unassigned" in the report.
-- Existing local-only data created before this change stays with the owner account.
+Loans / IOU / salary advances, YTD PAYE certificates (IRP5), multi-currency, staff self-service payslip inbox — all deferrable to a later iteration.

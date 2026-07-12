@@ -27,6 +27,9 @@ export type Action =
   // Planner
   | "planner.view"
   | "planner.edit"
+  // Payslips (owner-only feature)
+  | "payslips.view"
+  | "payslips.manage"
   // Settings — always owner only, kept here for a single source of truth
   | "settings.staff"
   | "settings.company";
@@ -95,6 +98,7 @@ const PRESETS: Record<Role, Permissions> = {
     "catalog.view": true, "catalog.edit": true,
     "reports.viewOwn": true, "reports.viewAll": true,
     "planner.view": true, "planner.edit": true,
+    "payslips.view": true, "payslips.manage": true,
     "settings.staff": true, "settings.company": true,
   },
   manager: {
@@ -104,6 +108,7 @@ const PRESETS: Record<Role, Permissions> = {
     "catalog.view": true, "catalog.edit": true,
     "reports.viewOwn": true, "reports.viewAll": true,
     "planner.view": true, "planner.edit": true,
+    "payslips.view": false, "payslips.manage": false,
     "settings.staff": false, "settings.company": false,
   },
   staff: {
@@ -113,6 +118,7 @@ const PRESETS: Record<Role, Permissions> = {
     "catalog.view": true, "catalog.edit": false,
     "reports.viewOwn": true, "reports.viewAll": false,
     "planner.view": true, "planner.edit": false,
+    "payslips.view": false, "payslips.manage": false,
     "settings.staff": false, "settings.company": false,
   },
 };
