@@ -13,6 +13,18 @@ import {
   deleteExpenseCategoryRow,
   renameExpenseCategoryRow,
 } from "./sync";
+import type { Role, Permissions } from "./permissions";
+export type { Role, Permissions } from "./permissions";
+
+export interface StaffMember {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: Role;
+  permissions: Permissions;
+  active: boolean;
+}
 
 export type Unit = string; // built-ins: "each" | "hour" | "km" | "job", plus user-defined
 export const BUILTIN_UNITS = ["each", "hour", "km", "job"] as const;
