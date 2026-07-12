@@ -152,10 +152,31 @@ function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: 
   // Reset draft when a different expense is opened
   if (expense && (!draft || draft.id !== expense.id)) {
     setDraft(expense);
+    setVatManual(false);
   }
   if (!expense || !draft) return null;
 
-  const set = (patch: Partial<Expense>) => setDraft((d) => (d ? { ...d, ...patch } : d));
+  const includesVat = draft.vatAmount !== undefined;
+
+  const set = (patch: Partial<Expense>) =>
+    setDraft((d) => {
+      if (!d) return d;
+      const next = { ...d, ...patch };
+      // Auto-recompute VAT when amount changes and user hasn't manually edited it
+      if ("amount" in patch && next.vatAmount !== undefined && !vatManual) {
+        next.vatAmount = computeVat(next.amount || 0, billing.vatPct);
+      }
+      return next;
+    });
+
+  const toggleIncludesVat = (on: boolean) => {
+    setVatManual(false);
+    if (on) {
+      set({ vatAmount: computeVat(draft.amount || 0, billing.vatPct) });
+    } else {
+      set({ vatAmount: undefined });
+    }
+  };
 
   const handleCapture = async (dataUrl: string) => {
     set({ receiptImage: dataUrl });
