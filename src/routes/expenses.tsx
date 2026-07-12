@@ -54,6 +54,7 @@ function ExpensesPage() {
       category: "Other",
       vendor: "",
       amount: 0,
+      vatAmount: billing.vatPct > 0 ? 0 : undefined,
     });
   };
 
