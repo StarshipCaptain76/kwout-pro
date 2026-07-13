@@ -1,34 +1,31 @@
-## Rebrand to KWOUT
+# Set KWOUT logo and brand colors as defaults
 
-Replace all user-visible "On the MOOVE" / "ONTHEMOOVE" branding with **KWOUT**, and reposition the app as a simple, generic accounting/billing solution for entrepreneurs (drop transport-specific framing).
+Make the uploaded KWOUT mark the app's default logo, and set the navy + green sampled from it as the default theme colors. These become the KWOUT baseline shown on `/auth`, `/reset-password`, and any fresh install before a customer overrides them in Settings.
 
-### Code changes
+## Colors (sampled from uploaded Adobe-RGB readings)
 
-1. **`src/routes/__root.tsx`** — Update default title, og:title, twitter:title, description, og:description, twitter:description to KWOUT-branded, generic (non-transport) copy. New title: `KWOUT | Simple Accounting & Billing for Entrepreneurs`.
+- Primary (navy K): `#151C63` — from R 0.081 / G 0.110 / B 0.390
+- Accent (green bars/check): `#4F8C2E` — from R 0.311 / G 0.550 / B 0.181
 
-2. **`src/routes/auth.tsx`** (line 104) — Change fallback brand from `"On the MOOVE"` to `"KWOUT"`.
+## Changes
 
-3. **`src/lib/pdf.ts`** (line 161) — Change PDF watermark from `powered by ONTHEMOOVE.CO.ZA` to `powered by KWOUT.CO.ZA`.
+1. **Upload the logo as a Lovable Asset**
+   - `lovable-assets create --file /mnt/user-uploads/kwoutlogo.png --filename kwout-logo.png > src/assets/kwout-logo.png.asset.json`
+   - Import the pointer where the default logo is needed.
 
-4. **`public/sitemap.xml`** and **`public/robots.txt`** — Update comments to KWOUT and generic accounting/billing wording.
+2. **`src/lib/store.ts`** — Update `DEFAULT_THEME` (and the default `company` seed) so:
+   - `theme.primary = "#151C63"`
+   - `theme.accent  = "#4F8C2E"`
+   - Default `company.logo` points at the KWOUT asset URL, and default `company.name = "KWOUT"` (if not already).
 
-### Content changes
+3. **`src/styles.css`** — Replace the current red `--primary` / `--accent` / `--ring` and dark navy `--secondary` in `:root` with oklch equivalents of the two brand colors so the very first paint (before any JS) is already KWOUT navy + green. Mirror sensible values in `.dark`.
 
-5. **`README.md`** — Full rewrite:
-   - Title: **KWOUT — Simple Accounting & Billing for Entrepreneurs**
-   - Positioning: quotes, invoices, expenses, customer statements, light scheduling, reports — for any small business / solopreneur
-   - Remove: MOOVE Transport story, truck/trailer/removal/rubble references, km/distance pricing emphasis, Google Maps distance calc as headline feature (still supported but framed as optional address autocomplete), planner framed as "job scheduling" instead of "truck routes"
-   - Keep: tech stack, project structure, getting-started, Lovable Cloud/Supabase setup, roadmap (generalized)
-   - Update repo URL references from `onthemoove` → generic placeholder (or drop)
+4. **`src/routes/auth.tsx`** — Swap the hardcoded initial tile / fallback to use the imported KWOUT asset (keeps auth screen on-brand even with no store hydration).
 
-### Explicitly out of scope
+5. **`src/routes/__root.tsx`** — If a `<link rel="icon">` / apple-touch-icon is set, point it at the KWOUT asset URL too.
 
-- `src/data/historical.json` — contains real bank-transaction records where "Moove" is part of the transaction description/vendor text (not app branding). Leaving untouched.
-- Runtime company profile / user data (`company.name` in the store) — the fallback changes, but any customer's saved company name in Cloud is unchanged.
-- No logo/favicon asset changes (none reference the old name in file contents).
-- No database migrations, no route or feature changes.
+## Out of scope
 
-### Verification
-
-- Re-run `rg -in "onthemoove|on the moove"` after edits — should return only historical.json matches.
-- Visually confirm header/auth page show KWOUT before company profile loads.
+- No changes to Settings UX (users can still override name/logo/colors per company).
+- No changes to PDF watermark, business logic, or auth flow.
+- No migration of existing persisted `company` records — only the defaults shipped in code change.

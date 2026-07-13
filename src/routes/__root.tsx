@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" },
-      { name: "theme-color", content: "#0f172a" },
+      { name: "theme-color", content: "#151C63" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       // SEO: Simple accounting & billing for entrepreneurs and small businesses
@@ -101,6 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/png", href: "/__l5e/assets-v1/348dfec9-4bdc-40fe-b6f6-4daef5e9d2dd/kwout-logo.png" },
     ],
   }),
   shellComponent: RootShell,
