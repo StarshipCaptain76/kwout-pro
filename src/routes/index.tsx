@@ -108,22 +108,7 @@ function Landing() {
             className="font-display leading-[0.9] tracking-tight text-[15vw] sm:text-8xl lg:text-[7.5rem] text-primary"
           >
             Run your <span className="text-[#3FA34D]">business</span>.<br />
-            <span className="relative inline-block">
-              Not your
-              <motion.svg
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1.1, delay: 0.6, ease: "easeInOut" }}
-                viewBox="0 0 300 14"
-                className="absolute -bottom-2 left-0 w-full h-3 text-[#3FA34D]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="4"
-                strokeLinecap="round"
-              >
-                <motion.path d="M4 8 C 70 2, 150 12, 296 4" />
-              </motion.svg>
-            </span>{" "}
+            Not your<br />
             paperwork.
           </motion.h1>
 
