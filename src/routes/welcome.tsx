@@ -28,12 +28,12 @@ export const Route = createFileRoute("/welcome")({
         content: "Quotes, invoices, statements, payslips, expenses, reports. R100/month. Try 30 days free.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://kwout-pro.lovable.app/welcome" },
+      { property: "og:url", content: "https://kwout.co.za/welcome" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "KWOUT — Run your business. Not your paperwork." },
       { name: "twitter:description", content: "30 days free. Then R100/month. Everything included." },
     ],
-    links: [{ rel: "canonical", href: "https://kwout-pro.lovable.app/welcome" }],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/welcome" }],
   }),
 });
 
