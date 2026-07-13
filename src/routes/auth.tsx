@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { clearBrandCookie } from "@/lib/brand-cookie";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { ensureOwnerStaff } from "@/lib/staff.functions";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
