@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,8 @@ import {
 import { useStore, useIsOwner, type StaffMember } from "@/lib/store";
 import { ACTION_GROUPS, presetFor, type Action, type Permissions, type Role } from "@/lib/permissions";
 import {
-  createStaffAccount, updateStaffMember, deleteStaffMember, resetStaffPassword,
+  createStaffAccount, updateStaffMember, deleteStaffMember, resetStaffPassword, listStaff,
 } from "@/lib/staff.functions";
-import { refreshStaff } from "@/lib/sync";
 import { listStaffCompensation, updateStaffCompensation, type PayType } from "@/lib/payslips.functions";
 import type { TaxStatus } from "@/lib/payroll";
 import { Plus, Trash2, KeyRound, Copy, Users } from "lucide-react";
@@ -34,13 +33,33 @@ function randomPassword() {
 export function StaffSection() {
   const isOwner = useIsOwner();
   const staff = useStore((s) => s.staff);
+  const setStaffList = useStore((s) => s.setStaffList);
+  const fetchStaff = useServerFn(listStaff);
   const [editing, setEditing] = useState<StaffMember | null>(null);
   const [creating, setCreating] = useState(false);
   const [justCreated, setJustCreated] = useState<{ email: string; password: string } | null>(null);
 
+  const refreshStaffList = useCallback(async () => {
+    const list = await fetchStaff();
+    setStaffList(
+      list.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        permissions: r.permissions ?? {},
+        active: r.active,
+      })),
+    );
+  }, [fetchStaff, setStaffList]);
+
   useEffect(() => {
-    void refreshStaff();
-  }, []);
+    void refreshStaffList().catch((e) => {
+      console.error("[StaffSection] refresh failed", e);
+      toast.error(e instanceof Error ? e.message : "Could not load staff");
+    });
+  }, [refreshStaffList]);
 
   if (!isOwner) {
     return (
@@ -92,10 +111,11 @@ export function StaffSection() {
       <CreateStaffSheet
         open={creating}
         onClose={() => setCreating(false)}
+        onRefresh={refreshStaffList}
         onCreated={(email, password) => setJustCreated({ email, password })}
       />
 
-      <EditStaffSheet member={editing} onClose={() => setEditing(null)} />
+      <EditStaffSheet member={editing} onClose={() => setEditing(null)} onRefresh={refreshStaffList} />
 
       {justCreated && (
         <CredentialsDialog creds={justCreated} onClose={() => setJustCreated(null)} />
@@ -105,10 +125,11 @@ export function StaffSection() {
 }
 
 function CreateStaffSheet({
-  open, onClose, onCreated,
+  open, onClose, onRefresh, onCreated,
 }: {
   open: boolean;
   onClose: () => void;
+  onRefresh: () => Promise<void>;
   onCreated: (email: string, password: string) => void;
 }) {
   const [name, setName] = useState("");
@@ -131,7 +152,7 @@ function CreateStaffSheet({
       await createStaff({
         data: { name: name.trim(), email: email.trim().toLowerCase(), password, role, permissions: presetFor(role) },
       });
-      await refreshStaff();
+      await onRefresh();
       onCreated(email.trim().toLowerCase(), password);
       reset();
       onClose();
@@ -185,7 +206,13 @@ function CreateStaffSheet({
   );
 }
 
-function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClose: () => void }) {
+function EditStaffSheet({
+  member, onClose, onRefresh,
+}: {
+  member: StaffMember | null;
+  onClose: () => void;
+  onRefresh: () => Promise<void>;
+}) {
   const [draft, setDraft] = useState<StaffMember | null>(member);
   const [busy, setBusy] = useState(false);
   const [newPass, setNewPass] = useState("");
@@ -221,7 +248,7 @@ function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClo
           active: draft.active,
         },
       });
-      await refreshStaff();
+      await onRefresh();
       toast.success("Saved");
       onClose();
     } catch (e) {
@@ -236,7 +263,7 @@ function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClo
     setBusy(true);
     try {
       await deleteStaff({ data: { id: draft.id } });
-      await refreshStaff();
+      await onRefresh();
       toast.success("Removed");
       onClose();
     } catch (e) {
