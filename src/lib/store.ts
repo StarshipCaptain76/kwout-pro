@@ -405,7 +405,7 @@ export const useStore = create<State>()(
     }),
     {
       name: "app-store-v1",
-      version: 3,
+      version: 4,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
         const { staff: _s, currentUserId: _u, currentStaff: _c, ...rest } = s;
@@ -419,6 +419,15 @@ export const useStore = create<State>()(
           if (s.company && !s.company.theme) s.company.theme = DEFAULT_THEME;
           if (s.billing && !s.billing.primaryUnit) s.billing.primaryUnit = "km";
           if (s.billing && !s.billing.customUnits) s.billing.customUnits = [];
+        }
+        if (version < 4) {
+          // Reset any previous built-in default theme to the current KWOUT
+          // defaults. User-customised themes are left alone.
+          const priorDefaults = new Set(["#2563eb", "#0f172a", "#151c63"]);
+          const p = s.company?.theme?.primary?.toLowerCase();
+          if (s.company && (!p || priorDefaults.has(p))) {
+            s.company.theme = DEFAULT_THEME;
+          }
         }
         return s;
       },
