@@ -113,14 +113,14 @@ function Landing() {
               paperwork.
               <svg
                 aria-hidden="true"
-                viewBox="0 0 300 20"
+                viewBox="0 0 320 16"
                 preserveAspectRatio="none"
-                className="absolute left-[-2%] -bottom-[0.12em] w-[112%] h-[0.28em] pointer-events-none overflow-visible"
+                className="absolute left-[-6%] -bottom-[0.14em] w-[120%] h-[0.32em] pointer-events-none overflow-visible"
               >
                 <path
-                  d="M2 12 C 60 6, 120 4, 150 10 C 158 12, 162 14, 170 11 C 210 3, 260 4, 298 8"
+                  d="M2,7 C 55,3 115,2 145,4 C 153,5 157,9 162,11 C 168,12 173,9 178,6 C 210,1 265,1 318,3"
                   stroke="#3FA34D"
-                  strokeWidth="6"
+                  strokeWidth="3.4"
                   strokeLinecap="round"
                   fill="none"
                 />
