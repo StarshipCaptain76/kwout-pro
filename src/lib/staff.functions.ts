@@ -105,7 +105,10 @@ export const createStaffAccount = createServerFn({ method: "POST" })
       email_confirm: true,
       user_metadata: { name: data.name, invited_by: ownerId },
     });
-    if (cErr || !created.user) throw new Error(cErr?.message ?? "Could not create account");
+    if (cErr || !created.user) {
+      console.error("[createStaffAccount] auth.admin.createUser failed", cErr);
+      throw new Error(cErr?.message ?? "Could not create account");
+    }
 
     const newUserId = created.user.id;
 
@@ -122,13 +125,23 @@ export const createStaffAccount = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (sErr) throw sErr;
+    if (sErr) {
+      console.error("[createStaffAccount] staff_members insert failed", sErr);
+      // Roll back the auth user so a retry doesn't collide on the same email.
+      await supabaseAdmin.auth.admin.deleteUser(newUserId).catch(() => {});
+      throw new Error(`Could not add staff row: ${sErr.message}`);
+    }
 
-    await supabaseAdmin.from("user_roles").insert({
+    const { error: rErr } = await supabaseAdmin.from("user_roles").insert({
       user_id: newUserId,
       role: data.role,
       workspace_owner_id: ownerId,
     });
+    if (rErr) {
+      console.error("[createStaffAccount] user_roles insert failed", rErr);
+      // Non-fatal for login, but the caller should know.
+      throw new Error(`Account created but role grant failed: ${rErr.message}`);
+    }
 
     return {
       id: sm.id as string,
