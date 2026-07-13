@@ -135,11 +135,27 @@ function Landing() {
         <div className="relative">
           <motion.div
             initial={{ rotate: -8, scale: 0.9, opacity: 0 }}
-            animate={{ rotate: -12, scale: 1, opacity: 1 }}
-            transition={{ delay: 0.9, type: "spring", stiffness: 120 }}
+            animate={{
+              rotate: -12,
+              scale: [1, 1.12, 1, 1.08, 1],
+              opacity: [1, 1, 0.85, 1, 1],
+              boxShadow: [
+                "0 0 0 0 rgba(63,163,77,0)",
+                "0 0 24px 6px rgba(63,163,77,0.45)",
+                "0 0 0 0 rgba(63,163,77,0)",
+                "0 0 16px 4px rgba(63,163,77,0.35)",
+                "0 0 0 0 rgba(63,163,77,0)",
+              ],
+            }}
+            transition={{
+              rotate: { delay: 0.9, type: "spring", stiffness: 120 },
+              scale: { delay: 1.2, duration: 1.4, repeat: Infinity, ease: "easeInOut" },
+              opacity: { delay: 1.2, duration: 1.4, repeat: Infinity, ease: "easeInOut" },
+              boxShadow: { delay: 1.2, duration: 1.4, repeat: Infinity, ease: "easeInOut" },
+            }}
             className="absolute -top-6 -right-2 sm:-right-6 z-10 pointer-events-none"
           >
-            <div className="border-4 border-[#3FA34D] text-[#3FA34D] rounded-full w-28 h-28 grid place-items-center text-center font-display tracking-widest text-sm leading-tight opacity-90">
+            <div className="border-[6px] border-[#3FA34D] bg-white/80 text-[#3FA34D] rounded-full w-32 h-32 grid place-items-center text-center font-display tracking-widest text-base font-bold leading-tight">
               KWOUT
               <br />
               APPROVED
