@@ -150,7 +150,14 @@ function SettingsPage() {
                     type="checkbox"
                     className="h-4 w-4"
                     checked={!!s.billing.chargesVat}
-                    onChange={(e) => s.setBilling({ ...s.billing, chargesVat: e.target.checked })}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      s.setBilling({
+                        ...s.billing,
+                        chargesVat: on,
+                        vatPct: on ? Math.min(s.billing.vatPct || 15, 15) || 15 : 0,
+                      });
+                    }}
                   />
                   My business charges VAT
                 </label>
@@ -159,7 +166,7 @@ function SettingsPage() {
                     <PctSlider
                       label="VAT rate (max 15%)"
                       v={Math.min(s.billing.vatPct || 15, 15)}
-                      on={(v) => s.setBilling({ ...s.billing, vatPct: v })}
+                      on={(v) => s.setBilling({ ...s.billing, vatPct: Math.min(v, 15) })}
                       max={15}
                     />
                     <div>
