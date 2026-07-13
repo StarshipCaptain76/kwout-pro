@@ -132,6 +132,7 @@ function Landing() {
             <br />
             the whole KWOUT stationery, in your pocket.
             <span className="block mt-2 font-medium text-[#111111]">
+              <br />
               30 days free. Everything included.
             </span>
           </p>
