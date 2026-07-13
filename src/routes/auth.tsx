@@ -165,7 +165,7 @@ function AuthPage() {
             </button>
           </form>
         ) : (
-          <Tabs defaultValue="signin">
+          <Tabs value={tab} onValueChange={(v) => navigate({ to: "/auth", search: { tab: v === "signup" ? "signup" : "signin" }, replace: true })}>
             <TabsList className="grid grid-cols-2 mb-4">
               <TabsTrigger value="signin">Sign in</TabsTrigger>
               <TabsTrigger value="signup">Create account</TabsTrigger>
