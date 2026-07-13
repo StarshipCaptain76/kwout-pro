@@ -55,7 +55,8 @@ export async function generatePdf(
   pdf.text(company.name || "", M, y);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
-  const cLines = [company.tagline, company.address, company.phone, company.email].filter(Boolean) as string[];
+  const vatLine = billing.chargesVat && billing.vatNumber ? `VAT No: ${billing.vatNumber}` : "";
+  const cLines = [company.tagline, company.address, company.phone, company.email, vatLine].filter(Boolean) as string[];
   cLines.forEach((l, i) => pdf.text(l, M, y + 5 + i * 4));
 
   pdf.setFont("helvetica", "bold");
