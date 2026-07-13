@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import {
   pushDoc,
   deleteDocRow,
@@ -194,9 +194,65 @@ interface State {
     maxInvoiceNo: number;
   }) => { expenses: number; docs: number };
   clearHistorical: () => { expenses: number; docs: number };
+  resetToDefaults: () => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+// ============ per-user persistence key ============
+// The persisted store is namespaced by the currently signed-in user id.
+// This prevents one user's local data leaking into another account when
+// they sign in on the same device.
+const PERSIST_PREFIX = "app-store::";
+const LEGACY_KEY = "app-store-v1";
+let currentPersistKey = "anon";
+
+function fullKey() {
+  return `${PERSIST_PREFIX}${currentPersistKey}`;
+}
+
+// One-time: migrate the legacy shared key to the anon slot so any local
+// edits made before this change aren't lost. Never migrate into a signed-in
+// slot.
+if (typeof window !== "undefined") {
+  try {
+    const legacy = window.localStorage.getItem(LEGACY_KEY);
+    if (legacy && !window.localStorage.getItem(`${PERSIST_PREFIX}anon`)) {
+      window.localStorage.setItem(`${PERSIST_PREFIX}anon`, legacy);
+    }
+    window.localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+const perUserStorage: StateStorage = {
+  getItem: (_name) => {
+    if (typeof window === "undefined") return null;
+    try { return window.localStorage.getItem(fullKey()); } catch { return null; }
+  },
+  setItem: (_name, value) => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(fullKey(), value); } catch { /* noop */ }
+  },
+  removeItem: (_name) => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.removeItem(fullKey()); } catch { /* noop */ }
+  },
+};
+
+export function setPersistKey(userId: string | null) {
+  const next = userId ?? "anon";
+  if (next === currentPersistKey) return;
+  currentPersistKey = next;
+  // Rehydrate from the new slot so the in-memory store reflects that user.
+  void useStore.persist.rehydrate();
+}
+
+export function clearAnonPersist() {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(`${PERSIST_PREFIX}anon`); } catch { /* noop */ }
+}
 
 export const useStore = create<State>()(
   persist(
@@ -406,9 +462,55 @@ export const useStore = create<State>()(
         removedCat.forEach((c) => deleteCatalogItemRow(c.id));
         return { expenses: expBefore - expenses.length, docs: docBefore - docs.length };
       },
+      resetToDefaults: () => {
+        set({
+          company: {
+            name: "KWOUT",
+            tagline: "",
+            address: "",
+            phone: "",
+            email: "",
+            logo: "/kwout-logo.png",
+            theme: DEFAULT_THEME,
+          },
+          banking: {
+            accountName: "",
+            accountNumber: "",
+            bank: "",
+            branchCode: "",
+            branchName: "",
+            swiftCode: "",
+          },
+          billing: {
+            ratePerKm: 0,
+            baseCallout: 0,
+            defaultDepositPct: 50,
+            vatPct: 0,
+            chargesVat: false,
+            vatNumber: "",
+            quotePrefix: "Q",
+            invoicePrefix: "INV",
+            nextQuoteNo: 1001,
+            nextInvoiceNo: 1001,
+            currency: "R",
+            primaryUnit: "km",
+            customUnits: [],
+          },
+          catalog: [],
+          customers: [],
+          docs: [],
+          expenses: [],
+          expenseCategories: DEFAULT_EXPENSE_CATEGORIES,
+          density: "normal" as Density,
+          staff: [],
+          currentUserId: null,
+          currentStaff: null,
+        });
+      },
     }),
     {
-      name: "app-store-v1",
+      name: "app-store", // ignored; perUserStorage handles the real key
+      storage: createJSONStorage(() => perUserStorage),
       version: 4,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
@@ -425,8 +527,6 @@ export const useStore = create<State>()(
           if (s.billing && !s.billing.customUnits) s.billing.customUnits = [];
         }
         if (version < 4) {
-          // Reset any previous built-in default theme to the current KWOUT
-          // defaults. User-customised themes are left alone.
           const priorDefaults = new Set(["#2563eb", "#0f172a", "#151c63"]);
           const p = s.company?.theme?.primary?.toLowerCase();
           if (s.company && (!p || priorDefaults.has(p))) {
@@ -436,6 +536,7 @@ export const useStore = create<State>()(
         return s;
       },
     },
+
   ),
 );
 

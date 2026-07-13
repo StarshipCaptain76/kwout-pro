@@ -255,9 +255,12 @@ function AuthButton() {
   return (
     <button
       onClick={async () => {
+        const { useStore, clearAnonPersist } = await import("@/lib/store");
         await supabase.auth.signOut();
+        useStore.getState().resetToDefaults();
+        clearAnonPersist();
         toast.success("Signed out");
-        navigate({ to: "/auth" });
+        navigate({ to: "/auth", replace: true });
       }}
       title={`Signed in as ${email} — click to sign out`}
       className="ml-1 px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium bg-white/10 hover:bg-white/20"
