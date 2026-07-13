@@ -3,6 +3,7 @@ import {
   useStore,
   DEFAULT_EXPENSE_CATEGORIES,
   DEFAULT_THEME,
+  setPersistKey,
   type Doc,
   type Customer,
   type CatalogItem,
