@@ -54,6 +54,7 @@ function AuthPage() {
   const [forgot, setForgot] = useState(false);
 
   const [pendingVerification, setPendingVerification] = useState<{ email: string } | null>(null);
+  const [resetSent, setResetSent] = useState<{ email: string } | null>(null);
   const [signInProblem, setSignInProblem] = useState<SignInProblem>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const passwordRef = useRef<HTMLInputElement | null>(null);
@@ -182,7 +183,10 @@ function AuthPage() {
           redirectTo: `${window.location.origin}/reset-password`,
         },
       });
-      toast.success("Password reset email sent");
+      toast.success("Password reset email sent", {
+        description: `Check ${email} for a link to choose a new password.`,
+      });
+      setResetSent({ email });
       setForgot(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send reset email");
@@ -240,6 +244,31 @@ function AuthPage() {
             </div>
             <p className="text-[11px] text-muted-foreground">
               Check your spam folder if it doesn't arrive within a minute.
+            </p>
+          </div>
+        ) : resetSent ? (
+          <div className="grid gap-4 text-center py-2">
+            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 grid place-items-center">
+              <MailCheck className="h-6 w-6 text-primary" />
+            </div>
+            <div className="grid gap-1">
+              <h2 className="text-lg font-semibold">Check your email</h2>
+              <p className="text-sm text-muted-foreground">
+                We sent a password reset link to{" "}
+                <span className="font-medium text-foreground break-all">{resetSent.email}</span>.
+                Click it to choose a new password.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-10"
+              onClick={() => setResetSent(null)}
+            >
+              Back to sign in
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Check your spam folder if it doesn't arrive within a minute. The link expires shortly.
             </p>
           </div>
         ) : forgot ? (
