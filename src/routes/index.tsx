@@ -99,7 +99,7 @@ function Landing() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="font-display leading-[0.9] tracking-tight text-[15vw] sm:text-8xl lg:text-[7.5rem] text-primary"
           >
-            Run your business.<br />
+            Run your <span className="text-[#3FA34D]">business</span>.<br />
             <span className="relative inline-block">
               Not your
               <motion.svg
@@ -120,7 +120,7 @@ function Landing() {
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111]/70 max-w-xl">
-            Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips<br />
+            <strong>Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips</strong><br />
             the whole KWOUT stationery, in your pocket.
             <span className="block mt-2 font-medium text-[#111111]">
               30 days free. Everything included.<br />
