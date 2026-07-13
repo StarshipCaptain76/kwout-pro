@@ -181,7 +181,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-black/10 mt-8">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#111111]/80">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col items-center gap-2 text-xs text-[#111111]/80">
           <div className="flex items-center gap-2">
             <img src={kwoutLogo.url} alt="" className="h-5 w-5 rounded object-contain opacity-80" />
             <span className="font-display tracking-wide text-sm text-[#111111]">KWOUT</span>
