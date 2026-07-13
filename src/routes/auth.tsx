@@ -14,6 +14,9 @@ const kwoutLogo = { url: "/kwout-logo.png" };
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab === "signup" ? ("signup" as const) : ("signin" as const),
+  }),
   head: () => ({
     meta: [
       { title: "Sign in — KWOUT" },
@@ -28,11 +31,13 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  
+  const { tab } = Route.useSearch();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
+
 
   // Force KWOUT default branding on this page — never show a persisted
   // tenant theme flash. Runs before paint.
@@ -93,7 +98,7 @@ function AuthPage() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth/callback`,
       });
       if (result.error) throw result.error;
       if (result.redirected) return; // browser navigating away
@@ -160,7 +165,7 @@ function AuthPage() {
             </button>
           </form>
         ) : (
-          <Tabs defaultValue="signin">
+          <Tabs value={tab} onValueChange={(v) => navigate({ to: "/auth", search: { tab: v === "signup" ? "signup" : "signin" }, replace: true })}>
             <TabsList className="grid grid-cols-2 mb-4">
               <TabsTrigger value="signin">Sign in</TabsTrigger>
               <TabsTrigger value="signup">Create account</TabsTrigger>

@@ -167,7 +167,7 @@ function Landing() {
               <div className="text-xs text-[#111111]/80 mt-1">No card needed. Set up in under a minute.</div>
             </div>
             <div className="grid gap-3">
-              <Button className="h-11" onClick={() => navigate({ to: "/auth" })}>
+              <Button className="h-11" onClick={() => navigate({ to: "/auth", search: { tab: "signup" } })}>
                 Start my 30-day free trial
               </Button>
               <Button variant="outline" className="h-11 bg-white" onClick={() => navigate({ to: "/auth" })}>
