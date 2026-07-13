@@ -10,6 +10,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+/**
+ * Canonical public origin for auth links. We never trust the origin the
+ * browser is currently on — a preview like `*.lovableproject.com` must not
+ * end up in the emailed link, both because it looks off-brand and because
+ * Supabase's redirect allow-list won't include every preview host.
+ */
+const PUBLIC_SITE_URL = "https://kwout.co.za";
+
+function normalizeRedirect(input: string): string {
+  try {
+    const u = new URL(input);
+    return `${PUBLIC_SITE_URL}${u.pathname}${u.search}`;
+  } catch {
+    const path = input.startsWith("/") ? input : `/${input}`;
+    return `${PUBLIC_SITE_URL}${path}`;
+  }
+}
+
 const SignupInput = z.object({
   email: z.string().email(),
   password: z.string().min(8),
@@ -44,7 +62,7 @@ export const sendSignupEmail = createServerFn({ method: "POST" })
         type: "signup",
         email: data.email,
         password: data.password,
-        options: { redirectTo: data.redirectTo },
+        options: { redirectTo: normalizeRedirect(data.redirectTo) },
       });
 
     if (error) {
@@ -56,7 +74,7 @@ export const sendSignupEmail = createServerFn({ method: "POST" })
           await supabaseAdmin.auth.admin.generateLink({
             type: "magiclink",
             email: data.email,
-            options: { redirectTo: data.redirectTo },
+            options: { redirectTo: normalizeRedirect(data.redirectTo) },
           });
         if (mlErr || !mlData?.properties?.action_link) {
           throw new Error(mlErr?.message || "Could not generate sign-in link");
@@ -99,7 +117,7 @@ export const resendVerificationEmail = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.generateLink({
         type: "magiclink",
         email: data.email,
-        options: { redirectTo: data.redirectTo },
+        options: { redirectTo: normalizeRedirect(data.redirectTo) },
       });
 
     if (error || !linkData?.properties?.action_link) {
@@ -131,7 +149,7 @@ export const sendPasswordResetEmail = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email: data.email,
-        options: { redirectTo: data.redirectTo },
+        options: { redirectTo: normalizeRedirect(data.redirectTo) },
       });
 
     if (error) {
