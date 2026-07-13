@@ -113,42 +113,42 @@ function Landing() {
               paperwork
               <svg
                 aria-hidden="true"
-                className="absolute -bottom-1 left-0 w-full h-[0.35em] pointer-events-none"
-                viewBox="0 0 200 18"
+                className="absolute -bottom-1 left-0 w-full h-[0.42em] pointer-events-none"
+                viewBox="0 0 220 22"
                 preserveAspectRatio="none"
                 fill="none"
               >
                 <path
-                  d="M2 12.5c18-3 36-5 54-5.5 12-.3 24-.2 36 .2 8 .3 16 .8 24 1.5 10 1 20 1.5 30 1 14-.8 28-2 42-2.5 8-.3 16-.3 24 0 10 .5 20 1.5 30 2.5 6 .6 12 1 18 1"
+                  d="M6 14c22-4 44-6 66-6 12 0 24 .5 36 1.5 10 1 20 1.5 30 1 12-.5 24-1.5 36-2 8-.3 16-.3 24 0 10 .4 20 1.2 30 2 6 .5 12 1 18 1"
                   stroke="#3FA34D"
-                  strokeWidth="10"
+                  strokeWidth="11"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="opacity-90"
+                  className="opacity-95"
                 />
                 <path
-                  d="M4 10c22-2 44-3.5 66-4 14-.3 28 0 42 .5 12 .4 24 1 36 1.5 12 .5 24 .8 36 .5 14-.3 28-1 42-1.5 10-.3 20-.2 30 .2 10 .4 20 1 30 1.5"
-                  stroke="#3FA34D"
+                  d="M8 11c24-2 48-3.5 72-4 14-.2 28 .2 42 .8 12 .4 24 1 36 1.4 12 .4 24 .6 36 .4 12-.2 24-.8 36-1.2 8-.2 16-.2 24 0 8 .2 16 .6 24 1"
+                  stroke="#4AB85A"
                   strokeWidth="6"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   className="opacity-80"
                 />
                 <path
-                  d="M180 7c6-1 12 0 16 2 3 1.5 4 3.5 2 5-2 1.5-6 2-10 1.5-4-.5-8-1.5-10-3"
+                  d="M185 9c8-1 16-.5 22 1.5 4 1.5 6 3.5 4 5.5-2 1.5-6 2-10 1.5-5-.5-9-2-12-4M198 7c5-.5 10 0 13 2 2.5 1.5 2 3.5 0 4.5-2.5 1-6 .5-9-1M208 6c3 0 6 .8 8 2 1.5 1 1 2.5-1 3-2 .5-4 0-6-.5"
                   stroke="#3FA34D"
-                  strokeWidth="5"
+                  strokeWidth="4"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="opacity-70"
+                  className="opacity-75"
                 />
                 <path
-                  d="M188 5c4-.5 8 0 10 2 2 1.5 1 3.5-1 4-2 .5-5 0-7-1"
-                  stroke="#3FA34D"
+                  d="M12 16c18 2 36 2.5 54 2 12-.3 24-1 36-1.5 10-.3 20-.3 30 0 10 .3 20 .8 30 1.2 8 .3 16 .4 24 .3"
+                  stroke="#2E8B3E"
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="opacity-60"
+                  className="opacity-50"
                 />
               </svg>
             </span>.
