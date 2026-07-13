@@ -101,17 +101,17 @@ async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO>
     throw new Error(iErr?.message ?? "Could not create owner staff row");
   }
 
-  // Make sure the owner has an admin role (idempotent).
+  // Make sure the owner has a role row (idempotent).
   const { data: hasRole } = await supabaseAdmin
     .from("user_roles")
     .select("id")
     .eq("user_id", userId)
-    .eq("role", "admin")
+    .eq("role", "owner")
     .maybeSingle();
   if (!hasRole) {
     await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: userId, role: "admin", workspace_owner_id: userId })
+      .insert({ user_id: userId, role: "owner", workspace_owner_id: userId })
       .then((r) => {
         if (r.error) console.error("[ensureOwnerStaff] user_roles insert failed", r.error);
       });
