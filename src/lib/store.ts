@@ -145,6 +145,8 @@ export interface BillingSettings {
   baseCallout: number;
   defaultDepositPct: number;
   vatPct: number;
+  chargesVat?: boolean;
+  vatNumber?: string;
   quotePrefix: string;
   invoicePrefix: string;
   nextQuoteNo: number;
@@ -221,6 +223,8 @@ export const useStore = create<State>()(
         baseCallout: 0,
         defaultDepositPct: 50,
         vatPct: 0,
+        chargesVat: false,
+        vatNumber: "",
         quotePrefix: "Q",
         invoicePrefix: "INV",
         nextQuoteNo: 1001,
@@ -436,6 +440,10 @@ export const useStore = create<State>()(
 );
 
 export const newId = uid;
+
+export function effectiveVatPct(b: Pick<BillingSettings, "chargesVat" | "vatPct">) {
+  return b.chargesVat ? Math.min(b.vatPct || 0, 15) : 0;
+}
 
 export function docTotals(d: Doc, vatPct: number) {
   const subtotal = d.items.reduce((s, i) => s + i.qty * i.price, 0);

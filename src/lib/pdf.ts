@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import type { Doc, Company, Banking, BillingSettings } from "./store";
-import { docTotals, fmtMoney, DEFAULT_THEME } from "./store";
+import { docTotals, fmtMoney, DEFAULT_THEME, effectiveVatPct } from "./store";
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = (hex || "#000000").replace("#", "").trim();
@@ -55,7 +55,8 @@ export async function generatePdf(
   pdf.text(company.name || "", M, y);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
-  const cLines = [company.tagline, company.address, company.phone, company.email].filter(Boolean) as string[];
+  const vatLine = billing.chargesVat && billing.vatNumber ? `VAT No: ${billing.vatNumber}` : "";
+  const cLines = [company.tagline, company.address, company.phone, company.email, vatLine].filter(Boolean) as string[];
   cLines.forEach((l, i) => pdf.text(l, M, y + 5 + i * 4));
 
   pdf.setFont("helvetica", "bold");
@@ -92,7 +93,8 @@ export async function generatePdf(
     pdf.line(M, y, W - M, y);
   }
 
-  const t = docTotals(doc, billing.vatPct);
+  const vatPct = effectiveVatPct(billing);
+  const t = docTotals(doc, vatPct);
   y += 4;
   const rx = W - M - 60;
   const drawTot = (label: string, val: string, bold = false) => {
@@ -102,7 +104,7 @@ export async function generatePdf(
     y += 5;
   };
   drawTot("Subtotal", fmtMoney(t.subtotal, billing.currency));
-  if (billing.vatPct > 0) drawTot(`VAT (${billing.vatPct}%)`, fmtMoney(t.vat, billing.currency));
+  if (vatPct > 0) drawTot(`VAT (${vatPct}%)`, fmtMoney(t.vat, billing.currency));
   pdf.setFillColor(...PRIMARY);
   pdf.rect(rx - 2, y - 3.5, W - M - rx + 4, 7, "F");
   pdf.setTextColor(255, 255, 255);

@@ -51,8 +51,9 @@ export function AddressAutocomplete({ value, onChange, placeholder, extraButton 
         setItems(r.map((x) => ({ placeId: x.placeId, main: x.main || x.text, secondary: x.secondary })));
         setOpen(true);
       } catch (e) {
-        console.error(e);
-        toast.error("Address search failed");
+        console.error("[AddressAutocomplete] search failed", e);
+        const msg = e instanceof Error ? e.message : "Address search failed";
+        toast.error(msg.length > 160 ? msg.slice(0, 160) + "…" : msg);
       } finally {
         setLoading(false);
       }

@@ -144,7 +144,46 @@ function SettingsPage() {
               />
               <TumblerField label="Base callout fee" v={s.billing.baseCallout} on={(v) => s.setBilling({ ...s.billing, baseCallout: v })} step={50} fineStep={10} prefix={`${s.billing.currency} `} />
               <PctSlider label="Default deposit" v={s.billing.defaultDepositPct} on={(v) => s.setBilling({ ...s.billing, defaultDepositPct: v })} />
-              <PctSlider label="VAT" v={s.billing.vatPct} on={(v) => s.setBilling({ ...s.billing, vatPct: v })} />
+              <div className="border rounded-md p-3 grid gap-3">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={!!s.billing.chargesVat}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      s.setBilling({
+                        ...s.billing,
+                        chargesVat: on,
+                        vatPct: on ? Math.min(s.billing.vatPct || 15, 15) || 15 : 0,
+                      });
+                    }}
+                  />
+                  My business charges VAT
+                </label>
+                {s.billing.chargesVat && (
+                  <>
+                    <PctSlider
+                      label="VAT rate (max 15%)"
+                      v={Math.min(s.billing.vatPct || 15, 15)}
+                      on={(v) => s.setBilling({ ...s.billing, vatPct: Math.min(v, 15) })}
+                      max={15}
+                    />
+                    <div>
+                      <Label>VAT number</Label>
+                      <Input
+                        className="h-11"
+                        value={s.billing.vatNumber ?? ""}
+                        placeholder="e.g. 4123456789"
+                        onChange={(e) => s.setBilling({ ...s.billing, vatNumber: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Shown on quotes &amp; invoices. VAT is added automatically to line totals and to expenses.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Quote prefix</Label><Input className="h-11" value={s.billing.quotePrefix} onChange={(e) => s.setBilling({ ...s.billing, quotePrefix: e.target.value })} /></div>
                 <div><Label>Invoice prefix</Label><Input className="h-11" value={s.billing.invoicePrefix} onChange={(e) => s.setBilling({ ...s.billing, invoicePrefix: e.target.value })} /></div>
@@ -505,14 +544,14 @@ function TumblerField({
   );
 }
 
-function PctSlider({ label, v, on }: { label: string; v: number; on: (n: number) => void }) {
+function PctSlider({ label, v, on, max = 100 }: { label: string; v: number; on: (n: number) => void; max?: number }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <Label>{label}</Label>
         <span className="font-display text-lg tabular-nums">{v}%</span>
       </div>
-      <Slider value={[v]} min={0} max={100} step={1} onValueChange={([n]) => on(n)} className="py-2" />
+      <Slider value={[Math.min(v, max)]} min={0} max={max} step={1} onValueChange={([n]) => on(n)} className="py-2" />
     </div>
   );
 }
