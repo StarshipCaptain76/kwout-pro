@@ -4,6 +4,11 @@ import { clearBrandCookie } from "@/lib/brand-cookie";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { ensureOwnerStaff } from "@/lib/staff.functions";
+import {
+  sendSignupEmail,
+  resendVerificationEmail,
+  sendPasswordResetEmail,
+} from "@/lib/auth-email.functions";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +20,7 @@ import { MailCheck, AlertCircle } from "lucide-react";
 
 import { toast } from "sonner";
 const kwoutLogo = { url: "/kwout-logo.png" };
+
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -62,6 +68,9 @@ function AuthPage() {
   }, []);
 
   const ensureOwner = useServerFn(ensureOwnerStaff);
+  const sendSignup = useServerFn(sendSignupEmail);
+  const resendVerify = useServerFn(resendVerificationEmail);
+  const sendReset = useServerFn(sendPasswordResetEmail);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -113,20 +122,15 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const attempt = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      await sendSignup({
+        data: {
+          email,
+          password,
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      if (attempt.error) throw attempt.error;
-      if (attempt.data.session) {
-        try { await ensureOwner(); } catch (e) { console.error(e); }
-        toast.success("Account created");
-        navigate({ to: "/" });
-      } else {
-        setPendingVerification({ email });
-        setResendCooldown(30);
-      }
+      setPendingVerification({ email });
+      setResendCooldown(30);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign up failed");
     } finally {
@@ -138,12 +142,12 @@ function AuthPage() {
     if (resendCooldown > 0) return;
     setBusy(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: target,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      await resendVerify({
+        data: {
+          email: target,
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      if (error) throw error;
       toast.success("Verification email sent");
       setResendCooldown(30);
     } catch (err) {
@@ -168,14 +172,16 @@ function AuthPage() {
     }
   }
 
-  async function sendReset(e: React.FormEvent) {
+  async function submitReset(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      await sendReset({
+        data: {
+          email,
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
       });
-      if (error) throw error;
       toast.success("Password reset email sent");
       setForgot(false);
     } catch (err) {
