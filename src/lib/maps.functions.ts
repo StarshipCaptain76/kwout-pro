@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 
@@ -15,6 +16,7 @@ function headers() {
 }
 
 export const placesAutocomplete = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ input: z.string().min(1).max(200) }).parse(d))
   .handler(async ({ data }) => {
     const res = await fetch(`${GATEWAY}/places/v1/places:autocomplete`, {
@@ -40,6 +42,7 @@ export const placesAutocomplete = createServerFn({ method: "POST" })
   });
 
 export const placeDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ placeId: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
     const res = await fetch(`${GATEWAY}/places/v1/places/${encodeURIComponent(data.placeId)}`, {
@@ -70,6 +73,7 @@ const point = z.object({
 });
 
 export const routeDistance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ from: point, to: point }).parse(d))
   .handler(async ({ data }) => {
     const waypoint = (p: { address?: string; lat?: number; lng?: number }) =>

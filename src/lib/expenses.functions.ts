@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Parse a receipt/slip image via Lovable AI Gateway (Gemini vision).
 // Returns best-effort extracted fields; the client fills in gaps.
 export const parseReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z
       .object({
