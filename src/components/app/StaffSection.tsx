@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,8 @@ import {
   createStaffAccount, updateStaffMember, deleteStaffMember, resetStaffPassword,
 } from "@/lib/staff.functions";
 import { refreshStaff } from "@/lib/sync";
+import { listStaffCompensation, updateStaffCompensation, type PayType } from "@/lib/payslips.functions";
+import type { TaxStatus } from "@/lib/payroll";
 import { Plus, Trash2, KeyRound, Copy, Users } from "lucide-react";
 import { toast } from "sonner";
 
@@ -113,6 +116,7 @@ function CreateStaffSheet({
   const [password, setPassword] = useState(() => randomPassword());
   const [role, setRole] = useState<Role>("staff");
   const [busy, setBusy] = useState(false);
+  const createStaff = useServerFn(createStaffAccount);
 
   const reset = () => {
     setName(""); setEmail(""); setPassword(randomPassword()); setRole("staff");
@@ -124,7 +128,7 @@ function CreateStaffSheet({
     }
     setBusy(true);
     try {
-      await createStaffAccount({
+      await createStaff({
         data: { name: name.trim(), email: email.trim().toLowerCase(), password, role, permissions: presetFor(role) },
       });
       await refreshStaff();
@@ -185,6 +189,9 @@ function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClo
   const [draft, setDraft] = useState<StaffMember | null>(member);
   const [busy, setBusy] = useState(false);
   const [newPass, setNewPass] = useState("");
+  const updateStaff = useServerFn(updateStaffMember);
+  const deleteStaff = useServerFn(deleteStaffMember);
+  const resetPassword = useServerFn(resetStaffPassword);
 
   if (member && (!draft || draft.id !== member.id)) {
     setDraft(member);
@@ -205,7 +212,7 @@ function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClo
   const save = async () => {
     setBusy(true);
     try {
-      await updateStaffMember({
+      await updateStaff({
         data: {
           id: draft.id,
           name: draft.name,
@@ -228,7 +235,7 @@ function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClo
     if (!confirm(`Delete ${draft.name || draft.email}? Their login will be removed.`)) return;
     setBusy(true);
     try {
-      await deleteStaffMember({ data: { id: draft.id } });
+      await deleteStaff({ data: { id: draft.id } });
       await refreshStaff();
       toast.success("Removed");
       onClose();
@@ -243,7 +250,7 @@ function EditStaffSheet({ member, onClose }: { member: StaffMember | null; onClo
     if (!newPass || newPass.length < 6) return toast.error("Password needs at least 6 characters");
     setBusy(true);
     try {
-      await resetStaffPassword({ data: { id: draft.id, newPassword: newPass } });
+      await resetPassword({ data: { id: draft.id, newPassword: newPass } });
       toast.success("Password updated — share it with your staff");
       setNewPass("");
     } catch (e) {
@@ -363,9 +370,6 @@ function CredentialsDialog({ creds, onClose }: { creds: { email: string; passwor
 
 // ---------- Compensation (payroll) ----------
 
-import { listStaffCompensation, updateStaffCompensation, type PayType } from "@/lib/payslips.functions";
-import type { TaxStatus } from "@/lib/payroll";
-
 function CompensationSection({ staffId }: { staffId: string }) {
   const [payType, setPayType] = useState<PayType>("salary");
   const [baseSalary, setBaseSalary] = useState(0);
@@ -375,11 +379,13 @@ function CompensationSection({ staffId }: { staffId: string }) {
   const [taxStatus, setTaxStatus] = useState<TaxStatus>("paye");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const fetchCompensation = useServerFn(listStaffCompensation);
+  const saveCompensation = useServerFn(updateStaffCompensation);
 
   useEffect(() => {
     let cancel = false;
     setLoading(true);
-    listStaffCompensation()
+    fetchCompensation()
       .then((list) => {
         if (cancel) return;
         const s = list.find((x) => x.id === staffId);
@@ -394,12 +400,12 @@ function CompensationSection({ staffId }: { staffId: string }) {
       })
       .finally(() => !cancel && setLoading(false));
     return () => { cancel = true; };
-  }, [staffId]);
+  }, [fetchCompensation, staffId]);
 
   const save = async () => {
     setSaving(true);
     try {
-      await updateStaffCompensation({
+      await saveCompensation({
         data: {
           id: staffId, payType, baseSalary, hourlyRate, commissionPct,
           idNumber: idNumber || null, taxStatus,
