@@ -81,7 +81,7 @@ export function ThemeInjector() {
     ) {
       writeBrandCookie(cache);
     }
-  }, [theme.primary, theme.accent, company.name, company.logo]);
+  }, [theme.primary, theme.accent, company.name, company.logo, pathname]);
 
   return null;
 }
