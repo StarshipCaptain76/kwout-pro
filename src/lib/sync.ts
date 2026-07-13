@@ -484,9 +484,17 @@ export async function initSync() {
     state.userId = newUid;
     if (!newUid) {
       state.workspaceOwnerId = null;
+      useStore.getState().resetToDefaults();
       useStore.getState().setCurrentUser(null, null);
       useStore.getState().setStaffList([]);
       clearBrandCookie();
+      setPersistKey(null);
+    } else {
+      // Account change (or fresh sign-in): clear any previous user's
+      // in-memory state and switch to this user's persist slot BEFORE
+      // hydrating from remote, so no data can leak across accounts.
+      useStore.getState().resetToDefaults();
+      setPersistKey(newUid);
     }
     emit();
     if (newUid) void resolveAndLoad();
@@ -494,6 +502,7 @@ export async function initSync() {
 
   const { data: userRes } = await supabase.auth.getUser();
   state.userId = userRes.user?.id ?? null;
+  if (state.userId) setPersistKey(state.userId);
   emit();
   if (state.userId) await resolveAndLoad();
 }
