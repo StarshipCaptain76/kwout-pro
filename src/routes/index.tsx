@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { clearBrandCookie } from "@/lib/brand-cookie";
-import kwoutLogo from "@/assets/kwout-logo.png.asset.json";
+const kwoutLogo = { url: "/kwout-logo.png" };
 
 export const Route = createFileRoute("/")({
   component: IndexRoute,
