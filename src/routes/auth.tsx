@@ -25,6 +25,17 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
 
+  // Force KWOUT default branding on this page — never show a persisted
+  // tenant theme flash. Runs before paint.
+  useLayoutEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    for (const v of ["--primary","--primary-foreground","--accent","--accent-foreground","--secondary","--secondary-foreground","--ring"]) {
+      root.style.removeProperty(v);
+    }
+    clearBrandCookie();
+  }, []);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/" });
