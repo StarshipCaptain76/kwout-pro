@@ -92,6 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
       { property: "og:description", content: "Simple, mobile-first accounting and billing for entrepreneurs. Quotes, invoices, expenses, customer statements and reports — all in one place." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "KWOUT" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
       { name: "twitter:description", content: "Quotes, invoices, expenses and customer statements for entrepreneurs. Simple, mobile-first, cloud synced." },
@@ -102,6 +103,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", type: "image/png", href: "/kwout-logo.png" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "KWOUT",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          description:
+            "Simple, mobile-first accounting and billing app for entrepreneurs and small businesses. Quotes, invoices, expenses, statements and payslips.",
+          url: "https://kwout.co.za/",
+          offers: {
+            "@type": "Offer",
+            price: "100",
+            priceCurrency: "ZAR",
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "KWOUT",
+            url: "https://kwout.co.za/",
+          },
+        }),
+      },
     ],
   }),
   shellComponent: RootShell,

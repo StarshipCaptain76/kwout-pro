@@ -1,0 +1,8 @@
+# KWOUT
+
+> KWOUT is a simple, mobile-first accounting and billing app for entrepreneurs and small businesses. Send quotes and invoices, track expenses with receipts, manage customers, issue monthly statements and payslips, and stay on top of cash flow. 30 days free, then R100/month.
+
+## Pages
+
+- [Home](/): Overview of KWOUT, features included, and how to start a 30-day free trial.
+- [Sign in](/auth): Sign in or create a KWOUT account.

@@ -12,6 +12,16 @@ type Assignee = "all" | "mine" | "unassigned";
 
 export const Route = createFileRoute("/docs")({
   component: DocsListPage,
+  head: () => ({
+    meta: [
+      { title: "Quotes & Invoices — KWOUT" },
+      { name: "description", content: "Browse and filter your quotes and invoices, spot outstanding balances and assign work to staff." },
+      { property: "og:title", content: "Quotes & Invoices — KWOUT" },
+      { property: "og:description", content: "All your quotes and invoices in one list." },
+      { property: "og:url", content: "https://kwout.co.za/docs" },
+    ],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/docs" }],
+  }),
   validateSearch: (search: Record<string, unknown>) => ({
     type: search.type === "quote" || search.type === "invoice" ? search.type : undefined,
     status: search.status === "unpaid" ? search.status : undefined,

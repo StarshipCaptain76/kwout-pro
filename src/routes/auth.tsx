@@ -14,7 +14,16 @@ const kwoutLogo = { url: "/kwout-logo.png" };
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
-  head: () => ({ meta: [{ title: "Sign in" }] }),
+  head: () => ({
+    meta: [
+      { title: "Sign in — KWOUT" },
+      { name: "description", content: "Sign in or create your KWOUT account. 30 days free, then R100/month." },
+      { property: "og:title", content: "Sign in — KWOUT" },
+      { property: "og:description", content: "Access your KWOUT accounting and billing workspace." },
+      { property: "og:url", content: "https://kwout.co.za/auth" },
+    ],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/auth" }],
+  }),
 });
 
 function AuthPage() {

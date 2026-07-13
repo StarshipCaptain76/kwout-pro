@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
 
-# KWOUT - Simple accounting & billing for entrepreneurs and small businesses
-
-Sitemap: https://your-app-domain.com/sitemap.xml
+# KWOUT — Simple accounting & billing for entrepreneurs
+Sitemap: https://kwout.co.za/sitemap.xml

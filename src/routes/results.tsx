@@ -22,9 +22,13 @@ import { useCan, useIsOwner } from "@/lib/store";
 export const Route = createFileRoute("/results")({
   head: () => ({
     meta: [
-      { title: "Revenue & Reports" },
+      { title: "Revenue & Reports — KWOUT" },
       { name: "description", content: "Revenue, expenses, cash flow and customer reports with flexible date ranges." },
+      { property: "og:title", content: "Revenue & Reports — KWOUT" },
+      { property: "og:description", content: "Cash-flow, revenue and expense reports for your business." },
+      { property: "og:url", content: "https://kwout.co.za/results" },
     ],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/results" }],
   }),
   component: ResultsPage,
 });
