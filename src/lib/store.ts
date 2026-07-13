@@ -462,9 +462,55 @@ export const useStore = create<State>()(
         removedCat.forEach((c) => deleteCatalogItemRow(c.id));
         return { expenses: expBefore - expenses.length, docs: docBefore - docs.length };
       },
+      resetToDefaults: () => {
+        set({
+          company: {
+            name: "KWOUT",
+            tagline: "",
+            address: "",
+            phone: "",
+            email: "",
+            logo: "/kwout-logo.png",
+            theme: DEFAULT_THEME,
+          },
+          banking: {
+            accountName: "",
+            accountNumber: "",
+            bank: "",
+            branchCode: "",
+            branchName: "",
+            swiftCode: "",
+          },
+          billing: {
+            ratePerKm: 0,
+            baseCallout: 0,
+            defaultDepositPct: 50,
+            vatPct: 0,
+            chargesVat: false,
+            vatNumber: "",
+            quotePrefix: "Q",
+            invoicePrefix: "INV",
+            nextQuoteNo: 1001,
+            nextInvoiceNo: 1001,
+            currency: "R",
+            primaryUnit: "km",
+            customUnits: [],
+          },
+          catalog: [],
+          customers: [],
+          docs: [],
+          expenses: [],
+          expenseCategories: DEFAULT_EXPENSE_CATEGORIES,
+          density: "normal" as Density,
+          staff: [],
+          currentUserId: null,
+          currentStaff: null,
+        });
+      },
     }),
     {
-      name: "app-store-v1",
+      name: "app-store", // ignored; perUserStorage handles the real key
+      storage: createJSONStorage(() => perUserStorage),
       version: 4,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
@@ -481,8 +527,6 @@ export const useStore = create<State>()(
           if (s.billing && !s.billing.customUnits) s.billing.customUnits = [];
         }
         if (version < 4) {
-          // Reset any previous built-in default theme to the current KWOUT
-          // defaults. User-customised themes are left alone.
           const priorDefaults = new Set(["#2563eb", "#0f172a", "#151c63"]);
           const p = s.company?.theme?.primary?.toLowerCase();
           if (s.company && (!p || priorDefaults.has(p))) {
@@ -492,6 +536,7 @@ export const useStore = create<State>()(
         return s;
       },
     },
+
   ),
 );
 
