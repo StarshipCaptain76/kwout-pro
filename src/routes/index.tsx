@@ -109,28 +109,8 @@ function Landing() {
           >
             Run your <span className="text-[#3FA34D]">business</span>.<br />
             Not your<br />
-            <span className="relative inline-block">
+            <span className="underline decoration-[#3FA34D] underline-offset-4 decoration-2">
               paperwork
-              <svg
-                aria-hidden="true"
-                className="absolute left-0 right-0 -bottom-1 w-full h-[0.55em] pointer-events-none"
-                viewBox="0 0 200 12"
-                preserveAspectRatio="none"
-                fill="none"
-              >
-                <path
-                  d="M2 6 Q 50 8, 100 4 T 198 5"
-                  stroke="#3FA34D"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M60 9 Q 110 1, 160 7 T 198 4"
-                  stroke="#3FA34D"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </svg>
             </span>.
           </motion.h1>
 
