@@ -115,8 +115,8 @@ export interface Theme {
 }
 
 export const DEFAULT_THEME: Theme = {
-  primary: "#2563eb", // blue-600
-  accent: "#0f172a", // slate-900
+  primary: "#151C63", // KWOUT navy
+  accent: "#4F8C2E", // KWOUT green
 };
 
 export interface Company {
