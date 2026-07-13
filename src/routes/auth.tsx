@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { clearBrandCookie } from "@/lib/brand-cookie";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,7 +9,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MailCheck, AlertCircle } from "lucide-react";
 
 import { toast } from "sonner";
 const kwoutLogo = { url: "/kwout-logo.png" };
@@ -31,6 +33,11 @@ export const Route = createFileRoute("/auth")({
   }),
 });
 
+type SignInProblem =
+  | { kind: "invalid" }
+  | { kind: "unverified"; email: string }
+  | null;
+
 function AuthPage() {
   const navigate = useNavigate();
   const { tab } = Route.useSearch();
@@ -40,9 +47,11 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
 
+  const [pendingVerification, setPendingVerification] = useState<{ email: string } | null>(null);
+  const [signInProblem, setSignInProblem] = useState<SignInProblem>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
 
-  // Force KWOUT default branding on this page — never show a persisted
-  // tenant theme flash. Runs before paint.
   useLayoutEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
@@ -63,9 +72,16 @@ function AuthPage() {
     });
   }, [navigate, ensureOwner]);
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setSignInProblem(null);
     try {
       const attempt = await supabase.auth.signInWithPassword({ email, password });
       if (attempt.error) throw attempt.error;
@@ -73,7 +89,21 @@ function AuthPage() {
       toast.success("Signed in");
       navigate({ to: "/" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign in failed");
+      const msg = err instanceof Error ? err.message : "Sign in failed";
+      const code = (err as { code?: string } | null)?.code ?? "";
+      const lower = msg.toLowerCase();
+      if (code === "email_not_confirmed" || lower.includes("not confirmed") || lower.includes("email not confirmed")) {
+        setSignInProblem({ kind: "unverified", email });
+      } else if (
+        code === "invalid_credentials" ||
+        code === "invalid_grant" ||
+        lower.includes("invalid login") ||
+        lower.includes("invalid credentials")
+      ) {
+        setSignInProblem({ kind: "invalid" });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -94,7 +124,8 @@ function AuthPage() {
         toast.success("Account created");
         navigate({ to: "/" });
       } else {
-        toast.success("Check your email to verify your account.");
+        setPendingVerification({ email });
+        setResendCooldown(30);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign up failed");
@@ -103,28 +134,39 @@ function AuthPage() {
     }
   }
 
+  async function resendVerification(target: string) {
+    if (resendCooldown > 0) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: target,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw error;
+      toast.success("Verification email sent");
+      setResendCooldown(30);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not resend email");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function signInWithGoogle() {
     setBusy(true);
     try {
-      // Call Supabase OAuth directly. The Lovable managed OAuth broker
-      // (`/~oauth/*`) only exists on Lovable-hosted domains — this site is
-      // deployed on Vercel at kwout.co.za, so we must use Supabase's native
-      // OAuth flow which goes through <project>.supabase.co/auth/v1/callback.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) throw error;
-      // On success the browser navigates to Google; nothing to do here.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign in failed");
     } finally {
       setBusy(false);
     }
   }
-
 
   async function sendReset(e: React.FormEvent) {
     e.preventDefault();
@@ -156,7 +198,45 @@ function AuthPage() {
           </div>
         </div>
 
-        {forgot ? (
+        {pendingVerification ? (
+          <div className="grid gap-4 text-center py-2">
+            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 grid place-items-center">
+              <MailCheck className="h-6 w-6 text-primary" />
+            </div>
+            <div className="grid gap-1">
+              <h2 className="text-lg font-semibold">Verify your email</h2>
+              <p className="text-sm text-muted-foreground">
+                We sent a verification link to{" "}
+                <span className="font-medium text-foreground break-all">{pendingVerification.email}</span>.
+                Click it to activate your {brand} account.
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Button
+                type="button"
+                className="h-11"
+                disabled={busy || resendCooldown > 0}
+                onClick={() => resendVerification(pendingVerification.email)}
+              >
+                {resendCooldown > 0 ? `Resend email (${resendCooldown}s)` : "Resend email"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-10"
+                onClick={() => {
+                  setPendingVerification(null);
+                  navigate({ to: "/auth", search: { tab: "signup" }, replace: true });
+                }}
+              >
+                Use a different email
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Check your spam folder if it doesn't arrive within a minute.
+            </p>
+          </div>
+        ) : forgot ? (
           <form onSubmit={sendReset} className="grid gap-3">
             <div>
               <Label>Email</Label>
@@ -180,13 +260,77 @@ function AuthPage() {
             </button>
           </form>
         ) : (
-          <Tabs value={tab} onValueChange={(v) => navigate({ to: "/auth", search: { tab: v === "signup" ? "signup" : "signin" }, replace: true })}>
+          <Tabs
+            value={tab}
+            onValueChange={(v) => {
+              setSignInProblem(null);
+              navigate({ to: "/auth", search: { tab: v === "signup" ? "signup" : "signin" }, replace: true });
+            }}
+          >
             <TabsList className="grid grid-cols-2 mb-4">
               <TabsTrigger value="signin">Sign in</TabsTrigger>
               <TabsTrigger value="signup">Create account</TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
+              {signInProblem?.kind === "invalid" && (
+                <Alert variant="destructive" className="mb-3">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>We couldn't sign you in</AlertTitle>
+                  <AlertDescription className="grid gap-2 mt-1">
+                    <p className="text-xs">
+                      Either the password is wrong or this email isn't registered yet.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setSignInProblem(null);
+                          navigate({ to: "/auth", search: { tab: "signup" }, replace: true });
+                        }}
+                      >
+                        Create an account
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSignInProblem(null);
+                          setPassword("");
+                          passwordRef.current?.focus();
+                        }}
+                      >
+                        Try again
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+              {signInProblem?.kind === "unverified" && (
+                <Alert className="mb-3">
+                  <MailCheck className="h-4 w-4" />
+                  <AlertTitle>Verify your email first</AlertTitle>
+                  <AlertDescription className="grid gap-2 mt-1">
+                    <p className="text-xs">
+                      We sent a verification link to{" "}
+                      <span className="font-medium">{signInProblem.email}</span>. Click it, then
+                      sign in.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={busy || resendCooldown > 0}
+                        onClick={() => resendVerification(signInProblem.email)}
+                      >
+                        {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend email"}
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
               <form onSubmit={signIn} className="grid gap-3">
                 <div>
                   <Label>Email</Label>
@@ -194,7 +338,7 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label>Password</Label>
-                  <Input type="password" className="h-11" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+                  <Input ref={passwordRef} type="password" className="h-11" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
                 </div>
                 <Button type="submit" disabled={busy} className="h-11">
                   {busy ? "Signing in…" : "Sign in"}
