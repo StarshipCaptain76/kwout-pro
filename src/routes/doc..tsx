@@ -134,7 +134,7 @@ function DocPage() {
   const statusColor =
     doc.status === "paid" ? "bg-green-600 text-white"
     : doc.status === "sent" ? "bg-amber-500 text-white"
-    : doc.status === "accepted" ? "bg-blue-600 text-white"
+    : doc.status === "accepted" ? "bg-primary text-primary-foreground"
     : "bg-muted text-muted-foreground";
 
   return (
