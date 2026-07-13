@@ -54,7 +54,6 @@ export function TrialBanner() {
         </span>
         <Link
           to="/settings"
-          search={{ tab: "subscription" } as never}
           className="rounded-md bg-primary text-primary-foreground px-3 py-1 font-medium hover:bg-primary/90"
         >
           Subscribe
