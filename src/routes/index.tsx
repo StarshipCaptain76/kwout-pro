@@ -164,7 +164,7 @@ function Landing() {
           <div className="bg-white rounded-2xl border border-black/5 shadow-xl p-6 sm:p-7">
             <div className="mb-4">
               <div className="font-display text-3xl tracking-wide text-primary">Start free</div>
-              <div className="text-xs text-[#111111]/60 mt-1">No card needed. Set up in under a minute.</div>
+              <div className="text-xs text-[#111111]/80 mt-1">No card needed. Set up in under a minute.</div>
             </div>
             <div className="grid gap-3">
               <Button className="h-11" onClick={() => navigate({ to: "/auth" })}>
@@ -176,12 +176,12 @@ function Landing() {
             </div>
           </div>
 
-          <p className="mt-4 text-center text-[11px] text-[#111111]/60">R100/month after your trial. Cancel anytime.</p>
+          <p className="mt-4 text-center text-[11px] text-[#111111]/80">R100/month after your trial. Cancel anytime.</p>
         </div>
       </section>
 
       <footer className="border-t border-black/10 mt-8">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#111111]/60">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#111111]/80">
           <div className="flex items-center gap-2">
             <img src={kwoutLogo.url} alt="" className="h-5 w-5 rounded object-contain opacity-80" />
             <span className="font-display tracking-wide text-sm text-[#111111]">KWOUT</span>
