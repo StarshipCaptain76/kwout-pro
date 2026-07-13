@@ -107,7 +107,7 @@ function Landing() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="font-display leading-[0.9] tracking-tight text-[15vw] sm:text-8xl lg:text-[7.5rem] text-primary"
           >
-            Run your business.<br />
+            Run your <span className="text-[#3FA34D]">business</span>.<br />
             Not your<br />
             paperwork.
           </motion.h1>
