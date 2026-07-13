@@ -28,6 +28,7 @@ function toRgb(hex: string): string {
 export function ThemeInjector() {
   const company = useStore((s) => s.company);
   const theme = company.theme ?? DEFAULT_THEME;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     if (typeof document === "undefined") return;
