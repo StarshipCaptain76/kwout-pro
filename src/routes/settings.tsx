@@ -15,6 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { LogoUploader } from "@/components/app/LogoUploader";
 import { ColorPicker } from "@/components/app/ColorPicker";
 import { StaffSection } from "@/components/app/StaffSection";
+import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getMySubscription, createPayfastCheckout, cancelMySubscription } from "@/lib/subscription.functions";
