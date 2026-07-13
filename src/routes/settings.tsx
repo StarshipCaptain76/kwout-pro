@@ -15,6 +15,10 @@ import { Slider } from "@/components/ui/slider";
 import { LogoUploader } from "@/components/app/LogoUploader";
 import { ColorPicker } from "@/components/app/ColorPicker";
 import { StaffSection } from "@/components/app/StaffSection";
+import { cn } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { getMySubscription, createPayfastCheckout, cancelMySubscription } from "@/lib/subscription.functions";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -33,8 +37,9 @@ function SettingsPage() {
   const s = useStore();
   return (
     <Shell>
-      <Tabs defaultValue="company">
-        <TabsList className="mb-4 w-full grid grid-cols-7">
+      <Tabs defaultValue="subscription">
+        <TabsList className="mb-4 w-full grid grid-cols-8">
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="banking">Banking</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
@@ -43,6 +48,10 @@ function SettingsPage() {
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="subscription">
+          <SubscriptionSection />
+        </TabsContent>
 
         <TabsContent value="staff">
           <StaffSection />
@@ -140,6 +149,104 @@ function SettingsPage() {
     </Shell>
   );
 }
+
+function SubscriptionSection() {
+  const fetchSub = useServerFn(getMySubscription);
+  const checkout = useServerFn(createPayfastCheckout);
+  const cancel = useServerFn(cancelMySubscription);
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: () => fetchSub(),
+  });
+  const [busy, setBusy] = useState(false);
+
+  const onSubscribe = async () => {
+    setBusy(true);
+    try {
+      const { url } = await checkout({ data: { origin: window.location.origin } });
+      window.location.href = url;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not start checkout");
+      setBusy(false);
+    }
+  };
+
+  const onCancel = async () => {
+    if (!confirm("Cancel your KWOUT subscription? You'll lose access at the end of the current period.")) return;
+    setBusy(true);
+    try {
+      await cancel();
+      toast.success("Subscription cancelled");
+      await refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not cancel");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const status = data?.status ?? "trial";
+  const badgeClass =
+    status === "active"
+      ? "bg-secondary text-secondary-foreground"
+      : status === "past_due"
+        ? "bg-destructive text-destructive-foreground"
+        : status === "cancelled"
+          ? "bg-muted text-muted-foreground"
+          : "bg-primary/10 text-primary";
+  const badgeLabel =
+    status === "active"
+      ? "Active"
+      : status === "past_due"
+        ? "Past due"
+        : status === "cancelled"
+          ? "Cancelled"
+          : `Trial · ${data?.daysLeftInTrial ?? 30} day${data?.daysLeftInTrial === 1 ? "" : "s"} left`;
+
+  return (
+    <div className="grid gap-4 max-w-2xl">
+      <Card className="p-4 sm:p-6 grid gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="font-display text-3xl tracking-wide">KWOUT</div>
+            <div className="text-sm text-muted-foreground">R100 / month · Everything included</div>
+          </div>
+          <span className={cn("rounded-full px-3 py-1 text-xs font-medium", badgeClass)}>{badgeLabel}</span>
+        </div>
+
+        <ul className="grid sm:grid-cols-2 gap-1.5 text-sm">
+          {["Quotes", "Invoices", "Statements", "Payslips", "Expenses", "Reports"].map((f) => (
+            <li key={f} className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-secondary" strokeWidth={3} />
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Loading…</div>
+        ) : status === "active" ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              {data?.currentPeriodEnd ? `Next billing: ${new Date(data.currentPeriodEnd).toLocaleDateString()}` : ""}
+            </span>
+            <Button variant="outline" onClick={onCancel} disabled={busy} className="ml-auto">
+              Cancel subscription
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={onSubscribe} disabled={busy} className="h-11 px-6">
+              {busy ? "Opening PayFast…" : "Subscribe — R100 / month"}
+            </Button>
+            <span className="text-xs text-muted-foreground">Billed monthly by PayFast. Cancel anytime.</span>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 
 function PrimaryUnitEditor() {
   const { billing, setBilling } = useStore();

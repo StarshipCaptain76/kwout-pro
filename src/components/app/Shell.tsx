@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { readBrandCookie } from "@/lib/brand-cookie";
+import { TrialBanner } from "@/components/app/TrialBanner";
 
 const nav = [
   { to: "/", label: "Home", icon: LayoutDashboard },
@@ -77,6 +78,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <AuthButton />
         </div>
       </header>
+      <TrialBanner />
       <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-6">
         {children}
       </main>
