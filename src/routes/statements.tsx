@@ -16,9 +16,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/statements")({
   head: () => ({
     meta: [
-      { title: "Customer Statements" },
+      { title: "Customer Statements — KWOUT" },
       { name: "description", content: "Monthly customer statements with 30/60/90/120 day aging, ready to download, WhatsApp or email." },
+      { property: "og:title", content: "Customer Statements — KWOUT" },
+      { property: "og:description", content: "Send aged customer statements in one tap." },
+      { property: "og:url", content: "https://kwout.co.za/statements" },
     ],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/statements" }],
   }),
   component: StatementsPage,
 });
