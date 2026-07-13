@@ -70,7 +70,15 @@ function Landing() {
   useLayoutEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
-    for (const v of ["--primary","--primary-foreground","--accent","--accent-foreground","--secondary","--secondary-foreground","--ring"]) {
+    for (const v of [
+      "--primary",
+      "--primary-foreground",
+      "--accent",
+      "--accent-foreground",
+      "--secondary",
+      "--secondary-foreground",
+      "--ring",
+    ]) {
       root.style.removeProperty(v);
     }
     clearBrandCookie();
@@ -120,11 +128,12 @@ function Landing() {
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111]/70 max-w-xl">
-            <strong>Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips</strong><br />
+            <strong>Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips</strong>
+            <br />
             the whole KWOUT stationery, in your pocket.
             <span className="block mt-2 font-medium text-[#111111]">
-              30 days free. Everything included.<br />
-              Then only R100/month.
+              30 days free. Everything included.
+              <br />
             </span>
           </p>
 
@@ -146,16 +155,16 @@ function Landing() {
             className="absolute -top-6 -right-2 sm:-right-6 z-10 pointer-events-none"
           >
             <div className="border-4 border-[#3FA34D] text-[#3FA34D] rounded-full w-28 h-28 grid place-items-center text-center font-display tracking-widest text-sm leading-tight opacity-90">
-              KWOUT<br />APPROVED
+              KWOUT
+              <br />
+              APPROVED
             </div>
           </motion.div>
 
           <div className="bg-white rounded-2xl border border-black/5 shadow-xl p-6 sm:p-7">
             <div className="mb-4">
               <div className="font-display text-3xl tracking-wide text-primary">Start free</div>
-              <div className="text-xs text-[#111111]/60 mt-1">
-                No card needed. Set up in under a minute.
-              </div>
+              <div className="text-xs text-[#111111]/60 mt-1">No card needed. Set up in under a minute.</div>
             </div>
             <div className="grid gap-3">
               <Button className="h-11" onClick={() => navigate({ to: "/auth" })}>
@@ -167,9 +176,7 @@ function Landing() {
             </div>
           </div>
 
-          <p className="mt-4 text-center text-[11px] text-[#111111]/60">
-            R100/month after your trial. Cancel anytime.
-          </p>
+          <p className="mt-4 text-center text-[11px] text-[#111111]/60">R100/month after your trial. Cancel anytime.</p>
         </div>
       </section>
 
@@ -208,13 +215,12 @@ function Dashboard() {
 
   const visible = docs.filter((d) => !d.archived);
   const ARCHIVED_CUTOFF = "2026-07-10";
-  const archived = docs.filter(
-    (d) => d.archived && (d.createdAt ?? "") >= ARCHIVED_CUTOFF,
-  );
+  const archived = docs.filter((d) => d.archived && (d.createdAt ?? "") >= ARCHIVED_CUTOFF);
   const [showArchived, setShowArchived] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
-  const jobDate = (d: Doc) => d.scheduledDate || (d.status === "paid" && d.paidAt ? format(new Date(d.paidAt), "yyyy-MM-dd") : undefined);
+  const jobDate = (d: Doc) =>
+    d.scheduledDate || (d.status === "paid" && d.paidAt ? format(new Date(d.paidAt), "yyyy-MM-dd") : undefined);
   const todayJobs = docs.filter((d) => jobDate(d) === today && d.status !== "cancelled");
 
   const thisMonth = format(new Date(), "yyyy-MM");
@@ -238,7 +244,13 @@ function Dashboard() {
     <Shell>
       <h1 className="sr-only">Business Dashboard</h1>
       <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
-        <Stat label="Outstanding" value={fmtMoney(stats.outstanding, billing.currency)} accent to="/docs" search={{ status: "unpaid" }} />
+        <Stat
+          label="Outstanding"
+          value={fmtMoney(stats.outstanding, billing.currency)}
+          accent
+          to="/docs"
+          search={{ status: "unpaid" }}
+        />
         <Stat label="Paid (month)" value={fmtMoney(stats.paidThisMonth, billing.currency)} />
         <Stat label="Quotes (month)" value={String(stats.quotes)} to="/docs" search={{ type: "quote" }} />
         <Stat label="Invoices (month)" value={String(stats.invoices)} to="/docs" search={{ type: "invoice" }} />
@@ -247,8 +259,14 @@ function Dashboard() {
       <Card className="p-3 sm:p-4">
         <Tabs defaultValue="today">
           <TabsList className="w-full grid grid-cols-2 mb-3">
-            <TabsTrigger value="today"><Truck className="h-4 w-4 mr-1.5" />Today ({todayJobs.length})</TabsTrigger>
-            <TabsTrigger value="recent"><FileText className="h-4 w-4 mr-1.5" />Recent ({visible.length})</TabsTrigger>
+            <TabsTrigger value="today">
+              <Truck className="h-4 w-4 mr-1.5" />
+              Today ({todayJobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="recent">
+              <FileText className="h-4 w-4 mr-1.5" />
+              Recent ({visible.length})
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="today" className="mt-0">
             {todayJobs.length === 0 ? (
@@ -269,10 +287,7 @@ function Dashboard() {
 
       {archived.length > 0 && (
         <div className="mt-4">
-          <button
-            className="text-xs text-muted-foreground underline"
-            onClick={() => setShowArchived((v) => !v)}
-          >
+          <button className="text-xs text-muted-foreground underline" onClick={() => setShowArchived((v) => !v)}>
             {showArchived ? "Hide" : "Show"} archived quotes ({archived.length})
           </button>
           {showArchived && (
@@ -280,19 +295,11 @@ function Dashboard() {
               <ul className="divide-y">
                 {archived.map((d) => (
                   <li key={d.id} className="flex items-center gap-2 py-2">
-                    <Link
-                      to="/doc/$id"
-                      params={{ id: d.id }}
-                      className="min-w-0 flex-1"
-                    >
+                    <Link to="/doc/$id" params={{ id: d.id }} className="min-w-0 flex-1">
                       <div className="text-xs font-mono text-muted-foreground">{d.number}</div>
                       <div className="font-medium truncate">{d.customer.name || "—"}</div>
                     </Link>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => upsertDoc({ ...d, archived: false })}
-                    >
+                    <Button size="sm" variant="ghost" onClick={() => upsertDoc({ ...d, archived: false })}>
                       Unarchive
                     </Button>
                   </li>
@@ -306,15 +313,35 @@ function Dashboard() {
   );
 }
 
-function Stat({ label, value, accent, to, search }: { label: string; value: string; accent?: boolean; to?: string; search?: Record<string, unknown> }) {
+function Stat({
+  label,
+  value,
+  accent,
+  to,
+  search,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  to?: string;
+  search?: Record<string, unknown>;
+}) {
   const body = (
     <>
       <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`font-display mt-1 leading-none ${accent ? "text-primary" : ""} text-xl sm:text-2xl truncate`}>{value}</div>
+      <div className={`font-display mt-1 leading-none ${accent ? "text-primary" : ""} text-xl sm:text-2xl truncate`}>
+        {value}
+      </div>
     </>
   );
   return (
-    <Card className={cn("p-3 sm:p-4", accent ? "border-primary/30 bg-primary/5" : "", to && "hover:bg-accent/50 transition-colors")}>
+    <Card
+      className={cn(
+        "p-3 sm:p-4",
+        accent ? "border-primary/30 bg-primary/5" : "",
+        to && "hover:bg-accent/50 transition-colors",
+      )}
+    >
       {to ? (
         <Link to={to} search={search} className="block">
           {body}
@@ -344,17 +371,27 @@ function List({ docs, currency, vat }: { docs: Doc[]; currency: string; vat: num
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${d.type === "invoice" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{d.type}</span>
+                  <span
+                    className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${d.type === "invoice" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+                  >
+                    {d.type}
+                  </span>
                   <span className="text-xs font-mono text-muted-foreground">{d.number}</span>
                   {d.status === "paid" && <span className="h-2 w-2 rounded-full bg-green-500" title="Paid" />}
-                  {d.type === "invoice" && d.status !== "paid" && <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-red-500 text-white">unpaid</span>}
+                  {d.type === "invoice" && d.status !== "paid" && (
+                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-red-500 text-white">
+                      unpaid
+                    </span>
+                  )}
                 </div>
 
                 <div className="font-medium truncate">{d.customer.name || "—"}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="font-semibold">{fmtMoney(t.total, currency)}</div>
-                {d.scheduledDate && <div className="text-[10px] text-muted-foreground">{format(new Date(d.scheduledDate), "d MMM")}</div>}
+                {d.scheduledDate && (
+                  <div className="text-[10px] text-muted-foreground">{format(new Date(d.scheduledDate), "d MMM")}</div>
+                )}
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </Link>
