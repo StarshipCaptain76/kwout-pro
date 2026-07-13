@@ -118,7 +118,7 @@ function Landing() {
                 className="absolute left-[-6%] -bottom-[0.14em] w-[120%] h-[0.32em] pointer-events-none overflow-visible"
               >
                 <path
-                  d="M2,7 C 55,3 115,2 145,4 C 153,5 157,9 162,11 C 168,12 173,9 178,6 C 210,1 265,1 318,3"
+                  d="M2,7 C 55,4 115,3 145,5 C 160,6 175,5 190,5 C 230,4 275,4 318,5"
                   stroke="#3FA34D"
                   strokeWidth="3.4"
                   strokeLinecap="round"
