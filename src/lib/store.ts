@@ -198,6 +198,61 @@ interface State {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+// ============ per-user persistence key ============
+// The persisted store is namespaced by the currently signed-in user id.
+// This prevents one user's local data leaking into another account when
+// they sign in on the same device.
+const PERSIST_PREFIX = "app-store::";
+const LEGACY_KEY = "app-store-v1";
+let currentPersistKey = "anon";
+
+function fullKey() {
+  return `${PERSIST_PREFIX}${currentPersistKey}`;
+}
+
+// One-time: migrate the legacy shared key to the anon slot so any local
+// edits made before this change aren't lost. Never migrate into a signed-in
+// slot.
+if (typeof window !== "undefined") {
+  try {
+    const legacy = window.localStorage.getItem(LEGACY_KEY);
+    if (legacy && !window.localStorage.getItem(`${PERSIST_PREFIX}anon`)) {
+      window.localStorage.setItem(`${PERSIST_PREFIX}anon`, legacy);
+    }
+    window.localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+const perUserStorage: StateStorage = {
+  getItem: (_name) => {
+    if (typeof window === "undefined") return null;
+    try { return window.localStorage.getItem(fullKey()); } catch { return null; }
+  },
+  setItem: (_name, value) => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(fullKey(), value); } catch { /* noop */ }
+  },
+  removeItem: (_name) => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.removeItem(fullKey()); } catch { /* noop */ }
+  },
+};
+
+export function setPersistKey(userId: string | null) {
+  const next = userId ?? "anon";
+  if (next === currentPersistKey) return;
+  currentPersistKey = next;
+  // Rehydrate from the new slot so the in-memory store reflects that user.
+  void useStore.persist.rehydrate();
+}
+
+export function clearAnonPersist() {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(`${PERSIST_PREFIX}anon`); } catch { /* noop */ }
+}
+
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
