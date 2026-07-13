@@ -265,7 +265,7 @@ function DocPage() {
                     placeholder={it.isDistance ? "Transport (km)" : "Description"}
                     onChange={(e) => updateItem(i, { description: e.target.value })}
                   />
-                  <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0 text-destructive"
+                  <Button size="icon" variant="ghost" aria-label="Remove item" className="h-10 w-10 shrink-0 text-destructive"
                     onClick={() => removeItem(i)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -392,10 +392,10 @@ function DocPage() {
           >
             <MessageCircle className="h-5 w-5 mr-2" /> WhatsApp
           </Button>
-          <Button variant="outline" size="icon" className="h-12 w-12" onClick={() => send("email")}>
+          <Button variant="outline" size="icon" aria-label="Send by email" className="h-12 w-12" onClick={() => send("email")}>
             <Mail className="h-5 w-5" />
           </Button>
-          <Button variant="outline" size="icon" className="h-12 w-12" onClick={() => downloadPdf(doc, company, banking, billing)}>
+          <Button variant="outline" size="icon" aria-label="Download PDF" className="h-12 w-12" onClick={() => downloadPdf(doc, company, banking, billing)}>
             <Download className="h-5 w-5" />
           </Button>
         </div>
