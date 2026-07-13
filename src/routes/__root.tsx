@@ -101,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", type: "image/png", href: "/__l5e/assets-v1/348dfec9-4bdc-40fe-b6f6-4daef5e9d2dd/kwout-logo.png" },
+      { rel: "icon", type: "image/png", href: "/kwout-logo.png" },
     ],
   }),
   shellComponent: RootShell,
