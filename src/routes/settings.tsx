@@ -49,19 +49,42 @@ const CURRENCIES = [
 
 function SettingsPage() {
   const s = useStore();
+  const [tab, setTab] = useState("subscription");
+  const TABS: Array<{ value: string; label: string }> = [
+    { value: "subscription", label: "Subscription" },
+    { value: "company", label: "Company" },
+    { value: "banking", label: "Banking" },
+    { value: "staff", label: "Staff" },
+    { value: "catalog", label: "Catalog" },
+    { value: "expenses", label: "Expenses" },
+    { value: "billing", label: "Billing" },
+    { value: "appearance", label: "Appearance" },
+  ];
+  const activeLabel = TABS.find((t) => t.value === tab)?.label ?? "Settings";
   return (
     <Shell>
       <h1 className="sr-only">Settings</h1>
-      <Tabs defaultValue="subscription">
-        <TabsList className="mb-4 w-full grid grid-cols-8">
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
-          <TabsTrigger value="company">Company</TabsTrigger>
-          <TabsTrigger value="banking">Banking</TabsTrigger>
-          <TabsTrigger value="staff">Staff</TabsTrigger>
-          <TabsTrigger value="catalog">Catalog</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab}>
+        {/* Mobile: dropdown */}
+        <div className="mb-4 sm:hidden">
+          <Select value={tab} onValueChange={setTab}>
+            <SelectTrigger className="w-full h-11">
+              <SelectValue>{activeLabel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {TABS.map((t) => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Tablet: horizontal scroll. Desktop (lg+): 8-col grid */}
+        <TabsList className="mb-4 hidden sm:flex sm:w-full sm:overflow-x-auto sm:whitespace-nowrap lg:grid lg:grid-cols-8">
+          {TABS.map((t) => (
+            <TabsTrigger key={t.value} value={t.value} className="shrink-0">
+              {t.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="subscription">
