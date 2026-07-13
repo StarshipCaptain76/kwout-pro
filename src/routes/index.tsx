@@ -113,12 +113,12 @@ function Landing() {
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111]/70 max-w-xl">
-            <strong>Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips</strong>
+            <strong>Quotes - Invoices - Statements - Payslips</strong>
             <br />
             the whole <span className="font-bold text-[#3FA34D]">KWOUT</span> stationery, in your pocket.
             <span className="block mt-2 font-medium text-[#111111]">
               <br />
-              30 days free. Everything included.
+              30 days FREE. Everything included.
             </span>
           </p>
 
