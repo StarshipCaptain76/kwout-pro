@@ -9,9 +9,9 @@ interface Props {
 }
 
 const DEFAULT_PRESETS = [
-  "#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308",
-  "#f97316", "#ef4444", "#ec4899", "#a855f7", "#6366f1",
-  "#0f172a", "#334155", "#475569", "#78716c", "#1f2937",
+  "#151C63", "#2563eb", "#0ea5e9", "#14b8a6", "#4F8C2E",
+  "#22c55e", "#eab308", "#f97316", "#ef4444", "#ec4899",
+  "#a855f7", "#6366f1", "#0f172a", "#334155", "#1f2937",
 ];
 
 export function ColorPicker({ label, value, onChange, presets = DEFAULT_PRESETS }: Props) {
