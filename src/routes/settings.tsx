@@ -15,6 +15,9 @@ import { Slider } from "@/components/ui/slider";
 import { LogoUploader } from "@/components/app/LogoUploader";
 import { ColorPicker } from "@/components/app/ColorPicker";
 import { StaffSection } from "@/components/app/StaffSection";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { getMySubscription, createPayfastCheckout, cancelMySubscription } from "@/lib/subscription.functions";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -33,8 +36,9 @@ function SettingsPage() {
   const s = useStore();
   return (
     <Shell>
-      <Tabs defaultValue="company">
-        <TabsList className="mb-4 w-full grid grid-cols-7">
+      <Tabs defaultValue="subscription">
+        <TabsList className="mb-4 w-full grid grid-cols-8">
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="banking">Banking</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
@@ -43,6 +47,10 @@ function SettingsPage() {
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="subscription">
+          <SubscriptionSection />
+        </TabsContent>
 
         <TabsContent value="staff">
           <StaffSection />
