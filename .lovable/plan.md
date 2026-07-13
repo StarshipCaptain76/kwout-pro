@@ -1,62 +1,52 @@
 ## Goal
 
-Send Supabase auth emails (signup verification, password reset, magic link, email change) via **Resend** from `hello@welcome.kwout.co.za` instead of the default Supabase sender that is currently being rate-limited.
+Make two auth moments obvious instead of a tiny toast:
 
-## How it will work
+1. After **sign-up**, show a dedicated "Check your email to verify" screen (not just a toast).
+2. On **sign-in**, if the email isn't registered (or credentials are wrong), show a clear prompt with a one-click "Create an account" action.
 
-Supabase Auth supports a "Send Email" webhook. When enabled, Supabase stops sending its own emails and POSTs each auth email event to our endpoint. We handle it, render the email, and send via Resend.
+## Changes (all in `src/routes/auth.tsx`)
 
-```text
-Signup / reset / magic link
-        │
-        ▼
-Supabase Auth ──(signed webhook)──►  /api/public/auth-email-hook  ──► Resend API ──► inbox
-```
+### 1. Post-signup verification screen
 
-## Steps
+- Add local state `pendingVerification: { email: string } | null`.
+- In `signUp()`, when Supabase returns no session (email confirmation required), set `pendingVerification` instead of just toasting.
+- Render a new panel inside the existing `Card` when `pendingVerification` is set:
+  - Heading: "Verify your email"
+  - Body: "We sent a verification link to **{email}**. Click it to activate your KWOUT account."
+  - Secondary actions:
+    - "Resend email" → calls `supabase.auth.resend({ type: 'signup', email })` with a 30-second cooldown.
+    - "Use a different email" → clears state, returns to the signup tab.
+  - Small note: "Check your spam folder if it doesn't arrive within a minute."
+- If the user already has a session on submit (auto-confirm on), keep existing behavior (navigate home).
 
-1. **DNS — verify the sending subdomain in Resend**
-   - You add `welcome.kwout.co.za` as a domain in Resend.
-   - Resend shows SPF, DKIM, and DMARC records.
-   - Add those records at your DNS provider for `kwout.co.za`.
-   - Wait for Resend to mark the domain **Verified** (usually minutes, up to a few hours).
+### 2. "Not registered" prompt on sign-in
 
-2. **Connect Resend to the project**
-   - Use the built-in Resend connector so `RESEND_API_KEY` is injected as a secret — no manual paste.
+Supabase does not tell us "user does not exist" directly — for security it returns `invalid_credentials` for both wrong password and unknown email. We handle it by parsing the error and offering both paths in one dialog:
 
-3. **Create the auth email webhook endpoint**
-   - New public route: `src/routes/api/public/auth-email-hook.ts`.
-   - Verifies Supabase's `Standard-Webhooks` signature using a hook secret.
-   - Renders a branded HTML template per email type (`signup`, `recovery`, `magiclink`, `email_change`, `invite`, `reauthentication`) using the KWOUT logo/colors.
-   - Sends via Resend from `KWOUT <hello@welcome.kwout.co.za>` with the correct action link (confirmation URL / token) from the payload.
-   - Returns 200 on success; surfaces Resend errors as 500 so Supabase retries.
+- Add state `signInProblem: { kind: 'invalid' | 'unverified' | 'other'; message: string } | null`.
+- In `signIn()`, on error inspect `err.message` / `err.code`:
+  - `email_not_confirmed` → `kind: 'unverified'` → show "Your email isn't verified yet" panel with Resend button (same as above) + "Back to sign in".
+  - `invalid_credentials` / `invalid_grant` → `kind: 'invalid'` → show an inline alert card above the form: "We couldn't sign you in. Either the password is wrong or this email isn't registered yet." with two buttons:
+    - **Create an account with this email** → switches to the signup tab, pre-fills email.
+    - **Try again** → clears the alert, keeps email, focuses password.
+  - Anything else → toast the raw message (current behavior).
+- Replace the current `toast.error` on sign-in failure with this inline UI so it doesn't disappear.
 
-4. **Store the hook secret**
-   - Generate a strong secret and save it as `SUPABASE_AUTH_HOOK_SECRET` for the endpoint to verify signatures.
+### 3. Small UX polish
 
-5. **Enable the Send Email Hook in Supabase Auth**
-   - Point the hook at `https://kwout.co.za/api/public/auth-email-hook` with the shared secret.
-   - Raise the hourly auth email rate limit now that sending goes through Resend (Resend caps, not Supabase's low default).
+- Keep Google sign-in visible on both the normal auth screen and the "not registered" alert (users who fail email sign-in often meant to use Google).
+- Preserve the KWOUT branding wrapper and clear-brand-cookie logic.
 
-6. **Verify end to end**
-   - Trigger a signup with a fresh address → confirm the branded email arrives from `hello@welcome.kwout.co.za`.
-   - Trigger a password reset → confirm the reset link works.
-   - Check Resend dashboard for delivery + Supabase auth logs for hook 200s.
+## What stays untouched
 
-## What you'll need to do manually
+- `signInWithGoogle`, `sendReset`, forgot-password flow, `ensureOwner`, and routing to `/` on success.
+- The Resend-powered auth email hook, Supabase auth settings, and every other route.
 
-- Add the DNS records Resend shows for `welcome.kwout.co.za` at your registrar.
-- Confirm you want me to proceed with enabling the Supabase Send Email hook (this switches ALL auth emails to Resend — if the endpoint or Resend is misconfigured, no auth emails will send until fixed).
+## Technical notes
 
-## What I will NOT change
+- Uses only `supabase.auth.resend` and existing shadcn primitives (`Card`, `Button`, `Alert` — will add if missing) — no new deps.
+- All state is local to `AuthPage`; no store changes.
+- Cooldown implemented with a `useEffect` timer on `resendCooldown` (number of seconds).
 
-- App UI, business logic, PayFast/PDF/planner code — untouched.
-- Existing Supabase schema — untouched.
-- The Google sign-in flow — untouched (only email-based auth emails route through Resend).
-
-## Notes / trade-offs
-
-- Resend's `onboarding@resend.dev` only delivers to the Resend account owner, so it can't be used as a fallback for real users — the DNS verification of `welcome.kwout.co.za` is a hard prerequisite before switching the hook on.
-- If DNS isn't verified yet when we flip the hook, auth emails will fail. Safer sequence: build the endpoint + secrets first, wait for DNS verification, then enable the hook.
-
-Reply **approve** to proceed, or tell me what to change.
+Reply **approve** to proceed.
