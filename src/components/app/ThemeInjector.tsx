@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { useStore, DEFAULT_THEME } from "@/lib/store";
 import { buildBrandCache, writeBrandCookie, readBrandCookie } from "@/lib/brand-cookie";
 
