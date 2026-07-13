@@ -222,7 +222,7 @@ export const useStore = create<State>()(
         ratePerKm: 0,
         baseCallout: 0,
         defaultDepositPct: 50,
-        vatPct: 15,
+        vatPct: 0,
         chargesVat: false,
         vatNumber: "",
         quotePrefix: "Q",
