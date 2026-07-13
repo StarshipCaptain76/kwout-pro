@@ -30,6 +30,10 @@ export function ThemeInjector() {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
+    // Skip pre-auth routes: they must always show KWOUT default branding,
+    // never the persisted tenant theme.
+    const path = typeof window !== "undefined" ? window.location.pathname : "";
+    if (path.startsWith("/auth") || path === "/reset-password") return;
     const root = document.documentElement;
     const primary = theme.primary || DEFAULT_THEME.primary;
     const accent = theme.accent || DEFAULT_THEME.accent;
