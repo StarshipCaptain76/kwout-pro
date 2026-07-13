@@ -243,7 +243,7 @@ function AuthPage() {
             </p>
           </div>
         ) : forgot ? (
-          <form onSubmit={sendReset} className="grid gap-3">
+          <form onSubmit={submitReset} className="grid gap-3">
             <div>
               <Label>Email</Label>
               <Input
