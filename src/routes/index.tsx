@@ -234,6 +234,7 @@ function Dashboard() {
 
   return (
     <Shell>
+      <h1 className="sr-only">Business Dashboard</h1>
       <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
         <Stat label="Outstanding" value={fmtMoney(stats.outstanding, billing.currency)} accent to="/docs" search={{ status: "unpaid" }} />
         <Stat label="Paid (month)" value={fmtMoney(stats.paidThisMonth, billing.currency)} />
