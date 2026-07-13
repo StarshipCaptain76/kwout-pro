@@ -1,31 +1,28 @@
-# Set KWOUT logo and brand colors as defaults
+## Problem
 
-Make the uploaded KWOUT mark the app's default logo, and set the navy + green sampled from it as the default theme colors. These become the KWOUT baseline shown on `/auth`, `/reset-password`, and any fresh install before a customer overrides them in Settings.
+On `/auth`, the first paint is KWOUT navy (correct), then colors flip to a lighter blue after ~1 frame. Cause: `ThemeInjector` runs on every route (including `/auth`) and writes CSS vars from `useStore().company.theme`. Two sources feed it stale lighter-blue values:
 
-## Colors (sampled from uploaded Adobe-RGB readings)
+1. **Persisted Zustand state** in `localStorage` (`app-store-v1`, version 3) — existing users hydrated before the KWOUT default swap still have `company.theme.primary = "#2563eb"` (or similar) saved. The migration at version 3 only fills in a missing theme; it never resets an old-default theme.
+2. **`otm_brand` cookie** — written by `ThemeInjector` from that same stale theme, so `BRAND_BOOTSTRAP_SCRIPT` also re-applies lighter blue before React mounts on subsequent loads.
 
-- Primary (navy K): `#151C63` — from R 0.081 / G 0.110 / B 0.390
-- Accent (green bars/check): `#4F8C2E` — from R 0.311 / G 0.550 / B 0.181
+The auth page also shouldn't be tenant-themed at all — it must always be KWOUT navy/green regardless of any stored company brand.
 
-## Changes
+## Fix
 
-1. **Upload the logo as a Lovable Asset**
-   - `lovable-assets create --file /mnt/user-uploads/kwoutlogo.png --filename kwout-logo.png > src/assets/kwout-logo.png.asset.json`
-   - Import the pointer where the default logo is needed.
+1. **`src/routes/auth.tsx`** — Wrap the page in a small effect that, on mount, forces the KWOUT default CSS vars onto `document.documentElement` (primary/accent/secondary/ring + foregrounds), overriding whatever the bootstrap script / ThemeInjector wrote. Also clears the `otm_brand` cookie so the next paint anywhere else starts clean until the real company loads. Same treatment for `/reset-password` and `/auth/callback` (all pre-auth routes).
 
-2. **`src/lib/store.ts`** — Update `DEFAULT_THEME` (and the default `company` seed) so:
-   - `theme.primary = "#151C63"`
-   - `theme.accent  = "#4F8C2E"`
-   - Default `company.logo` points at the KWOUT asset URL, and default `company.name = "KWOUT"` (if not already).
+2. **`src/components/app/ThemeInjector.tsx`** — Skip execution when `location.pathname` starts with `/auth` or equals `/reset-password`. Prevents the stale store from repainting the auth screen after hydration.
 
-3. **`src/styles.css`** — Replace the current red `--primary` / `--accent` / `--ring` and dark navy `--secondary` in `:root` with oklch equivalents of the two brand colors so the very first paint (before any JS) is already KWOUT navy + green. Mirror sensible values in `.dark`.
+3. **`src/lib/store.ts`** — Bump persist `version` to 4 and extend `migrate`: if `company.theme.primary` matches any known previous default (`#2563eb`, `#0f172a`, or is missing), reset `company.theme = DEFAULT_THEME`. Also reset `company.logo` if it's empty/undefined so signed-in users don't stay on old branding accidentally — but leave any user-customised value alone.
 
-4. **`src/routes/auth.tsx`** — Swap the hardcoded initial tile / fallback to use the imported KWOUT asset (keeps auth screen on-brand even with no store hydration).
-
-5. **`src/routes/__root.tsx`** — If a `<link rel="icon">` / apple-touch-icon is set, point it at the KWOUT asset URL too.
+4. **`src/lib/brand-cookie.ts`** — No API change, but ensure `clearBrandCookie()` is exported (already is) and called from step 1.
 
 ## Out of scope
 
-- No changes to Settings UX (users can still override name/logo/colors per company).
-- No changes to PDF watermark, business logic, or auth flow.
-- No migration of existing persisted `company` records — only the defaults shipped in code change.
+- No changes to Settings, business logic, or the branded experience for authenticated tenant routes (they keep using the store's theme once loaded).
+- No visual changes beyond removing the flash.
+
+## Technical notes
+
+- Order matters: the effect in step 1 must run synchronously in a `useLayoutEffect` so the override lands before the browser paints the hydrated frame.
+- Step 2's pathname check uses `window.location.pathname` inside the effect (client-only), safe under SSR.
