@@ -200,11 +200,12 @@ export const useStore = create<State>()(
   persist(
     (set, get) => ({
       company: {
-        name: "",
+        name: "KWOUT",
         tagline: "",
         address: "",
         phone: "",
         email: "",
+        logo: "/__l5e/assets-v1/348dfec9-4bdc-40fe-b6f6-4daef5e9d2dd/kwout-logo.png",
         theme: DEFAULT_THEME,
       },
       banking: {
