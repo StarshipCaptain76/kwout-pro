@@ -46,9 +46,92 @@ export const resolveWorkspace = createServerFn({ method: "GET" })
         } as StaffMemberDTO,
       };
     }
-    // No staff row → user owns their own workspace.
+    // No staff row → user owns their own workspace. Backfill an owner row.
+    await ensureOwnerStaffInternal(userId);
     return { workspaceOwnerId: userId, isOwner: true, me: null };
   });
+
+async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Already exists?
+  const { data: existing } = await supabaseAdmin
+    .from("staff_members")
+    .select("id, user_id, name, email, role, permissions, active")
+    .eq("user_id", userId)
+    .eq("workspace_owner_id", userId)
+    .maybeSingle();
+  if (existing) {
+    return {
+      id: existing.id as string,
+      userId: existing.user_id as string,
+      name: (existing.name as string) ?? "",
+      email: (existing.email as string) ?? "",
+      role: existing.role as Role,
+      permissions: (existing.permissions ?? {}) as Permissions,
+      active: !!existing.active,
+    };
+  }
+
+  // Fetch auth user for email / name.
+  const { data: authRes } = await supabaseAdmin.auth.admin.getUserById(userId);
+  const authUser = authRes?.user;
+  const email = authUser?.email ?? "";
+  const meta = (authUser?.user_metadata ?? {}) as { name?: string; full_name?: string };
+  const name =
+    meta.name ||
+    meta.full_name ||
+    (email ? email.split("@")[0] : "Owner");
+
+  const { data: inserted, error: iErr } = await supabaseAdmin
+    .from("staff_members")
+    .insert({
+      workspace_owner_id: userId,
+      user_id: userId,
+      name,
+      email,
+      role: "owner",
+      permissions: {} as never,
+      active: true,
+    })
+    .select("id, user_id, name, email, role, permissions, active")
+    .single();
+  if (iErr || !inserted) {
+    console.error("[ensureOwnerStaff] insert failed", iErr);
+    throw new Error(iErr?.message ?? "Could not create owner staff row");
+  }
+
+  // Make sure the owner has a role row (idempotent).
+  const { data: hasRole } = await supabaseAdmin
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("role", "owner")
+    .maybeSingle();
+  if (!hasRole) {
+    await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: userId, role: "owner", workspace_owner_id: userId })
+      .then((r) => {
+        if (r.error) console.error("[ensureOwnerStaff] user_roles insert failed", r.error);
+      });
+  }
+
+  return {
+    id: inserted.id as string,
+    userId: inserted.user_id as string,
+    name: (inserted.name as string) ?? "",
+    email: (inserted.email as string) ?? "",
+    role: inserted.role as Role,
+    permissions: (inserted.permissions ?? {}) as Permissions,
+    active: !!inserted.active,
+  };
+}
+
+// Public server fn: create-or-fetch the caller's owner staff row.
+export const ensureOwnerStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => ensureOwnerStaffInternal(context.userId));
 
 export const listStaff = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

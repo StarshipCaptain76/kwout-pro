@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { clearBrandCookie } from "@/lib/brand-cookie";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { ensureOwnerStaff } from "@/lib/staff.functions";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,11 +52,16 @@ function AuthPage() {
     clearBrandCookie();
   }, []);
 
+  const ensureOwner = useServerFn(ensureOwnerStaff);
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/" });
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        try { await ensureOwner(); } catch (e) { console.error(e); }
+        navigate({ to: "/" });
+      }
     });
-  }, [navigate]);
+  }, [navigate, ensureOwner]);
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +69,7 @@ function AuthPage() {
     try {
       const attempt = await supabase.auth.signInWithPassword({ email, password });
       if (attempt.error) throw attempt.error;
+      try { await ensureOwner(); } catch (e) { console.error(e); }
       toast.success("Signed in");
       navigate({ to: "/" });
     } catch (err) {
@@ -82,6 +90,7 @@ function AuthPage() {
       });
       if (attempt.error) throw attempt.error;
       if (attempt.data.session) {
+        try { await ensureOwner(); } catch (e) { console.error(e); }
         toast.success("Account created");
         navigate({ to: "/" });
       } else {
