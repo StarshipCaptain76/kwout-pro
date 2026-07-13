@@ -145,6 +145,8 @@ export interface BillingSettings {
   baseCallout: number;
   defaultDepositPct: number;
   vatPct: number;
+  chargesVat?: boolean;
+  vatNumber?: string;
   quotePrefix: string;
   invoicePrefix: string;
   nextQuoteNo: number;
@@ -220,7 +222,9 @@ export const useStore = create<State>()(
         ratePerKm: 0,
         baseCallout: 0,
         defaultDepositPct: 50,
-        vatPct: 0,
+        vatPct: 15,
+        chargesVat: false,
+        vatNumber: "",
         quotePrefix: "Q",
         invoicePrefix: "INV",
         nextQuoteNo: 1001,
