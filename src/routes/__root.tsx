@@ -85,18 +85,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       // SEO: Simple accounting & billing for entrepreneurs and small businesses
-      { title: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
-      { name: "description", content: "KWOUT is a simple, mobile-first accounting and billing app for entrepreneurs and small businesses. Create quotes and invoices, track expenses with receipts, manage customers, send monthly statements and stay on top of cash flow." },
+      { title: "KWOUT — Run your business. Not your paperwork." },
+      { name: "description", content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 days free, then R100/month. Everything included." },
       { name: "keywords", content: "small business accounting, invoicing app, quote and invoice software, expense tracker, customer statements, entrepreneur billing, VAT invoice generator, mobile bookkeeping, freelancer invoicing" },
       // Open Graph / Social
-      { property: "og:title", content: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
-      { property: "og:description", content: "Simple, mobile-first accounting and billing for entrepreneurs. Quotes, invoices, expenses, customer statements and reports — all in one place." },
+      { property: "og:title", content: "KWOUT — Run your business. Not your paperwork." },
+      { property: "og:description", content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 days free, then R100/month. Everything included." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "KWOUT" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
-      { name: "twitter:description", content: "Quotes, invoices, expenses and customer statements for entrepreneurs. Simple, mobile-first, cloud synced." },
+      { name: "twitter:title", content: "KWOUT — Run your business. Not your paperwork." },
+      { name: "twitter:description", content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 days free, then R100/month. Everything included." },
       { name: "google-site-verification", content: "VpenMbi07tDrXktRyV_hwv0Tye7vyWpaUDEoVdSUKbg" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783945222759-googlebackkwout.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1783945222759-googlebackkwout.webp" },
     ],
     links: [
       {
