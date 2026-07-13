@@ -441,6 +441,10 @@ export const useStore = create<State>()(
 
 export const newId = uid;
 
+export function effectiveVatPct(b: Pick<BillingSettings, "chargesVat" | "vatPct">) {
+  return b.chargesVat ? Math.min(b.vatPct || 0, 15) : 0;
+}
+
 export function docTotals(d: Doc, vatPct: number) {
   const subtotal = d.items.reduce((s, i) => s + i.qty * i.price, 0);
   const vat = subtotal * (vatPct / 100);
