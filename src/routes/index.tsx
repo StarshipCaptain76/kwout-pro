@@ -109,7 +109,23 @@ function Landing() {
           >
             Run your <span className="text-[#3FA34D]">business</span>.<br />
             Not your<br />
-            paperwork.
+            <span className="relative inline-block">
+              paperwork.
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 300 20"
+                preserveAspectRatio="none"
+                className="absolute left-[-2%] -bottom-[0.12em] w-[112%] h-[0.28em] pointer-events-none overflow-visible"
+              >
+                <path
+                  d="M2 12 C 60 6, 120 4, 150 10 C 158 12, 162 14, 170 11 C 210 3, 260 4, 298 8"
+                  stroke="#3FA34D"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              </svg>
+            </span>
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111] max-w-xl">
