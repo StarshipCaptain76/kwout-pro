@@ -16,7 +16,19 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, Sparkles, X, Loader2 } from "l
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, addMonths } from "date-fns";
 
-export const Route = createFileRoute("/expenses")({ component: ExpensesPage });
+export const Route = createFileRoute("/expenses")({
+  component: ExpensesPage,
+  head: () => ({
+    meta: [
+      { title: "Expenses — KWOUT" },
+      { name: "description", content: "Track business expenses by month, snap receipts and capture VAT for quick reconciliation." },
+      { property: "og:title", content: "Expenses — KWOUT" },
+      { property: "og:description", content: "Snap receipts and track expenses month by month." },
+      { property: "og:url", content: "https://kwout.co.za/expenses" },
+    ],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/expenses" }],
+  }),
+});
 
 function ExpensesPage() {
   const { expenses, billing } = useStore();
@@ -60,6 +72,7 @@ function ExpensesPage() {
 
   return (
     <Shell>
+      <h1 className="sr-only">Expenses</h1>
       <div className="flex items-center justify-end mb-3">
         <Button size="sm" onClick={newExpense} className="hidden sm:inline-flex">
           <Plus className="h-4 w-4 mr-1" /> Add
@@ -67,7 +80,7 @@ function ExpensesPage() {
       </div>
 
       <Card className="p-3 mb-3 flex items-center gap-2">
-        <Button size="icon" variant="ghost" onClick={() => setMonth((m) => addMonths(m, -1))}>
+        <Button size="icon" variant="ghost" aria-label="Previous month" onClick={() => setMonth((m) => addMonths(m, -1))}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 text-center">
@@ -76,7 +89,7 @@ function ExpensesPage() {
             {monthExpenses.length} items · {fmtMoney(total, billing.currency)}
           </div>
         </div>
-        <Button size="icon" variant="ghost" onClick={() => setMonth((m) => addMonths(m, 1))}>
+        <Button size="icon" variant="ghost" aria-label="Next month" onClick={() => setMonth((m) => addMonths(m, 1))}>
           <ChevronRight className="h-5 w-5" />
         </Button>
       </Card>

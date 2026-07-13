@@ -23,7 +23,19 @@ function usePlannerActions() {
   return useContext(JobActionsCtx) ?? (() => {});
 }
 
-export const Route = createFileRoute("/planner")({ component: PlannerPage });
+export const Route = createFileRoute("/planner")({
+  component: PlannerPage,
+  head: () => ({
+    meta: [
+      { title: "Planner — KWOUT" },
+      { name: "description", content: "Schedule quotes and jobs by day, week or month. Drag-and-drop planner for entrepreneurs and small teams." },
+      { property: "og:title", content: "Planner — KWOUT" },
+      { property: "og:description", content: "Drag-and-drop calendar for quotes, jobs and invoices." },
+      { property: "og:url", content: "https://kwout.co.za/planner" },
+    ],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/planner" }],
+  }),
+});
 
 type MaterialKey = "furniture" | "rubble" | "garden" | "sandstone" | "grass" | "other";
 const MATERIALS: Record<MaterialKey, { label: string; dot: string; card: string; border: string }> = {
@@ -157,6 +169,7 @@ function PlannerPage() {
   return (
     <Shell>
      <JobActionsCtx.Provider value={openActions}>
+      <h1 className="sr-only">Planner</h1>
       {/* View switcher */}
       <div className="inline-flex rounded-lg border p-0.5 bg-muted mb-3 w-full sm:w-auto">
         {(["agenda", "week", "month"] as View[]).map((v) => (
@@ -176,7 +189,7 @@ function PlannerPage() {
       {/* Navigation */}
       {view !== "agenda" ? (
         <div className="flex items-center gap-2 mb-3">
-          <Button size="icon" variant="outline" className="h-10 w-10" onClick={() =>
+          <Button size="icon" variant="outline" aria-label="Previous period" className="h-10 w-10" onClick={() =>
             view === "week" ? setWeekStart(addDays(weekStart, -7)) : setMonthAnchor(addMonths(monthAnchor, -1))
           }><ChevronLeft className="h-4 w-4" /></Button>
           <div className="font-medium text-sm flex-1 text-center">
@@ -184,7 +197,7 @@ function PlannerPage() {
               ? `${format(weekStart, "d MMM")} – ${format(addDays(weekStart, 6), "d MMM")}`
               : format(monthAnchor, "MMMM yyyy")}
           </div>
-          <Button size="icon" variant="outline" className="h-10 w-10" onClick={() =>
+          <Button size="icon" variant="outline" aria-label="Next period" className="h-10 w-10" onClick={() =>
             view === "week" ? setWeekStart(addDays(weekStart, 7)) : setMonthAnchor(addMonths(monthAnchor, 1))
           }><ChevronRight className="h-4 w-4" /></Button>
           <Button size="sm" variant="secondary" className="h-10" onClick={() =>
@@ -196,9 +209,9 @@ function PlannerPage() {
       ) : (
         format(agendaStart, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd") && (
           <div className="flex items-center gap-2 mb-3">
-            <Button size="icon" variant="outline" className="h-10 w-10" onClick={() => setAgendaStart(addDays(agendaStart, -1))}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" aria-label="Previous day" className="h-10 w-10" onClick={() => setAgendaStart(addDays(agendaStart, -1))}><ChevronLeft className="h-4 w-4" /></Button>
             <div className="font-medium text-sm flex-1 text-center">from {format(agendaStart, "d MMM")}</div>
-            <Button size="icon" variant="outline" className="h-10 w-10" onClick={() => setAgendaStart(addDays(agendaStart, 1))}><ChevronRight className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" aria-label="Next day" className="h-10 w-10" onClick={() => setAgendaStart(addDays(agendaStart, 1))}><ChevronRight className="h-4 w-4" /></Button>
             <Button size="sm" variant="secondary" className="h-10" onClick={() => setAgendaStart(new Date())}>Today</Button>
           </div>
         )

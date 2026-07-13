@@ -20,7 +20,20 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getMySubscription, createPayfastCheckout, cancelMySubscription } from "@/lib/subscription.functions";
 
-export const Route = createFileRoute("/settings")({ component: SettingsPage });
+export const Route = createFileRoute("/settings")({
+  component: SettingsPage,
+  head: () => ({
+    meta: [
+      { title: "Settings — KWOUT" },
+      { name: "description", content: "Manage your KWOUT subscription, company profile, banking, staff, catalog, billing and appearance." },
+      { property: "og:title", content: "Settings — KWOUT" },
+      { property: "og:description", content: "Company, subscription and workspace settings for KWOUT." },
+      { property: "og:url", content: "https://kwout.co.za/settings" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://kwout.co.za/settings" }],
+  }),
+});
 
 const CURRENCIES = [
   { code: "R", label: "ZAR (R)" },
@@ -37,6 +50,7 @@ function SettingsPage() {
   const s = useStore();
   return (
     <Shell>
+      <h1 className="sr-only">Settings</h1>
       <Tabs defaultValue="subscription">
         <TabsList className="mb-4 w-full grid grid-cols-8">
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
