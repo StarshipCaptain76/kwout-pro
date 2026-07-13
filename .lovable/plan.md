@@ -1,40 +1,62 @@
-# Plan
+## Goal
 
-## 1. Settings tabs — mobile UI
+Send Supabase auth emails (signup verification, password reset, magic link, email change) via **Resend** from `hello@welcome.kwout.co.za` instead of the default Supabase sender that is currently being rate-limited.
 
-The 8 tabs are forced into `grid-cols-8` on all viewports, which crushes labels on mobile.
+## How it will work
 
-Replace the tab bar with a responsive pattern:
+Supabase Auth supports a "Send Email" webhook. When enabled, Supabase stops sending its own emails and POSTs each auth email event to our endpoint. We handle it, render the email, and send via Resend.
 
-- **Mobile (< sm)**: render a single `Select` (shadcn) as the tab switcher — full-width, one tap, always readable. Controlled `Tabs` via `value`/`onValueChange`.
-- **Tablet (sm–lg)**: horizontal scrollable `TabsList` with `overflow-x-auto`, `flex`, `whitespace-nowrap` triggers, and subtle edge fade. Active tab auto-scrolls into view.
-- **Desktop (lg+)**: keep the current `grid grid-cols-8` layout.
+```text
+Signup / reset / magic link
+        │
+        ▼
+Supabase Auth ──(signed webhook)──►  /api/public/auth-email-hook  ──► Resend API ──► inbox
+```
 
-Change `Tabs` from `defaultValue` to controlled state so the mobile `Select` and desktop tabs stay in sync. No other Settings content changes.
+## Steps
 
-## 2. Auto-create owner staff row on signup
+1. **DNS — verify the sending subdomain in Resend**
+   - You add `welcome.kwout.co.za` as a domain in Resend.
+   - Resend shows SPF, DKIM, and DMARC records.
+   - Add those records at your DNS provider for `kwout.co.za`.
+   - Wait for Resend to mark the domain **Verified** (usually minutes, up to a few hours).
 
-Today, `resolveWorkspace` treats a user with no `staff_members` row as "owner" implicitly. Staff listing, payroll, and permission checks then miss the primary account as an actual staff member.
+2. **Connect Resend to the project**
+   - Use the built-in Resend connector so `RESEND_API_KEY` is injected as a secret — no manual paste.
 
-Fix: on signup, insert an owner `staff_members` row for the new user so they appear in Staff and can be paid/managed like any staff.
+3. **Create the auth email webhook endpoint**
+   - New public route: `src/routes/api/public/auth-email-hook.ts`.
+   - Verifies Supabase's `Standard-Webhooks` signature using a hook secret.
+   - Renders a branded HTML template per email type (`signup`, `recovery`, `magiclink`, `email_change`, `invite`, `reauthentication`) using the KWOUT logo/colors.
+   - Sends via Resend from `KWOUT <hello@welcome.kwout.co.za>` with the correct action link (confirmation URL / token) from the payload.
+   - Returns 200 on success; surfaces Resend errors as 500 so Supabase retries.
 
-**Server function** — new `ensureOwnerStaff` in `src/lib/staff.functions.ts`:
-- Middleware: `requireSupabaseAuth`.
-- Idempotent: if a `staff_members` row exists for `user_id = auth.uid()`, return it.
-- Else insert `{ workspace_owner_id: userId, user_id: userId, name: <from user metadata or email prefix>, email: <auth email>, role: 'owner', active: true, permissions: {} }`.
-- Also insert into `user_roles` with role `admin` (via existing pattern) if not present, so `has_role` checks pass.
+4. **Store the hook secret**
+   - Generate a strong secret and save it as `SUPABASE_AUTH_HOOK_SECRET` for the endpoint to verify signatures.
 
-**Signup flow** — `src/routes/auth.tsx`:
-- After a successful `signUp` (and after Google OAuth returns a session on `/auth` callback), call `ensureOwnerStaff` via `useServerFn` before navigating to `/`.
-- For Google OAuth, hook into the existing post-auth session detection (session listener on `/auth`) so it also runs on first Google sign-in.
+5. **Enable the Send Email Hook in Supabase Auth**
+   - Point the hook at `https://kwout.co.za/api/public/auth-email-hook` with the shared secret.
+   - Raise the hourly auth email rate limit now that sending goes through Resend (Resend caps, not Supabase's low default).
 
-**Backward compatibility** — because it's idempotent, existing owner accounts get their staff row created on their next visit to `/auth` or via a lightweight call from `resolveWorkspace`: extend `resolveWorkspace` to auto-create the owner row if missing (single insert, ignore conflicts). This backfills existing users without a migration.
+6. **Verify end to end**
+   - Trigger a signup with a fresh address → confirm the branded email arrives from `hello@welcome.kwout.co.za`.
+   - Trigger a password reset → confirm the reset link works.
+   - Check Resend dashboard for delivery + Supabase auth logs for hook 200s.
 
-No schema changes required; `staff_members` already supports owner rows.
+## What you'll need to do manually
 
-## Technical notes
+- Add the DNS records Resend shows for `welcome.kwout.co.za` at your registrar.
+- Confirm you want me to proceed with enabling the Supabase Send Email hook (this switches ALL auth emails to Resend — if the endpoint or Resend is misconfigured, no auth emails will send until fixed).
 
-- Controlled `Tabs`: `const [tab, setTab] = useState("subscription")`; pass `value={tab} onValueChange={setTab}`.
-- Mobile select uses the same 8 values; label map defined once.
-- `ensureOwnerStaff` uses the authenticated `supabase` client from context so RLS applies (owner inserting own row).
-- Insert uses `.upsert(..., { onConflict: 'user_id,workspace_owner_id' })` or a `select().maybeSingle()` guard to stay idempotent.
+## What I will NOT change
+
+- App UI, business logic, PayFast/PDF/planner code — untouched.
+- Existing Supabase schema — untouched.
+- The Google sign-in flow — untouched (only email-based auth emails route through Resend).
+
+## Notes / trade-offs
+
+- Resend's `onboarding@resend.dev` only delivers to the Resend account owner, so it can't be used as a fallback for real users — the DNS verification of `welcome.kwout.co.za` is a hard prerequisite before switching the hook on.
+- If DNS isn't verified yet when we flip the hook, auth emails will fail. Safer sequence: build the endpoint + secrets first, wait for DNS verification, then enable the hook.
+
+Reply **approve** to proceed, or tell me what to change.
