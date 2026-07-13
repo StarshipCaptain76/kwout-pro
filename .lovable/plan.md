@@ -1,28 +1,82 @@
-## Problem
 
-On `/auth`, the first paint is KWOUT navy (correct), then colors flip to a lighter blue after ~1 frame. Cause: `ThemeInjector` runs on every route (including `/auth`) and writes CSS vars from `useStore().company.theme`. Two sources feed it stale lighter-blue values:
+## Goal
 
-1. **Persisted Zustand state** in `localStorage` (`app-store-v1`, version 3) — existing users hydrated before the KWOUT default swap still have `company.theme.primary = "#2563eb"` (or similar) saved. The migration at version 3 only fills in a missing theme; it never resets an old-default theme.
-2. **`otm_brand` cookie** — written by `ThemeInjector` from that same stale theme, so `BRAND_BOOTSTRAP_SCRIPT` also re-applies lighter blue before React mounts on subsequent loads.
+A single, elegant `/welcome` landing page — the marketing + auth entry point for KWOUT. Simple by default, playful in the details. Signed-in users go straight to the app.
 
-The auth page also shouldn't be tenant-themed at all — it must always be KWOUT navy/green regardless of any stored company brand.
+## What we're building
 
-## Fix
+### 1. `/welcome` route (new) — `src/routes/welcome.tsx`
+Single-page, editorial-minimal, KWOUT stationery vibe.
 
-1. **`src/routes/auth.tsx`** — Wrap the page in a small effect that, on mount, forces the KWOUT default CSS vars onto `document.documentElement` (primary/accent/secondary/ring + foregrounds), overriding whatever the bootstrap script / ThemeInjector wrote. Also clears the `otm_brand` cookie so the next paint anywhere else starts clean until the real company loads. Same treatment for `/reset-password` and `/auth/callback` (all pre-auth routes).
+Sections (top to bottom, generous whitespace):
+- **Hero**: giant Bebas Neue headline ("Run your business. Not your paperwork."), navy on off-white (`#F5F5F0`), green accent underline. Two CTAs side-by-side: **Start free** (email+password inline signup) and **Sign in** (toggles to login form).
+- **What's included** — one-line list with green checkmarks: Quotes · Invoices · Statements · Payslips · Expenses · Financial reports. No feature cards, no icons zoo.
+- **Pricing**: "30 days free. Then R100/month. Everything included." One sentence. No comparison table.
+- **Playful touches** (fun, not loud): a subtle rotating stamp SVG ("KWOUT APPROVED"), one hand-drawn arrow pointing at the CTA, a tiny animated pen underline on the headline. Framer-motion for the pen stroke and stamp rotation only.
+- **Footer**: KWOUT wordmark, tiny "R100/mo after trial. Cancel anytime."
 
-2. **`src/components/app/ThemeInjector.tsx`** — Skip execution when `location.pathname` starts with `/auth` or equals `/reset-password`. Prevents the stale store from repainting the auth screen after hydration.
+Auth form (inline, no modal):
+- Tabs: Start free / Sign in
+- Email + password fields, one Google button
+- Reuses the same Supabase calls from `src/routes/auth.tsx` (extract into `src/lib/auth-actions.ts` so both pages share logic; `/auth` keeps working for existing links)
+- On success → navigate to `/`
 
-3. **`src/lib/store.ts`** — Bump persist `version` to 4 and extend `migrate`: if `company.theme.primary` matches any known previous default (`#2563eb`, `#0f172a`, or is missing), reset `company.theme = DEFAULT_THEME`. Also reset `company.logo` if it's empty/undefined so signed-in users don't stay on old branding accidentally — but leave any user-customised value alone.
+Signed-in users hitting `/welcome` are redirected to `/`.
 
-4. **`src/lib/brand-cookie.ts`** — No API change, but ensure `clearBrandCookie()` is exported (already is) and called from step 1.
+Head: unique title/description/og for the landing page.
+
+### 2. Trial + subscription state
+New table `public.subscriptions` (one row per user):
+- `user_id uuid PK references auth.users on delete cascade`
+- `trial_started_at timestamptz default now()`
+- `status text default 'trial'` — `trial | active | past_due | cancelled`
+- `payfast_token text` (subscription token from PayFast ITN)
+- `current_period_end timestamptz`
+- `updated_at timestamptz default now()`
+
+Standard GRANTs + RLS: user can `SELECT` own row; only service_role writes. Trigger: on `auth.users` insert → insert subscription row with `trial_started_at = now()`.
+
+Server fn `getSubscriptionStatus()` returns `{ status, daysLeftInTrial, needsPayment }`.
+
+### 3. Trial reminder (in-app, day 30+)
+`src/components/app/TrialBanner.tsx` — rendered inside `Shell.tsx`. When `status === 'trial'` and `daysLeftInTrial <= 7`, show a slim banner ("7 days left in your free trial · Subscribe"). At day 30, banner becomes blocking dialog on next app action: "Your free trial ended. Subscribe for R100/month to keep going." → button routes to `/settings?tab=billing`.
+
+No email reminders in this pass (in-app only; can add via cron + Resend later).
+
+### 4. Billing UI — new tab in `src/routes/settings.tsx`
+"Billing" tab shows:
+- Plan: KWOUT — R100/month
+- Status badge (Trial · X days left / Active / Past due / Cancelled)
+- **Subscribe** button (when not active) → calls `createPayfastCheckout` server fn, redirects browser to PayFast hosted checkout
+- **Cancel subscription** button (when active) → calls PayFast cancel API via server fn
+- Small print: "Billed monthly by PayFast. Cancel anytime."
+
+### 5. PayFast integration
+Secrets needed (request via `add_secret`):
+- `PAYFAST_MERCHANT_ID`
+- `PAYFAST_MERCHANT_KEY`
+- `PAYFAST_PASSPHRASE`
+- `PAYFAST_MODE` = `sandbox` or `live`
+
+Files:
+- `src/lib/payfast.functions.ts` — `createPayfastCheckout()` server fn. Builds a subscription payment payload (recurring, `subscription_type=1`, `frequency=3` monthly, `cycles=0` indefinite, R100 amount), signs it with the passphrase MD5 method PayFast requires, returns hosted-checkout URL. Also `cancelPayfastSubscription()` calling PayFast's subscription API with basic-auth token.
+- `src/routes/api/public/payfast-itn.ts` — public server route for PayFast ITN webhook. Verifies signature, validates source IP against PayFast's published ranges, posts back to PayFast `/eng/query/validate` for confirmation, then updates `subscriptions` row (`status`, `payfast_token`, `current_period_end`).
+- Return URLs: `/settings?billing=success`, `/settings?billing=cancelled`, `notify_url` → the ITN route above (using the stable `project--<id>.lovable.app` URL).
+
+### 6. Router / index behaviour
+- Keep `/` as-is (app dashboard for signed-in users). `/welcome` is a separate, public marketing page.
+- Update `src/routes/__root.tsx` head defaults so `/welcome` metadata isn't overridden.
+- No changes to signed-in app flows besides the trial banner.
 
 ## Out of scope
+- Email reminders (in-app only for now)
+- Multi-tier pricing / annual plan
+- Team seats
+- Migrating existing users' trial start date (they'll get `trial_started_at = now()` via backfill, or we set it to their `auth.users.created_at` in the migration — one-line SQL, included)
 
-- No changes to Settings, business logic, or the branded experience for authenticated tenant routes (they keep using the store's theme once loaded).
-- No visual changes beyond removing the flash.
+## Files touched
+- New: `src/routes/welcome.tsx`, `src/lib/auth-actions.ts`, `src/lib/payfast.functions.ts`, `src/lib/subscription.functions.ts`, `src/components/app/TrialBanner.tsx`, `src/routes/api/public/payfast-itn.ts`, one migration
+- Edited: `src/routes/auth.tsx` (extract shared handlers), `src/routes/settings.tsx` (Billing tab), `src/components/app/Shell.tsx` (mount `TrialBanner`), `src/routes/__root.tsx` (head defaults)
 
-## Technical notes
-
-- Order matters: the effect in step 1 must run synchronously in a `useLayoutEffect` so the override lands before the browser paints the hydrated frame.
-- Step 2's pathname check uses `window.location.pathname` inside the effect (client-only), safe under SSR.
+## Confirm before I build
+I'll request the four PayFast secrets at the start of the build turn. OK to proceed?
