@@ -346,28 +346,16 @@ async function loadAll() {
     }));
     const remoteCategoryNames = (catCatRes.data ?? []).map((r) => r.name);
 
-    // Merge remote with any local-only rows so signing in never wipes
-    // data the user created before authenticating. Remote wins on id conflicts.
-    const mergeById = <T extends { id: string }>(remote: T[], local: T[]): { merged: T[]; localOnly: T[] } => {
-      const remoteIds = new Set(remote.map((r) => r.id));
-      const localOnly = local.filter((l) => !remoteIds.has(l.id));
-      return { merged: [...remote, ...localOnly], localOnly };
-    };
-    const catMerge = mergeById(remoteCatalog, prev.catalog);
-    const custMerge = mergeById(remoteCustomers, prev.customers);
-    const docMerge = mergeById(remoteDocs, prev.docs);
-    const expMerge = mergeById(remoteExpenses, prev.expenses);
+    // Remote is the source of truth. Do NOT merge in local rows here:
+    // a leftover local row from a previously signed-in account would
+    // otherwise be adopted (and uploaded) into the new user's workspace.
     const remoteCatSet = new Set(remoteCategoryNames.map((n) => n.toLowerCase()));
-    const localOnlyCats = prev.expenseCategories.filter(
-      (n) => !remoteCatSet.has(n.toLowerCase()) && !DEFAULT_EXPENSE_CATEGORIES.some((d) => d.toLowerCase() === n.toLowerCase()),
-    );
+    void remoteCatSet;
     const expenseCategories = remoteCategoryNames.length
-      ? [...remoteCategoryNames, ...localOnlyCats]
-      : prev.expenseCategories.length
-        ? prev.expenseCategories
-        : DEFAULT_EXPENSE_CATEGORIES;
+      ? remoteCategoryNames
+      : DEFAULT_EXPENSE_CATEGORIES;
 
-    // Profile fields: prefer remote when present, else keep local.
+    // Profile fields: prefer remote when present, else fall back to defaults.
     const company = (profileRow?.company as Company | null) && Object.keys(profileRow!.company as object).length
       ? (profileRow!.company as unknown as Company)
       : prev.company;
@@ -386,10 +374,10 @@ async function loadAll() {
         banking,
         billing,
         density,
-        catalog: catMerge.merged,
-        customers: custMerge.merged,
-        docs: docMerge.merged,
-        expenses: expMerge.merged,
+        catalog: remoteCatalog,
+        customers: remoteCustomers,
+        docs: remoteDocs,
+        expenses: remoteExpenses,
         expenseCategories,
       });
     } finally {
@@ -408,19 +396,12 @@ async function loadAll() {
       }),
     );
 
-    // Push local-only rows up so they persist against this account.
-    catMerge.localOnly.forEach(pushCatalogItem);
-    custMerge.localOnly.forEach(pushCustomer);
-    docMerge.localOnly.forEach(pushDoc);
-    expMerge.localOnly.forEach(pushExpense);
-    localOnlyCats.forEach(pushExpenseCategory);
-
     // Seed defaults / profile for a brand-new user.
     if (!profileRes.data) pushCompanyProfile();
     if (!(catCatRes.data ?? []).length) {
-      const seed = prev.expenseCategories.length ? prev.expenseCategories : DEFAULT_EXPENSE_CATEGORIES;
-      seed.forEach(pushExpenseCategory);
+      DEFAULT_EXPENSE_CATEGORIES.forEach(pushExpenseCategory);
     }
+
   } finally {
     state.loading = false;
     state.status = runningTask();
