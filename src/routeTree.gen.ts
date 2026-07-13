@@ -22,6 +22,7 @@ import { Route as DocIdRouteImport } from './routes/doc.$id'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DocRouteImport } from './routes/doc.'
 import { Route as ApiPublicPayfastItnRouteImport } from './routes/api/public/payfast-itn'
+import { Route as ApiPublicAuthEmailHookRouteImport } from './routes/api/public/auth-email-hook'
 
 const StatementsRoute = StatementsRouteImport.update({
   id: '/statements',
@@ -88,6 +89,11 @@ const ApiPublicPayfastItnRoute = ApiPublicPayfastItnRouteImport.update({
   path: '/api/public/payfast-itn',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAuthEmailHookRoute = ApiPublicAuthEmailHookRouteImport.update({
+  id: '/api/public/auth-email-hook',
+  path: '/api/public/auth-email-hook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
+  '/api/public/auth-email-hook': typeof ApiPublicAuthEmailHookRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
 }
 export interface FileRoutesByTo {
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/doc': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
+  '/api/public/auth-email-hook': typeof ApiPublicAuthEmailHookRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
 }
 export interface FileRoutesById {
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
+  '/api/public/auth-email-hook': typeof ApiPublicAuthEmailHookRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
+    | '/api/public/auth-email-hook'
     | '/api/public/payfast-itn'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/doc'
     | '/auth/callback'
     | '/doc/$id'
+    | '/api/public/auth-email-hook'
     | '/api/public/payfast-itn'
   id:
     | '__root__'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
+    | '/api/public/auth-email-hook'
     | '/api/public/payfast-itn'
   fileRoutesById: FileRoutesById
 }
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   StatementsRoute: typeof StatementsRoute
   DocRoute: typeof DocRoute
   DocIdRoute: typeof DocIdRoute
+  ApiPublicAuthEmailHookRoute: typeof ApiPublicAuthEmailHookRoute
   ApiPublicPayfastItnRoute: typeof ApiPublicPayfastItnRoute
 }
 
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPayfastItnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/auth-email-hook': {
+      id: '/api/public/auth-email-hook'
+      path: '/api/public/auth-email-hook'
+      fullPath: '/api/public/auth-email-hook'
+      preLoaderRoute: typeof ApiPublicAuthEmailHookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -316,18 +336,9 @@ const rootRouteChildren: RootRouteChildren = {
   StatementsRoute: StatementsRoute,
   DocRoute: DocRoute,
   DocIdRoute: DocIdRoute,
+  ApiPublicAuthEmailHookRoute: ApiPublicAuthEmailHookRoute,
   ApiPublicPayfastItnRoute: ApiPublicPayfastItnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
