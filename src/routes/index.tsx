@@ -113,16 +113,25 @@ function Landing() {
               paperwork.
               <svg
                 aria-hidden="true"
-                viewBox="0 0 300 20"
+                viewBox="0 0 320 24"
                 preserveAspectRatio="none"
-                className="absolute left-[-2%] -bottom-[0.12em] w-[112%] h-[0.28em] pointer-events-none overflow-visible"
+                className="absolute left-[-4%] -bottom-[0.14em] w-[115%] h-[0.34em] pointer-events-none overflow-visible"
               >
+                {/* Filled tapered brush stroke with a small hook kink near the middle */}
                 <path
-                  d="M2 12 C 60 6, 120 4, 150 10 C 158 12, 162 14, 170 11 C 210 3, 260 4, 298 8"
-                  stroke="#3FA34D"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  fill="none"
+                  fill="#3FA34D"
+                  d="M2,14
+                     C 50,7 110,5 150,11
+                     C 156,12 159,15 163,17
+                     C 167,19 172,17 175,14
+                     C 180,10 200,7 240,6
+                     C 275,5 300,7 316,9
+                     L 316,11
+                     C 300,10 275,8 240,9
+                     C 200,10 182,13 178,16
+                     C 174,19 168,21 163,20
+                     C 158,19 154,16 150,14
+                     C 110,8 50,10 2,17 Z"
                 />
               </svg>
             </span>
