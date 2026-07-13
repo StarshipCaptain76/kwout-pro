@@ -184,7 +184,7 @@ function Landing() {
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col items-center gap-2 text-xs text-[#111111]/80">
           <div className="flex items-center gap-2">
             <img src={kwoutLogo.url} alt="" className="h-5 w-5 rounded object-contain opacity-80" />
-            <span className="font-display tracking-wide text-sm text-[#111111]">KWOUT</span>
+            <span className="font-display tracking-wide text-sm text-[#3FA34D]">KWOUT</span>
           </div>
           <div>Made for entrepreneurs. © KWOUT 2026</div>
         </div>
