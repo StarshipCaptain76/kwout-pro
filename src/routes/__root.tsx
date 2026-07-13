@@ -96,6 +96,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "KWOUT | Simple Accounting & Billing for Entrepreneurs" },
       { name: "twitter:description", content: "Quotes, invoices, expenses and customer statements for entrepreneurs. Simple, mobile-first, cloud synced." },
+      { name: "google-site-verification", content: "VpenMbi07tDrXktRyV_hwv0Tye7vyWpaUDEoVdSUKbg" },
     ],
     links: [
       {
