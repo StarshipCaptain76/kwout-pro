@@ -102,19 +102,13 @@ function AuthPage() {
     }
   }
 
-  const brand = company.name || "KWOUT";
+  const brand = "KWOUT";
 
   return (
     <div className="min-h-[100svh] grid place-items-center bg-background text-foreground p-4">
       <Card className="w-full max-w-sm p-6 grid gap-4">
         <div className="flex items-center gap-3">
-          {company.logo ? (
-            <img src={company.logo} alt={brand} className="h-10 w-auto rounded" />
-          ) : (
-            <div className="h-10 w-10 rounded bg-primary text-primary-foreground grid place-items-center font-bold">
-              {brand.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+          <img src={kwoutLogo.url} alt={brand} className="h-10 w-10 rounded object-contain" />
           <div>
             <div className="font-display text-2xl tracking-wide">{brand}</div>
             <div className="text-xs text-muted-foreground">Sign in to sync everywhere</div>
