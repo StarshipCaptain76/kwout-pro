@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as StatementsRouteImport } from './routes/statements'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResultsRouteImport } from './routes/results'
@@ -24,11 +23,6 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DocRouteImport } from './routes/doc.'
 import { Route as ApiPublicPayfastItnRouteImport } from './routes/api/public/payfast-itn'
 
-const WelcomeRoute = WelcomeRouteImport.update({
-  id: '/welcome',
-  path: '/welcome',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const StatementsRoute = StatementsRouteImport.update({
   id: '/statements',
   path: '/statements',
@@ -105,7 +99,6 @@ export interface FileRoutesByFullPath {
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/statements': typeof StatementsRoute
-  '/welcome': typeof WelcomeRoute
   '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
@@ -121,7 +114,6 @@ export interface FileRoutesByTo {
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/statements': typeof StatementsRoute
-  '/welcome': typeof WelcomeRoute
   '/doc': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
@@ -138,7 +130,6 @@ export interface FileRoutesById {
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/statements': typeof StatementsRoute
-  '/welcome': typeof WelcomeRoute
   '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
@@ -156,7 +147,6 @@ export interface FileRouteTypes {
     | '/results'
     | '/settings'
     | '/statements'
-    | '/welcome'
     | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
@@ -172,7 +162,6 @@ export interface FileRouteTypes {
     | '/results'
     | '/settings'
     | '/statements'
-    | '/welcome'
     | '/doc'
     | '/auth/callback'
     | '/doc/$id'
@@ -188,7 +177,6 @@ export interface FileRouteTypes {
     | '/results'
     | '/settings'
     | '/statements'
-    | '/welcome'
     | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
@@ -205,7 +193,6 @@ export interface RootRouteChildren {
   ResultsRoute: typeof ResultsRoute
   SettingsRoute: typeof SettingsRoute
   StatementsRoute: typeof StatementsRoute
-  WelcomeRoute: typeof WelcomeRoute
   DocRoute: typeof DocRoute
   DocIdRoute: typeof DocIdRoute
   ApiPublicPayfastItnRoute: typeof ApiPublicPayfastItnRoute
@@ -213,13 +200,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/welcome': {
-      id: '/welcome'
-      path: '/welcome'
-      fullPath: '/welcome'
-      preLoaderRoute: typeof WelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/statements': {
       id: '/statements'
       path: '/statements'
@@ -334,7 +314,6 @@ const rootRouteChildren: RootRouteChildren = {
   ResultsRoute: ResultsRoute,
   SettingsRoute: SettingsRoute,
   StatementsRoute: StatementsRoute,
-  WelcomeRoute: WelcomeRoute,
   DocRoute: DocRoute,
   DocIdRoute: DocIdRoute,
   ApiPublicPayfastItnRoute: ApiPublicPayfastItnRoute,
