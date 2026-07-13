@@ -109,49 +109,7 @@ function Landing() {
           >
             Run your <span className="text-[#3FA34D]">business</span>.<br />
             Not your<br />
-            <span className="relative inline-block">
-              paperwork
-              <svg
-                aria-hidden="true"
-                className="absolute -bottom-1 left-0 w-full h-[0.42em] pointer-events-none"
-                viewBox="0 0 220 22"
-                preserveAspectRatio="none"
-                fill="none"
-              >
-                <path
-                  d="M6 14c22-4 44-6 66-6 12 0 24 .5 36 1.5 10 1 20 1.5 30 1 12-.5 24-1.5 36-2 8-.3 16-.3 24 0 10 .4 20 1.2 30 2 6 .5 12 1 18 1"
-                  stroke="#3FA34D"
-                  strokeWidth="11"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="opacity-95"
-                />
-                <path
-                  d="M8 11c24-2 48-3.5 72-4 14-.2 28 .2 42 .8 12 .4 24 1 36 1.4 12 .4 24 .6 36 .4 12-.2 24-.8 36-1.2 8-.2 16-.2 24 0 8 .2 16 .6 24 1"
-                  stroke="#4AB85A"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="opacity-80"
-                />
-                <path
-                  d="M185 9c8-1 16-.5 22 1.5 4 1.5 6 3.5 4 5.5-2 1.5-6 2-10 1.5-5-.5-9-2-12-4M198 7c5-.5 10 0 13 2 2.5 1.5 2 3.5 0 4.5-2.5 1-6 .5-9-1M208 6c3 0 6 .8 8 2 1.5 1 1 2.5-1 3-2 .5-4 0-6-.5"
-                  stroke="#3FA34D"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="opacity-75"
-                />
-                <path
-                  d="M12 16c18 2 36 2.5 54 2 12-.3 24-1 36-1.5 10-.3 20-.3 30 0 10 .3 20 .8 30 1.2 8 .3 16 .4 24 .3"
-                  stroke="#2E8B3E"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="opacity-50"
-                />
-              </svg>
-            </span>.
+            paperwork.
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111] max-w-xl">
