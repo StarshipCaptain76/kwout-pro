@@ -108,32 +108,17 @@ function Landing() {
             className="font-display leading-[0.9] tracking-tight text-[15vw] sm:text-8xl lg:text-[7.5rem] text-primary"
           >
             Run your <span className="text-[#3FA34D]">business</span>.<br />
-            <span className="relative inline-block">
-              Not your
-              <motion.svg
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1.1, delay: 0.6, ease: "easeInOut" }}
-                viewBox="0 0 300 14"
-                className="absolute -bottom-2 left-0 w-full h-3 text-[#3FA34D]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="4"
-                strokeLinecap="round"
-              >
-                <motion.path d="M4 8 C 70 2, 150 12, 296 4" />
-              </motion.svg>
-            </span>{" "}
+            Not your<br />
             paperwork.
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111]/70 max-w-xl">
-            <strong>Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips</strong>
+            <strong>Quotes - Invoices - Statements - Payslips</strong>
             <br />
             the whole <span className="font-bold text-[#3FA34D]">KWOUT</span> stationery, in your pocket.
             <span className="block mt-2 font-medium text-[#111111]">
               <br />
-              30 days free. Everything included.
+              30 days FREE. Everything included.
             </span>
           </p>
 
