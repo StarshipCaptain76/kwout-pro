@@ -64,7 +64,11 @@ export const Route = createFileRoute("/api/public/payfast-itn")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const nextEnd = new Date();
           nextEnd.setDate(nextEnd.getDate() + 31);
-          const patch: Record<string, unknown> = { status };
+          const patch: {
+            status: "trial" | "active" | "past_due" | "cancelled";
+            payfast_token?: string;
+            current_period_end?: string;
+          } = { status };
           if (token) patch.payfast_token = token;
           if (status === "active") patch.current_period_end = nextEnd.toISOString();
           await supabaseAdmin.from("subscriptions").update(patch).eq("user_id", userId);
