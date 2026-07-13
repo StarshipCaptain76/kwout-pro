@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStore } from "@/lib/store";
 import { toast } from "sonner";
+import kwoutLogo from "@/assets/kwout-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
