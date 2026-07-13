@@ -142,8 +142,8 @@ function DocPage() {
     <Shell>
       <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" aria-label="Back to dashboard" onClick={() => nav({ to: "/" })}><ArrowLeft className="h-4 w-4" /></Button>
-        {/* keep line */}
-        {/* keep line */}
+        <h1 className="font-display text-4xl tracking-wide">{doc.type === "quote" ? "QUOTE" : "INVOICE"} {doc.number}</h1>
+        <span className={`text-xs uppercase font-bold px-2 py-1 rounded ${doc.status === "paid" ? "bg-green-600 text-white" : "bg-muted"}`}>{doc.status}</span>
         <Button variant="ghost" size="icon" aria-label="Delete document" className="ml-auto" onClick={() => { deleteDoc(doc.id); nav({ to: "/" }); }}><Trash2 className="h-4 w-4" /></Button>
       </div>
 
@@ -242,7 +242,7 @@ function DocPage() {
                       onChange={(e) => updateItem(i, { description: e.target.value })}
                       className="flex-1"
                     />
-                    <Button size="icon" variant="ghost" onClick={() => removeItem(i)}>
+                    <Button size="icon" variant="ghost" aria-label="Remove item" onClick={() => removeItem(i)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
