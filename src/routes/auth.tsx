@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { clearBrandCookie } from "@/lib/brand-cookie";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,19 +97,25 @@ function AuthPage() {
   async function signInWithGoogle() {
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth/callback`,
+      // Call Supabase OAuth directly. The Lovable managed OAuth broker
+      // (`/~oauth/*`) only exists on Lovable-hosted domains — this site is
+      // deployed on Vercel at kwout.co.za, so we must use Supabase's native
+      // OAuth flow which goes through <project>.supabase.co/auth/v1/callback.
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      if (result.error) throw result.error;
-      if (result.redirected) return; // browser navigating away
-      toast.success("Signed in");
-      navigate({ to: "/" });
+      if (error) throw error;
+      // On success the browser navigates to Google; nothing to do here.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign in failed");
     } finally {
       setBusy(false);
     }
   }
+
 
   async function sendReset(e: React.FormEvent) {
     e.preventDefault();
