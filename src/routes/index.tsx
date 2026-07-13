@@ -109,7 +109,49 @@ function Landing() {
           >
             Run your <span className="text-[#3FA34D]">business</span>.<br />
             Not your<br />
-            <span className="underline decoration-[#3FA34D] underline-offset-4 decoration-2">paperwork</span>.
+            <span className="relative inline-block">
+              paperwork
+              <svg
+                aria-hidden="true"
+                className="absolute -bottom-1 left-0 w-full h-[0.35em] pointer-events-none"
+                viewBox="0 0 200 18"
+                preserveAspectRatio="none"
+                fill="none"
+              >
+                <path
+                  d="M2 12.5c18-3 36-5 54-5.5 12-.3 24-.2 36 .2 8 .3 16 .8 24 1.5 10 1 20 1.5 30 1 14-.8 28-2 42-2.5 8-.3 16-.3 24 0 10 .5 20 1.5 30 2.5 6 .6 12 1 18 1"
+                  stroke="#3FA34D"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="opacity-90"
+                />
+                <path
+                  d="M4 10c22-2 44-3.5 66-4 14-.3 28 0 42 .5 12 .4 24 1 36 1.5 12 .5 24 .8 36 .5 14-.3 28-1 42-1.5 10-.3 20-.2 30 .2 10 .4 20 1 30 1.5"
+                  stroke="#3FA34D"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="opacity-80"
+                />
+                <path
+                  d="M180 7c6-1 12 0 16 2 3 1.5 4 3.5 2 5-2 1.5-6 2-10 1.5-4-.5-8-1.5-10-3"
+                  stroke="#3FA34D"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="opacity-70"
+                />
+                <path
+                  d="M188 5c4-.5 8 0 10 2 2 1.5 1 3.5-1 4-2 .5-5 0-7-1"
+                  stroke="#3FA34D"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="opacity-60"
+                />
+              </svg>
+            </span>.
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111] max-w-xl">
