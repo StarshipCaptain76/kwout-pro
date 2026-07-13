@@ -120,7 +120,8 @@ function Landing() {
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111]/70 max-w-xl">
-            Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips — the whole KWOUT stationery, in your pocket.
+            Quotes —&nbsp;Invoices —&nbsp;Statements —&nbsp;Payslips<br />
+            the whole KWOUT stationery, in your pocket.
             <span className="block mt-2 font-medium text-[#111111]">
               30 days free. Everything included.<br />
               Then only R100/month.
