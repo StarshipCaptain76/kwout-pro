@@ -112,7 +112,7 @@ function Landing() {
             paperwork.
           </motion.h1>
 
-          <p className="mt-8 text-lg sm:text-xl text-[#111111]/70 max-w-xl">
+          <p className="mt-8 text-lg sm:text-xl text-[#111111] max-w-xl">
             <strong>Quotes - Invoices - Statements - Payslips</strong>
             <br />
             the whole <span className="font-bold text-[#3FA34D]">KWOUT</span> stationery, in your pocket.
