@@ -109,9 +109,7 @@ function Landing() {
           >
             Run your <span className="text-[#3FA34D]">business</span>.<br />
             Not your<br />
-            <span className="underline decoration-[#3FA34D] underline-offset-4 decoration-2">
-              paperwork
-            </span>.
+            <span className="underline decoration-[#3FA34D] underline-offset-4 decoration-2">paperwork</span>.
           </motion.h1>
 
           <p className="mt-8 text-lg sm:text-xl text-[#111111] max-w-xl">
