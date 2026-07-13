@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { useStore, DEFAULT_THEME } from "@/lib/store";
 import { buildBrandCache, writeBrandCookie, readBrandCookie } from "@/lib/brand-cookie";
 
@@ -27,10 +28,20 @@ function toRgb(hex: string): string {
 export function ThemeInjector() {
   const company = useStore((s) => s.company);
   const theme = company.theme ?? DEFAULT_THEME;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
+    // Pre-auth routes must always show KWOUT default branding, never a
+    // persisted tenant theme. Clear any inline overrides so the stylesheet
+    // :root defaults (KWOUT navy/green) take effect.
+    if (pathname.startsWith("/auth") || pathname === "/reset-password") {
+      for (const v of ["--primary","--primary-foreground","--accent","--accent-foreground","--secondary","--secondary-foreground","--ring"]) {
+        root.style.removeProperty(v);
+      }
+      return;
+    }
     const primary = theme.primary || DEFAULT_THEME.primary;
     const accent = theme.accent || DEFAULT_THEME.accent;
 
@@ -70,7 +81,7 @@ export function ThemeInjector() {
     ) {
       writeBrandCookie(cache);
     }
-  }, [theme.primary, theme.accent, company.name, company.logo]);
+  }, [theme.primary, theme.accent, company.name, company.logo, pathname]);
 
   return null;
 }
