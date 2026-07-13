@@ -194,6 +194,7 @@ interface State {
     maxInvoiceNo: number;
   }) => { expenses: number; docs: number };
   clearHistorical: () => { expenses: number; docs: number };
+  resetToDefaults: () => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
