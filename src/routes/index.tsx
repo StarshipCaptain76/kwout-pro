@@ -117,12 +117,23 @@ function Landing() {
                 preserveAspectRatio="none"
                 className="absolute left-[-6%] -bottom-[0.14em] w-[120%] h-[0.32em] pointer-events-none overflow-visible"
               >
+                <defs>
+                  <linearGradient id="taper" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="white" stopOpacity="1" />
+                    <stop offset="55%" stopColor="white" stopOpacity="1" />
+                    <stop offset="100%" stopColor="white" stopOpacity="0" />
+                  </linearGradient>
+                  <mask id="taper-mask">
+                    <rect x="0" y="0" width="320" height="16" fill="url(#taper)" />
+                  </mask>
+                </defs>
                 <path
                   d="M2,7 C 80,5 240,5 318,6"
                   stroke="#3FA34D"
-                  strokeWidth="3.4"
+                  strokeWidth="4.6"
                   strokeLinecap="round"
                   fill="none"
+                  mask="url(#taper-mask)"
                 />
               </svg>
             </span>
