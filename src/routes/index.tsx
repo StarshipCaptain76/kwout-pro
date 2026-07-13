@@ -133,34 +133,48 @@ function Landing() {
         </div>
 
         <div className="relative">
-          <motion.div
-            initial={{ rotate: -8, scale: 0.9, opacity: 0 }}
-            animate={{
-              rotate: -12,
-              scale: [1, 1.12, 1, 1.08, 1],
-              opacity: [1, 1, 0.85, 1, 1],
-              boxShadow: [
-                "0 0 0 0 rgba(63,163,77,0)",
-                "0 0 24px 6px rgba(63,163,77,0.45)",
-                "0 0 0 0 rgba(63,163,77,0)",
-                "0 0 16px 4px rgba(63,163,77,0.35)",
-                "0 0 0 0 rgba(63,163,77,0)",
-              ],
-            }}
-            transition={{
-              rotate: { delay: 0.9, type: "spring", stiffness: 120 },
-              scale: { delay: 1.2, duration: 1.4, repeat: Infinity, ease: "easeInOut" },
-              opacity: { delay: 1.2, duration: 1.4, repeat: Infinity, ease: "easeInOut" },
-              boxShadow: { delay: 1.2, duration: 1.4, repeat: Infinity, ease: "easeInOut" },
-            }}
-            className="absolute -top-6 -right-2 sm:-right-6 z-10 pointer-events-none"
-          >
-            <div className="border-[6px] border-[#3FA34D] bg-white/80 text-[#3FA34D] rounded-full w-32 h-32 grid place-items-center text-center font-display tracking-widest text-base font-bold leading-tight">
-              KWOUT
-              <br />
-              APPROVED
-            </div>
-          </motion.div>
+          <div className="absolute -top-6 -right-2 sm:-right-6 z-10 pointer-events-none">
+            {/* Radiating ripple rings */}
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="absolute inset-0 rounded-full border-[3px] border-[#3FA34D]"
+                initial={{ scale: 1, opacity: 0 }}
+                animate={{
+                  scale: [1, 1.9, 2.4],
+                  opacity: [0, 0.55, 0],
+                }}
+                transition={{
+                  duration: 2.2,
+                  repeat: Infinity,
+                  delay: 0.9 + i * 0.55,
+                  ease: "easeOut",
+                }}
+              />
+            ))}
+
+            <motion.div
+              initial={{ rotate: -8, scale: 0.9, opacity: 0 }}
+              animate={{
+                rotate: -12,
+                scale: [1, 1.08, 1, 1.06, 1],
+                opacity: 1,
+              }}
+              transition={{
+                rotate: { delay: 0.9, type: "spring", stiffness: 120 },
+                scale: { delay: 1.2, duration: 1.2, repeat: Infinity, ease: "easeInOut" },
+                opacity: { delay: 0.9, duration: 0.4 },
+              }}
+              className="relative"
+            >
+              <div className="border-[6px] border-[#3FA34D] text-[#3FA34D] rounded-full w-32 h-32 grid place-items-center text-center font-display tracking-widest text-lg font-black leading-tight drop-shadow-[0_2px_8px_rgba(63,163,77,0.35)]">
+                KWOUT
+                <br />
+                APPROVED
+              </div>
+            </motion.div>
+          </div>
+
 
           <div className="bg-white rounded-2xl border border-black/5 shadow-xl p-6 sm:p-7">
             <div className="mb-4">
