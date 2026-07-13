@@ -14,6 +14,9 @@ const kwoutLogo = { url: "/kwout-logo.png" };
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab === "signup" ? ("signup" as const) : ("signin" as const),
+  }),
   head: () => ({
     meta: [
       { title: "Sign in — KWOUT" },
@@ -28,11 +31,13 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  
+  const { tab } = Route.useSearch();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
+
 
   // Force KWOUT default branding on this page — never show a persisted
   // tenant theme flash. Runs before paint.
