@@ -17,26 +17,12 @@ export const Route = createFileRoute("/")({
   component: IndexRoute,
   head: () => ({
     meta: [
-      { title: "KWOUT — Run your business. Not your paperwork." },
-      {
-        name: "description",
-        content:
-          "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 DAYS FREE. Everything included.",
-      },
-      { property: "og:title", content: "KWOUT — Run your business. Not your paperwork." },
-      {
-        property: "og:description",
-        content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 DAYS FREE. Everything included.",
-      },
-      { property: "og:type", content: "website" },
       { property: "og:url", content: "https://kwout.co.za/" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "KWOUT — Run your business. Not your paperwork." },
-      { name: "twitter:description", content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 DAYS FREE. Everything included." },
     ],
     links: [{ rel: "canonical", href: "https://kwout.co.za/" }],
   }),
 });
+
 
 function IndexRoute() {
   const [state, setState] = useState<"loading" | "in" | "out">("loading");
