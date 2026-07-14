@@ -50,6 +50,7 @@ export function StaffSection() {
         name: r.name,
         email: r.email,
         role: r.role,
+        title: r.title,
         permissions: r.permissions ?? {},
         active: r.active,
       })),
@@ -106,7 +107,7 @@ export function StaffSection() {
               <div className="text-xs text-muted-foreground truncate">{m.email}</div>
             </div>
             <span className="text-[10px] uppercase font-bold px-2 py-1 rounded bg-secondary text-secondary-foreground">
-              {ROLE_LABEL[m.role]}
+              {m.title?.trim() || ROLE_LABEL[m.role]}
             </span>
             {!m.active && <span className="text-[10px] text-red-600 ml-2">disabled</span>}
           </button>
@@ -146,11 +147,12 @@ function CreateStaffSheet({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(() => randomPassword());
   const [role, setRole] = useState<Role>("staff");
+  const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const createStaff = useServerFn(createStaffAccount);
 
   const reset = () => {
-    setName(""); setEmail(""); setPassword(randomPassword()); setRole("staff");
+    setName(""); setEmail(""); setPassword(randomPassword()); setRole("staff"); setTitle("");
   };
 
   const save = async () => {
@@ -165,6 +167,7 @@ function CreateStaffSheet({
           email: email.trim().toLowerCase(),
           password: password || null,
           role,
+          title: title.trim() || null,
           permissions: presetFor(role),
         },
       });
@@ -212,12 +215,27 @@ function CreateStaffSheet({
             <p className="text-xs text-muted-foreground mt-1">Used only when we create a brand-new account for this email.</p>
           </div>
           <div>
-            <Label>Role</Label>
+            <Label>Role preset</Label>
             <select className="h-11 w-full border rounded-md px-2 bg-background" value={role} onChange={(e) => setRole(e.target.value as Role)}>
               <option value="staff">Field staff — assigned jobs only</option>
               <option value="manager">Manager — all except staff and settings</option>
               <option value="owner">Owner — full access</option>
             </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sets default permissions. You can override any tickbox after adding, and give them a custom job title below.
+            </p>
+          </div>
+          <div>
+            <Label>Job title <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              className="h-11"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Lead Technician, Office Admin, Site Foreman"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Shown instead of "Field staff" / "Manager" in lists. Doesn't change permissions.
+            </p>
           </div>
           <div className="flex gap-2 pt-2">
             <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
@@ -270,6 +288,7 @@ function EditStaffSheet({
           id: draft.id,
           name: draft.name,
           role: draft.role,
+          title: draft.title ?? null,
           permissions: draft.permissions,
           active: draft.active,
         },
@@ -327,7 +346,7 @@ function EditStaffSheet({
               <Input className="h-11" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             </div>
             <div>
-              <Label>Role</Label>
+              <Label>Role preset</Label>
               <select
                 className="h-11 w-full border rounded-md px-2 bg-background"
                 value={draft.role}
@@ -338,6 +357,19 @@ function EditStaffSheet({
                 <option value="owner">Owner</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <Label>Job title <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              className="h-11"
+              value={draft.title ?? ""}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              placeholder="e.g. Lead Technician, Office Admin, Site Foreman"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Custom label shown in lists. Tick the permissions below to define what they can actually do.
+            </p>
           </div>
 
           <label className="flex items-center gap-2 text-sm">

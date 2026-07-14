@@ -22,6 +22,8 @@ export interface StaffMember {
   name: string;
   email: string;
   role: Role;
+  /** Optional custom job title / role label (e.g. "Lead Technician"). Falls back to the role name when empty. */
+  title?: string | null;
   permissions: Permissions;
   active: boolean;
 }

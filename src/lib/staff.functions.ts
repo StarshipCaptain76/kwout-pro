@@ -12,6 +12,7 @@ export interface StaffMemberDTO {
   name: string;
   email: string;
   role: Role;
+  title: string | null;
   permissions: Permissions;
   active: boolean;
   /** True when the owner can safely reset this staff member's password. False for users who own or work for other workspaces. */
@@ -97,6 +98,7 @@ export const resolveWorkspace = createServerFn({ method: "GET" })
         name: (staff.name as string) ?? "",
         email: (staff.email as string) ?? "",
         role: staff.role as Role,
+        title: ((staff as { title?: string | null }).title ?? null) as string | null,
         permissions: (staff.permissions ?? {}) as Permissions,
         active: !!staff.active,
         canResetPassword: false, // not meaningful for "me"
@@ -109,7 +111,7 @@ async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO>
 
   const { data: existing } = await supabaseAdmin
     .from("staff_members")
-    .select("id, user_id, name, email, role, permissions, active")
+    .select("id, user_id, name, email, role, permissions, active, title")
     .eq("user_id", userId)
     .eq("workspace_owner_id", userId)
     .maybeSingle();
@@ -120,6 +122,7 @@ async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO>
       name: (existing.name as string) ?? "",
       email: (existing.email as string) ?? "",
       role: existing.role as Role,
+      title: ((existing as { title?: string | null }).title ?? null) as string | null,
       permissions: (existing.permissions ?? {}) as Permissions,
       active: !!existing.active,
       canResetPassword: false,
@@ -175,6 +178,7 @@ async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO>
     name: (inserted.name as string) ?? "",
     email: (inserted.email as string) ?? "",
     role: inserted.role as Role,
+    title: null,
     permissions: (inserted.permissions ?? {}) as Permissions,
     active: !!inserted.active,
     canResetPassword: false,
@@ -214,7 +218,7 @@ export const listStaff = createServerFn({ method: "GET" })
 
     const { data, error } = await supabase
       .from("staff_members")
-      .select("id, user_id, name, email, role, permissions, active")
+      .select("id, user_id, name, email, role, permissions, active, title")
       .eq("workspace_owner_id", owner)
       .order("created_at", { ascending: true });
     if (error) throw error;
@@ -240,6 +244,7 @@ export const listStaff = createServerFn({ method: "GET" })
         name: (r.name as string) ?? "",
         email: (r.email as string) ?? "",
         role: r.role as Role,
+        title: ((r as { title?: string | null }).title ?? null) as string | null,
         permissions: (r.permissions ?? {}) as Permissions,
         active: !!r.active,
         canResetPassword: canReset,
@@ -333,6 +338,7 @@ export const createStaffAccount = createServerFn({ method: "POST" })
         password: z.string().min(6).optional().nullable(),
         name: z.string().min(1),
         role: ROLE,
+        title: z.string().max(80).optional().nullable(),
         permissions: PERMISSIONS,
       })
       .parse(d),
@@ -364,6 +370,7 @@ export const createStaffAccount = createServerFn({ method: "POST" })
             name: data.name,
             email,
             role: data.role,
+            title: data.title ?? null,
             permissions: (data.permissions ?? {}) as never,
           } as never)
           .eq("id", dupe.id as string);
@@ -408,9 +415,10 @@ export const createStaffAccount = createServerFn({ method: "POST" })
         name: data.name,
         email,
         role: data.role,
+        title: data.title ?? null,
         permissions: (data.permissions ?? {}) as never,
         active: true,
-      })
+      } as never)
       .select()
       .single();
     if (sErr) {
@@ -451,6 +459,7 @@ export const updateStaffMember = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         name: z.string().optional(),
         role: ROLE.optional(),
+        title: z.string().max(80).nullable().optional(),
         permissions: PERMISSIONS,
         active: z.boolean().optional(),
       })
@@ -461,11 +470,13 @@ export const updateStaffMember = createServerFn({ method: "POST" })
     const patch: {
       name?: string;
       role?: Role;
+      title?: string | null;
       permissions?: Permissions;
       active?: boolean;
     } = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.role !== undefined) patch.role = data.role;
+    if (data.title !== undefined) patch.title = data.title ?? null;
     if (data.permissions !== undefined) patch.permissions = (data.permissions ?? {}) as Permissions;
     if (data.active !== undefined) patch.active = data.active;
     const { error } = await supabase
