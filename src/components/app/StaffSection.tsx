@@ -373,14 +373,20 @@ function EditStaffSheet({
           <CompensationSection staffId={draft.id} />
 
 
-          <div className="border rounded-md p-3">
-            <div className="text-sm font-semibold mb-2 flex items-center gap-1"><KeyRound className="h-4 w-4" /> Reset password</div>
-            <div className="flex gap-2">
-              <Input className="h-11 font-mono" placeholder="new password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
-              <Button type="button" variant="outline" onClick={() => setNewPass(randomPassword())}>Gen</Button>
-              <Button onClick={doResetPass} disabled={busy}>Set</Button>
+          {canReset ? (
+            <div className="border rounded-md p-3">
+              <div className="text-sm font-semibold mb-2 flex items-center gap-1"><KeyRound className="h-4 w-4" /> Reset password</div>
+              <div className="flex gap-2">
+                <Input className="h-11 font-mono" placeholder="new password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
+                <Button type="button" variant="outline" onClick={() => setNewPass(randomPassword())}>Gen</Button>
+                <Button onClick={doResetPass} disabled={busy}>Set</Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="border rounded-md p-3 text-xs text-muted-foreground">
+              This user owns or works for other businesses on KWOUT — you can't change their password. Ask them to use "Forgot password" on the sign-in page.
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             <Button variant="ghost" className="text-destructive" onClick={remove} disabled={busy}>
