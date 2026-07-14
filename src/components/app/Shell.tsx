@@ -166,7 +166,7 @@ function MobileTabBar() {
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-secondary text-secondary-foreground border-t border-white/10"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <ul className={cn("grid h-16 max-w-md mx-auto", cols)}>
+        <ul className={cn("grid h-16 max-w-md mx-auto", colsClass)}>
 
           {tabs.map((t, i) => {
             if ("fab" in t) {
