@@ -370,6 +370,7 @@ export const createStaffAccount = createServerFn({ method: "POST" })
             name: data.name,
             email,
             role: data.role,
+            title: data.title ?? null,
             permissions: (data.permissions ?? {}) as never,
           } as never)
           .eq("id", dupe.id as string);
@@ -414,9 +415,10 @@ export const createStaffAccount = createServerFn({ method: "POST" })
         name: data.name,
         email,
         role: data.role,
+        title: data.title ?? null,
         permissions: (data.permissions ?? {}) as never,
         active: true,
-      })
+      } as never)
       .select()
       .single();
     if (sErr) {
