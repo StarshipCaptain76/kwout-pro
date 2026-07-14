@@ -442,7 +442,12 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label>Password</Label>
-                  <Input type="password" className="h-11" value={password} onChange={(e) => { setPassword(e.target.value); setSignUpProblem(null); }} autoComplete="new-password" required minLength={8} />
+                  <div className="relative">
+                    <Input type={showPassword ? "text" : "password"} className="h-11 pr-10" value={password} onChange={(e) => { setPassword(e.target.value); setSignUpProblem(null); }} autoComplete="new-password" required minLength={8} />
+                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} tabIndex={-1}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Minimum 8 characters. Avoid common passwords — passphrases work best.
                   </p>
