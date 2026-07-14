@@ -211,14 +211,26 @@ function Landing() {
       </main>
 
       <footer className="border-t border-black/10 mt-8">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col items-center gap-2 text-xs text-[#111111]/80">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col items-center gap-3 text-xs text-[#111111]/80">
           <div className="flex items-center gap-2">
             <img src={kwoutLogo.url} alt="" className="h-5 w-5 rounded object-contain opacity-80" />
             <span className="font-display tracking-wide text-sm text-[#3FA34D]">KWOUT</span>
           </div>
+          <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <Link to="/legal" hash="privacy" className="underline underline-offset-4 hover:text-[#3FA34D]">
+              Privacy
+            </Link>
+            <Link to="/legal" hash="terms" className="underline underline-offset-4 hover:text-[#3FA34D]">
+              Terms &amp; Conditions
+            </Link>
+            <Link to="/legal" hash="cookies" className="underline underline-offset-4 hover:text-[#3FA34D]">
+              Cookie Policy
+            </Link>
+          </nav>
           <div>Made for entrepreneurs. © KWOUT 2026</div>
         </div>
       </footer>
+
     </div>
   );
 }
