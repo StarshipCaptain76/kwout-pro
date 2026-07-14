@@ -284,15 +284,19 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, 15)
       .map((u) => {
-        const s = subByUser.get(u.id);
         let subStatus = "none";
-        if (s) {
-          if (s.status === "trial") {
-            const start = s.trial_started_at ? new Date(s.trial_started_at).getTime() : nowMs;
-            const daysElapsed = Math.floor((nowMs - start) / MS_PER_DAY);
-            subStatus = daysElapsed >= TRIAL_DAYS ? "trial_expired" : "trial";
-          } else {
-            subStatus = s.status ?? "trial";
+        if (legacyUserIds.has(u.id)) {
+          subStatus = "legacy_free";
+        } else {
+          const s = subByUser.get(u.id);
+          if (s) {
+            if (s.status === "trial") {
+              const start = s.trial_started_at ? new Date(s.trial_started_at).getTime() : nowMs;
+              const daysElapsed = Math.floor((nowMs - start) / MS_PER_DAY);
+              subStatus = daysElapsed >= TRIAL_DAYS ? "trial_expired" : "trial";
+            } else {
+              subStatus = s.status ?? "trial";
+            }
           }
         }
         return {
