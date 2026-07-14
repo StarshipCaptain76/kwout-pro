@@ -558,6 +558,9 @@ export const useStore = create<State>()(
           if (s.company && !s.company.businessType) s.company.businessType = "other";
           if (s.company && !s.company.enabledModules) s.company.enabledModules = [];
         }
+        if (version < 6) {
+          if (s.billing && s.billing.terms === undefined) s.billing.terms = DEFAULT_BILLING_TERMS;
+        }
         return s;
       },
     },
