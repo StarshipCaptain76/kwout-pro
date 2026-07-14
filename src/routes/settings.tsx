@@ -285,7 +285,7 @@ function SettingsPage() {
                 <Label>Terms &amp; conditions</Label>
                 <textarea
                   className="w-full min-h-24 rounded-md border bg-background px-3 py-2 text-sm"
-                  value={s.billing.terms ?? ""}
+                  value={s.billing.terms ?? DEFAULT_BILLING_TERMS}
                   onChange={(e) => s.setBilling({ ...s.billing, terms: e.target.value })}
                   placeholder="Payment terms, warranty, etc. Shown above Notes on quotes & invoices."
                 />
