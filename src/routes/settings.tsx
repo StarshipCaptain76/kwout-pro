@@ -59,12 +59,15 @@ function SettingsPage() {
   const canBilling = useCan("settings.billing");
   const canAppearance = useCan("settings.appearance");
 
+  const canModules = useCan("settings.modules");
+
   const ALL_TABS: Array<{ value: string; label: string; allowed: boolean }> = [
     { value: "subscription", label: "Subscription", allowed: canSubscription },
     { value: "company", label: "Company", allowed: canCompany },
     { value: "banking", label: "Banking", allowed: canBanking },
     { value: "staff", label: "Staff", allowed: canStaff },
     { value: "catalog", label: "Catalog", allowed: canCatalog },
+    { value: "modules", label: "Modules", allowed: canModules },
     { value: "expenses", label: "Expenses", allowed: canExpenseCats },
     { value: "billing", label: "Billing", allowed: canBilling },
     { value: "appearance", label: "Appearance", allowed: canAppearance },
@@ -111,7 +114,7 @@ function SettingsPage() {
         </div>
 
         {/* Tablet: horizontal scroll. Desktop (lg+): 8-col grid */}
-        <TabsList className="mb-4 hidden sm:flex sm:w-full sm:overflow-x-auto sm:whitespace-nowrap lg:grid lg:grid-cols-8">
+        <TabsList className="mb-4 hidden sm:flex sm:w-full sm:overflow-x-auto sm:whitespace-nowrap lg:grid lg:grid-cols-9">
           {TABS.map((t) => (
             <TabsTrigger key={t.value} value={t.value} className="shrink-0">
               {t.label}
