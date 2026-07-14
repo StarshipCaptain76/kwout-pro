@@ -39,6 +39,7 @@ export type Action =
   | "settings.appearance"
   | "settings.catalog"
   | "settings.expenses"
+  | "settings.modules"
   | "settings.staff"         // owner only
   | "settings.subscription"; // owner only
 
@@ -106,6 +107,7 @@ export const ACTION_GROUPS: Array<{
       { key: "settings.appearance", label: "Appearance / theme" },
       { key: "settings.catalog", label: "Catalog editor" },
       { key: "settings.expenses", label: "Expense categories" },
+      { key: "settings.modules", label: "Business type & modules" },
     ],
   },
 ];
@@ -125,6 +127,7 @@ const PRESETS: Record<Role, Permissions> = {
     "settings.staff": true, "settings.subscription": true,
     "settings.company": true, "settings.banking": true, "settings.billing": true,
     "settings.appearance": true, "settings.catalog": true, "settings.expenses": true,
+    "settings.modules": true,
   },
   manager: {
     "jobs.viewAll": true, "jobs.create": true, "jobs.edit": true, "jobs.markPaid": true, "jobs.delete": false,
@@ -138,6 +141,7 @@ const PRESETS: Record<Role, Permissions> = {
     "settings.staff": false, "settings.subscription": false,
     "settings.company": false, "settings.banking": false, "settings.billing": false,
     "settings.appearance": false, "settings.catalog": false, "settings.expenses": false,
+    "settings.modules": false,
   },
   staff: {
     "jobs.viewAll": false, "jobs.create": false, "jobs.edit": false, "jobs.markPaid": false, "jobs.delete": false,
@@ -151,6 +155,7 @@ const PRESETS: Record<Role, Permissions> = {
     "settings.staff": false, "settings.subscription": false,
     "settings.company": false, "settings.banking": false, "settings.billing": false,
     "settings.appearance": false, "settings.catalog": false, "settings.expenses": false,
+    "settings.modules": false,
   },
 };
 
@@ -158,7 +163,7 @@ const PRESETS: Record<Role, Permissions> = {
 const SETTINGS_SUBS: Action[] = [
   "settings.company", "settings.banking", "settings.billing",
   "settings.appearance", "settings.catalog", "settings.expenses",
-  "settings.staff", "settings.subscription",
+  "settings.modules", "settings.staff", "settings.subscription",
 ];
 function anySettingsGranted(effective: Permissions): boolean {
   return SETTINGS_SUBS.some((k) => !!effective[k]);
