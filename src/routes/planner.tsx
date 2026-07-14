@@ -37,25 +37,8 @@ export const Route = createFileRoute("/planner")({
   }),
 });
 
-type MaterialKey = "furniture" | "rubble" | "garden" | "sandstone" | "grass" | "other";
-const MATERIALS: Record<MaterialKey, { label: string; dot: string; card: string; border: string }> = {
-  furniture: { label: "Furniture",  dot: "bg-amber-500",   card: "bg-amber-500/10",   border: "border-amber-500" },
-  rubble:    { label: "Rubble",     dot: "bg-stone-500",   card: "bg-stone-500/10",   border: "border-stone-500" },
-  garden:    { label: "Garden",     dot: "bg-emerald-500", card: "bg-emerald-500/10", border: "border-emerald-500" },
-  sandstone: { label: "Sand/Stone", dot: "bg-yellow-500",  card: "bg-yellow-500/10",  border: "border-yellow-500" },
-  grass:     { label: "Grass",      dot: "bg-lime-500",    card: "bg-lime-500/10",    border: "border-lime-500" },
-  other:     { label: "Other",      dot: "bg-slate-400",   card: "bg-secondary",      border: "border-slate-400" },
-};
 
-function jobMaterialCategory(doc: Doc): MaterialKey {
-  const text = doc.items.map((i) => i.description.toLowerCase()).join(" ");
-  if (/furniture/.test(text)) return "furniture";
-  if (/rubble/.test(text)) return "rubble";
-  if (/garden/.test(text)) return "garden";
-  if (/sand|stone/.test(text)) return "sandstone";
-  if (/grass/.test(text)) return "grass";
-  return "other";
-}
+
 
 
 const SUMMARY_KEYWORDS = [
