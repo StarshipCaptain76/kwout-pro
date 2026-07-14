@@ -24,10 +24,8 @@ export type BusinessType =
   | "carpenter"
   | "builder"
   | "caterer"
-  | "hairdresser"
-  | "beauty"
-  | "trainer"
   | "photographer"
+
   | "it"
   | "appliance"
   | "carwash"
