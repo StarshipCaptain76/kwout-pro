@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useStore, docTotals, fmtMoney, type Doc } from "@/lib/store";
+import { useStore, docTotals, fmtMoney, useCan, type Doc } from "@/lib/store";
 import { ChevronRight, FileText, Truck, Check } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { useEffect, useLayoutEffect, useState } from "react";
@@ -239,6 +239,9 @@ function Landing() {
 
 function Dashboard() {
   const { docs, billing, upsertDoc } = useStore();
+  const canSeeAll = useCan("reports.viewAll");
+  const canSeeDocs = useCan("jobs.viewAll");
+
 
   useEffect(() => {
     const now = new Date();
@@ -285,18 +288,21 @@ function Dashboard() {
   return (
     <Shell>
       <h1 className="sr-only">Business Dashboard</h1>
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
-        <Stat
-          label="Outstanding"
-          value={fmtMoney(stats.outstanding, billing.currency)}
-          accent
-          to="/docs"
-          search={{ status: "unpaid" }}
-        />
-        <Stat label="Paid (month)" value={fmtMoney(stats.paidThisMonth, billing.currency)} />
-        <Stat label="Quotes (month)" value={String(stats.quotes)} to="/docs" search={{ type: "quote" }} />
-        <Stat label="Invoices (month)" value={String(stats.invoices)} to="/docs" search={{ type: "invoice" }} />
-      </div>
+      {canSeeAll && (
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
+          <Stat
+            label="Outstanding"
+            value={fmtMoney(stats.outstanding, billing.currency)}
+            accent
+            to="/docs"
+            search={{ status: "unpaid" }}
+          />
+          <Stat label="Paid (month)" value={fmtMoney(stats.paidThisMonth, billing.currency)} />
+          <Stat label="Quotes (month)" value={String(stats.quotes)} to="/docs" search={{ type: "quote" }} />
+          <Stat label="Invoices (month)" value={String(stats.invoices)} to="/docs" search={{ type: "invoice" }} />
+        </div>
+      )}
+
 
       <Card className="p-3 sm:p-4">
         <Tabs defaultValue="today">
@@ -318,12 +324,15 @@ function Dashboard() {
             )}
           </TabsContent>
           <TabsContent value="recent" className="mt-0">
-            {visible.length === 0 ? (
+            {!canSeeDocs ? (
+              <Empty>Only jobs assigned to you appear here. Ask the owner if you should see more.</Empty>
+            ) : visible.length === 0 ? (
               <Empty>Tap + to create your first quote or invoice.</Empty>
             ) : (
               <List docs={visible.slice(0, 15)} currency={billing.currency} vat={billing.vatPct} />
             )}
           </TabsContent>
+
         </Tabs>
       </Card>
 

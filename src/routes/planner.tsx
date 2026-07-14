@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useStore, docTotals, fmtMoney, type Doc, type PayMethod } from "@/lib/store";
+import { useStore, docTotals, fmtMoney, useCan, type Doc, type PayMethod } from "@/lib/store";
 import {
   addDays, addMonths, endOfMonth, endOfWeek, format, isSameMonth, isToday, isTomorrow,
   startOfMonth, startOfWeek,
@@ -90,6 +90,8 @@ type View = "agenda" | "week" | "month";
 
 
 function PlannerPage() {
+  const canView = useCan("planner.view");
+  const canEdit = useCan("planner.edit");
   const { docs, upsertDoc, billing } = useStore();
   const [view, setView] = useState<View>("agenda");
   const [weekStart, setWeekStart] = useState(() => new Date());
@@ -99,7 +101,22 @@ function PlannerPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [actionDoc, setActionDoc] = useState<Doc | null>(null);
   const [moveMode, setMoveMode] = useState(false);
-  const openActions = (d: Doc) => { setActionDoc(d); setMoveMode(false); };
+  const openActions = (d: Doc) => { if (!canEdit) return; setActionDoc(d); setMoveMode(false); };
+
+  if (!canView) {
+    return (
+      <Shell>
+        <h1 className="sr-only">Planner</h1>
+        <Card className="p-6 max-w-lg mx-auto text-center">
+          <div className="font-display text-2xl mb-2">Access restricted</div>
+          <p className="text-sm text-muted-foreground">
+            Your role doesn't include Planner access. Ask the workspace owner to enable it in Settings → Staff.
+          </p>
+        </Card>
+      </Shell>
+    );
+  }
+
 
   const jobs = useMemo(() => docs.filter((d) => d.status === "accepted" || d.status === "paid"), [docs]);
   const byDay = (iso: string) =>
@@ -109,6 +126,7 @@ function PlannerPage() {
   const unscheduled = jobs.filter((d) => !d.scheduledDate && d.status === "accepted");
 
   const onDragEnd = (e: DragEndEvent) => {
+    if (!canEdit) return;
     const id = String(e.active.id);
     const overId = e.over?.id ? String(e.over.id) : null;
     if (!overId) return;
@@ -117,6 +135,7 @@ function PlannerPage() {
     if (overId === "unscheduled") upsertDoc({ ...doc, scheduledDate: undefined });
     else upsertDoc({ ...doc, scheduledDate: overId, dayOrder: byDay(overId).length });
   };
+
 
   // Agenda: next 30 days that have jobs, plus today
   const agendaDays = useMemo(() => {

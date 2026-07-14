@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useStore, newId, fmtMoney, computeVat, type Expense, type PayMethod } from "@/lib/store";
+import { useStore, newId, fmtMoney, computeVat, useCan, type Expense, type PayMethod } from "@/lib/store";
+
+
 import { ReceiptCapture } from "@/components/app/ReceiptCapture";
 import { parseReceipt } from "@/lib/expenses.functions";
 import { DatePicker } from "@/components/app/DatePicker";
@@ -32,10 +34,28 @@ export const Route = createFileRoute("/expenses")({
 
 function ExpensesPage() {
   const { expenses, billing } = useStore();
+  const canViewAll = useCan("expenses.viewAll");
+  const canAdd = useCan("expenses.addOwn");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [editing, setEditing] = useState<Expense | null>(null);
 
+  if (!canViewAll && !canAdd) {
+    return (
+      <Shell>
+        <h1 className="sr-only">Expenses</h1>
+        <Card className="p-6 max-w-lg mx-auto text-center">
+          <div className="font-display text-2xl mb-2">Access restricted</div>
+          <p className="text-sm text-muted-foreground">
+            Your role doesn't include Expenses access. Ask the workspace owner to enable it in Settings → Staff.
+          </p>
+        </Card>
+      </Shell>
+    );
+  }
+
+
   const monthExpenses = useMemo(() => {
+    if (!canViewAll) return [] as Expense[]; // staff without view-all see nothing until server-side scoping lands
     const start = startOfMonth(month);
     const end = endOfMonth(month);
     return expenses
@@ -44,7 +64,9 @@ function ExpensesPage() {
         return d >= start && d <= end;
       })
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [expenses, month]);
+  }, [expenses, month, canViewAll]);
+
+
 
   const total = monthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
 
@@ -74,9 +96,11 @@ function ExpensesPage() {
     <Shell>
       <h1 className="sr-only">Expenses</h1>
       <div className="flex items-center justify-end mb-3">
-        <Button size="sm" onClick={newExpense} className="hidden sm:inline-flex">
-          <Plus className="h-4 w-4 mr-1" /> Add
-        </Button>
+        {canAdd && (
+          <Button size="sm" onClick={newExpense} className="hidden sm:inline-flex">
+            <Plus className="h-4 w-4 mr-1" /> Add
+          </Button>
+        )}
       </div>
 
       <Card className="p-3 mb-3 flex items-center gap-2">
@@ -94,10 +118,17 @@ function ExpensesPage() {
         </Button>
       </Card>
 
+      {!canViewAll && (
+        <Card className="p-4 mb-3 text-xs text-muted-foreground">
+          You can add expenses, but only the workspace owner and managers can see the full history.
+        </Card>
+      )}
+
       {grouped.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm">
-          No expenses this month. Tap + to snap a slip.
+          {canAdd ? "No expenses this month. Tap + to snap a slip." : "No expenses to show."}
         </Card>
+
       ) : (
         <div className="space-y-4">
           {grouped.map(([date, items]) => (
@@ -142,14 +173,17 @@ function ExpensesPage() {
       )}
 
       {/* Floating Add button (mobile) */}
-      <button
-        onClick={newExpense}
-        aria-label="Add expense"
-        className="sm:hidden fixed right-4 z-30 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95"
-        style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
-      >
-        <Plus className="h-7 w-7" />
-      </button>
+      {canAdd && (
+        <button
+          onClick={newExpense}
+          aria-label="Add expense"
+          className="sm:hidden fixed right-4 z-30 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95"
+          style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+        >
+          <Plus className="h-7 w-7" />
+        </button>
+      )}
+
 
       <ExpenseSheet expense={editing} onClose={() => setEditing(null)} />
     </Shell>

@@ -30,9 +30,19 @@ export type Action =
   // Payslips (owner-only feature)
   | "payslips.view"
   | "payslips.manage"
-  // Settings — always owner only, kept here for a single source of truth
-  | "settings.staff"
-  | "settings.company";
+  // Settings — sub-sections. Owners always have all; managers/staff off by default.
+  // Owner can tick individual sections to grant.
+  | "settings.view"          // any settings access at all (derived, but kept as a preset)
+  | "settings.company"
+  | "settings.banking"
+  | "settings.billing"
+  | "settings.appearance"
+  | "settings.catalog"
+  | "settings.expenses"
+  | "settings.staff"         // owner only
+  | "settings.subscription"; // owner only
+
+
 
 export type Permissions = Partial<Record<Action, boolean>>;
 
@@ -87,7 +97,19 @@ export const ACTION_GROUPS: Array<{
       { key: "planner.edit", label: "Edit schedule" },
     ],
   },
+  {
+    title: "Settings sections",
+    actions: [
+      { key: "settings.company", label: "Company profile" },
+      { key: "settings.banking", label: "Banking details" },
+      { key: "settings.billing", label: "Billing / VAT / numbering" },
+      { key: "settings.appearance", label: "Appearance / theme" },
+      { key: "settings.catalog", label: "Catalog editor" },
+      { key: "settings.expenses", label: "Expense categories" },
+    ],
+  },
 ];
+
 
 // Preset defaults per role.
 const PRESETS: Record<Role, Permissions> = {
@@ -99,7 +121,10 @@ const PRESETS: Record<Role, Permissions> = {
     "reports.viewOwn": true, "reports.viewAll": true,
     "planner.view": true, "planner.edit": true,
     "payslips.view": true, "payslips.manage": true,
-    "settings.staff": true, "settings.company": true,
+    "settings.view": true,
+    "settings.staff": true, "settings.subscription": true,
+    "settings.company": true, "settings.banking": true, "settings.billing": true,
+    "settings.appearance": true, "settings.catalog": true, "settings.expenses": true,
   },
   manager: {
     "jobs.viewAll": true, "jobs.create": true, "jobs.edit": true, "jobs.markPaid": true, "jobs.delete": false,
@@ -109,7 +134,10 @@ const PRESETS: Record<Role, Permissions> = {
     "reports.viewOwn": true, "reports.viewAll": true,
     "planner.view": true, "planner.edit": true,
     "payslips.view": false, "payslips.manage": false,
-    "settings.staff": false, "settings.company": false,
+    "settings.view": false,
+    "settings.staff": false, "settings.subscription": false,
+    "settings.company": false, "settings.banking": false, "settings.billing": false,
+    "settings.appearance": false, "settings.catalog": false, "settings.expenses": false,
   },
   staff: {
     "jobs.viewAll": false, "jobs.create": false, "jobs.edit": false, "jobs.markPaid": false, "jobs.delete": false,
@@ -119,9 +147,23 @@ const PRESETS: Record<Role, Permissions> = {
     "reports.viewOwn": true, "reports.viewAll": false,
     "planner.view": true, "planner.edit": false,
     "payslips.view": false, "payslips.manage": false,
-    "settings.staff": false, "settings.company": false,
+    "settings.view": false,
+    "settings.staff": false, "settings.subscription": false,
+    "settings.company": false, "settings.banking": false, "settings.billing": false,
+    "settings.appearance": false, "settings.catalog": false, "settings.expenses": false,
   },
 };
+
+// Derived: does the effective permission set grant *any* settings sub-section?
+const SETTINGS_SUBS: Action[] = [
+  "settings.company", "settings.banking", "settings.billing",
+  "settings.appearance", "settings.catalog", "settings.expenses",
+  "settings.staff", "settings.subscription",
+];
+function anySettingsGranted(effective: Permissions): boolean {
+  return SETTINGS_SUBS.some((k) => !!effective[k]);
+}
+
 
 export function presetFor(role: Role): Permissions {
   return { ...PRESETS[role] };
@@ -133,5 +175,9 @@ export function effective(role: Role, overrides?: Permissions | null): Permissio
 
 export function can(role: Role | null | undefined, overrides: Permissions | null | undefined, action: Action): boolean {
   if (!role) return true; // no staff record yet ⇒ treat as owner of own workspace
-  return !!effective(role, overrides)[action];
+  const eff = effective(role, overrides);
+  // settings.view is derived from any sub-section being granted (or the role being owner).
+  if (action === "settings.view") return role === "owner" || anySettingsGranted(eff);
+  return !!eff[action];
 }
+

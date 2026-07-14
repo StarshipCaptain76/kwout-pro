@@ -6,7 +6,8 @@ import {
   Cloud, CloudOff, Plus, FileText, Receipt, Wallet, LogIn, LogOut, User, Building2, ChevronDown, Check,
 } from "lucide-react";
 import { initSync, subscribeSync, switchWorkspace } from "@/lib/sync";
-import { useStore, newId, type Doc } from "@/lib/store";
+import { useStore, newId, useCan, type Doc } from "@/lib/store";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,17 +20,34 @@ import { toast } from "sonner";
 import { readBrandCookie } from "@/lib/brand-cookie";
 import { TrialBanner } from "@/components/app/TrialBanner";
 
-const nav = [
-  { to: "/", label: "Home", icon: LayoutDashboard },
-  { to: "/planner", label: "Planner", icon: Calendar },
-  { to: "/expenses", label: "Expenses", icon: Wallet },
-  { to: "/results", label: "Results", icon: BarChart3 },
-  { to: "/settings", label: "Settings", icon: Settings },
+const NAV_ITEMS = [
+  { to: "/", label: "Home", icon: LayoutDashboard, perm: null },
+  { to: "/planner", label: "Planner", icon: Calendar, perm: "planner.view" as const },
+  { to: "/expenses", label: "Expenses", icon: Wallet, perm: "expenses.addOwn" as const },
+  { to: "/results", label: "Results", icon: BarChart3, perm: "reports.viewOwn" as const },
+  { to: "/settings", label: "Settings", icon: Settings, perm: "settings.view" as const },
 ] as const;
+
+
+function useVisibleNav() {
+  const canPlanner = useCan("planner.view");
+  const canExpenses = useCan("expenses.addOwn");
+  const canResults = useCan("reports.viewOwn");
+  const canSettings = useCan("settings.view");
+  const allowed: Record<string, boolean> = {
+    "/": true,
+    "/planner": canPlanner,
+    "/expenses": canExpenses,
+    "/results": canResults,
+    "/settings": canSettings,
+  };
+  return NAV_ITEMS.filter((n) => allowed[n.to]);
+}
 
 export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const company = useStore((s) => s.company);
+  const visibleNav = useVisibleNav();
 
   // Read the cookie only after hydration to avoid SSR/client mismatch.
   const [cookieBrand, setCookieBrand] = useState<{ name?: string; logo?: string } | null>(null);
@@ -37,6 +55,7 @@ export function Shell({ children }: { children: ReactNode }) {
     const b = readBrandCookie();
     if (b) setCookieBrand({ name: b.n, logo: b.l });
   }, []);
+
 
   const name = company.name || cookieBrand?.name || "";
   const logo = company.logo || cookieBrand?.logo || "";
@@ -63,7 +82,7 @@ export function Shell({ children }: { children: ReactNode }) {
             )}
           </Link>
           <nav className="hidden md:flex gap-1 ml-auto items-center">
-            {nav.map((n) => {
+            {visibleNav.map((n) => {
               const active = n.to === "/" ? path === "/" : path.startsWith(n.to);
               const Icon = n.icon;
               return (
@@ -119,13 +138,27 @@ function MobileTabBar() {
     nav({ to: "/doc/$id", params: { id } });
   };
 
-  const tabs = [
+  const canPlanner = useCan("planner.view");
+  const canExpenses = useCan("expenses.addOwn");
+  const canSettings = useCan("settings.view");
+  const canCreateJob = useCan("jobs.create");
+
+  type Tab =
+    | { to: string; label: string; icon: typeof LayoutDashboard }
+    | { fab: true };
+  const tabs: Tab[] = [
     { to: "/", label: "Home", icon: LayoutDashboard },
-    { to: "/planner", label: "Planner", icon: Calendar },
-    { fab: true },
-    { to: "/expenses", label: "Expenses", icon: Wallet },
-    { to: "/settings", label: "Settings", icon: Settings },
-  ] as const;
+    ...(canPlanner ? [{ to: "/planner", label: "Planner", icon: Calendar } as Tab] : []),
+    ...(canCreateJob ? [{ fab: true } as Tab] : []),
+    ...(canExpenses ? [{ to: "/expenses", label: "Expenses", icon: Wallet } as Tab] : []),
+    ...(canSettings ? [{ to: "/settings", label: "Settings", icon: Settings } as Tab] : []),
+  ];
+  const colsClass =
+    tabs.length >= 5 ? "grid-cols-5"
+    : tabs.length === 4 ? "grid-cols-4"
+    : tabs.length === 3 ? "grid-cols-3"
+    : "grid-cols-2";
+
 
   return (
     <>
@@ -133,7 +166,8 @@ function MobileTabBar() {
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-secondary text-secondary-foreground border-t border-white/10"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <ul className="grid grid-cols-5 h-16 max-w-md mx-auto">
+        <ul className={cn("grid h-16 max-w-md mx-auto", colsClass)}>
+
           {tabs.map((t, i) => {
             if ("fab" in t) {
               return (
