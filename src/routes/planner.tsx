@@ -37,25 +37,8 @@ export const Route = createFileRoute("/planner")({
   }),
 });
 
-type MaterialKey = "furniture" | "rubble" | "garden" | "sandstone" | "grass" | "other";
-const MATERIALS: Record<MaterialKey, { label: string; dot: string; card: string; border: string }> = {
-  furniture: { label: "Furniture",  dot: "bg-amber-500",   card: "bg-amber-500/10",   border: "border-amber-500" },
-  rubble:    { label: "Rubble",     dot: "bg-stone-500",   card: "bg-stone-500/10",   border: "border-stone-500" },
-  garden:    { label: "Garden",     dot: "bg-emerald-500", card: "bg-emerald-500/10", border: "border-emerald-500" },
-  sandstone: { label: "Sand/Stone", dot: "bg-yellow-500",  card: "bg-yellow-500/10",  border: "border-yellow-500" },
-  grass:     { label: "Grass",      dot: "bg-lime-500",    card: "bg-lime-500/10",    border: "border-lime-500" },
-  other:     { label: "Other",      dot: "bg-slate-400",   card: "bg-secondary",      border: "border-slate-400" },
-};
 
-function jobMaterialCategory(doc: Doc): MaterialKey {
-  const text = doc.items.map((i) => i.description.toLowerCase()).join(" ");
-  if (/furniture/.test(text)) return "furniture";
-  if (/rubble/.test(text)) return "rubble";
-  if (/garden/.test(text)) return "garden";
-  if (/sand|stone/.test(text)) return "sandstone";
-  if (/grass/.test(text)) return "grass";
-  return "other";
-}
+
 
 
 const SUMMARY_KEYWORDS = [
@@ -257,7 +240,7 @@ function PlannerPage() {
           </div>
         )}
 
-        <Legend />
+        
 
         <div {...swipe} style={{ touchAction: "pan-y" }}>
         {view === "agenda" && (
@@ -417,19 +400,7 @@ function JobActionSheet({
   );
 }
 
-function Legend() {
-  return (
-    <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-[10px] text-muted-foreground">
-      {(Object.keys(MATERIALS) as MaterialKey[]).map((k) => (
-        <div key={k} className="flex items-center gap-1">
-          <span className={`inline-block h-2 w-2 rounded-full ${MATERIALS[k].dot}`} />
-          <span>{MATERIALS[k].label}</span>
-        </div>
-      ))}
-    </div>
 
-  );
-}
 
 function dayLabel(d: Date) {
   if (isToday(d)) return "Today";
@@ -468,18 +439,17 @@ function AgendaJob({ doc, currency, vat }: { doc: Doc; currency: string; vat: nu
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const t = docTotals(doc, vat);
-  const c = MATERIALS[jobMaterialCategory(doc)];
   const open = usePlannerActions();
   const lp = useLongPress(() => open(doc));
   return (
     <div ref={setNodeRef} style={style} className={cn(
-      "flex items-stretch rounded-lg border-l-4 bg-background border overflow-hidden",
-      c.border, isDragging && "opacity-50",
+      "flex items-stretch rounded-lg bg-background border overflow-hidden",
+      isDragging && "opacity-50",
     )} {...lp}>
       <button {...listeners} {...attributes} className="px-2 flex items-center text-muted-foreground touch-none cursor-grab active:cursor-grabbing">
         <GripVertical className="h-4 w-4" />
       </button>
-      <Link to="/doc/$id" params={{ id: doc.id }} className={cn("flex-1 flex items-center justify-between py-2 pr-3 gap-2", c.card)}>
+      <Link to="/doc/$id" params={{ id: doc.id }} className="flex-1 flex items-center justify-between py-2 pr-3 gap-2">
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-sm truncate">{doc.customer.name || "—"}</div>
           <div className="text-[11px] text-muted-foreground truncate">{doc.number} · {doc.fromAddress || "no address"}</div>
@@ -493,6 +463,7 @@ function AgendaJob({ doc, currency, vat }: { doc: Doc; currency: string; vat: nu
     </div>
   );
 }
+
 
 function DayCol({ date, iso, docs, currency, vat }: { date: Date; iso: string; docs: Doc[]; currency: string; vat: number }) {
 
@@ -557,13 +528,12 @@ function MonthCell({ date, iso, inMonth, docs }: { date: Date; iso: string; inMo
 function MiniJob({ doc }: { doc: Doc }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
-  const c = MATERIALS[jobMaterialCategory(doc)];
   const open = usePlannerActions();
   const lp = useLongPress(() => open(doc));
   return (
     <Link to="/doc/$id" params={{ id: doc.id }}>
       <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...lp}
-        className={cn("rounded px-1 py-0.5 truncate border-l-2 cursor-grab text-[10px] flex items-center gap-1", c.card, c.border, isDragging && "opacity-50")}
+        className={cn("rounded px-1 py-0.5 truncate cursor-grab text-[10px] flex items-center gap-1 bg-secondary/60", isDragging && "opacity-50")}
         title={`${doc.customer.name || "—"} · ${doc.number} · ${jobSummary(doc)}`}>
         <PaymentIndicator doc={doc} />
         {doc.customer.name || doc.number}
@@ -577,12 +547,11 @@ function JobCard({ doc, currency, vat }: { doc: Doc; currency: string; vat: numb
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const t = docTotals(doc, vat);
-  const c = MATERIALS[jobMaterialCategory(doc)];
   const open = usePlannerActions();
   const lp = useLongPress(() => open(doc));
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...lp}
-      className={cn("rounded p-2 text-xs cursor-grab border-l-4", c.card, c.border, isDragging && "opacity-50")}>
+      className={cn("rounded p-2 text-xs cursor-grab border bg-background", isDragging && "opacity-50")}>
       <div className="font-semibold truncate">{doc.customer.name || "—"}</div>
       <div className="opacity-80 truncate">{doc.fromAddress || "no address"}</div>
       <div className="opacity-80 truncate">{jobSummary(doc)}</div>
@@ -594,6 +563,7 @@ function JobCard({ doc, currency, vat }: { doc: Doc; currency: string; vat: numb
     </div>
   );
 }
+
 
 
 function DropZone({ id, children, className }: { id: string; children: React.ReactNode; className?: string }) {
