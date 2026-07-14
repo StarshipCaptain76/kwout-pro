@@ -232,7 +232,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     }>(() => supabaseAdmin.from("company_profile").select("owner_user_id, company"));
 
     const nameByUser = new Map<string, string>();
-    for (const c of companyRaw ?? []) {
+    for (const c of companyRaw) {
       const co = (c.company as { name?: string } | null) ?? null;
       const nm = co?.name;
       if (nm && c.owner_user_id) nameByUser.set(c.owner_user_id, nm);
