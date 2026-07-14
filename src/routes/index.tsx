@@ -324,12 +324,15 @@ function Dashboard() {
             )}
           </TabsContent>
           <TabsContent value="recent" className="mt-0">
-            {visible.length === 0 ? (
+            {!canSeeDocs ? (
+              <Empty>Only jobs assigned to you appear here. Ask the owner if you should see more.</Empty>
+            ) : visible.length === 0 ? (
               <Empty>Tap + to create your first quote or invoice.</Empty>
             ) : (
               <List docs={visible.slice(0, 15)} currency={billing.currency} vat={billing.vatPct} />
             )}
           </TabsContent>
+
         </Tabs>
       </Card>
 
