@@ -44,6 +44,11 @@ type SignInProblem =
   | { kind: "unverified"; email: string }
   | null;
 
+type SignUpProblem =
+  | { kind: "weak-password" }
+  | { kind: "generic"; message: string }
+  | null;
+
 function AuthPage() {
   const navigate = useNavigate();
   const { tab } = Route.useSearch();
@@ -56,6 +61,7 @@ function AuthPage() {
   const [pendingVerification, setPendingVerification] = useState<{ email: string } | null>(null);
   const [resetSent, setResetSent] = useState<{ email: string } | null>(null);
   const [signInProblem, setSignInProblem] = useState<SignInProblem>(null);
+  const [signUpProblem, setSignUpProblem] = useState<SignUpProblem>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
@@ -122,6 +128,7 @@ function AuthPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setSignUpProblem(null);
     try {
       await sendSignup({
         data: {
@@ -133,7 +140,19 @@ function AuthPage() {
       setPendingVerification({ email });
       setResendCooldown(30);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign up failed");
+      const msg = err instanceof Error ? err.message : "Sign up failed";
+      const lower = msg.toLowerCase();
+      if (
+        lower.includes("weak") ||
+        lower.includes("easy to guess") ||
+        lower.includes("pwned") ||
+        lower.includes("compromised") ||
+        lower.includes("breach")
+      ) {
+        setSignUpProblem({ kind: "weak-password" });
+      } else {
+        setSignUpProblem({ kind: "generic", message: msg });
+      }
     } finally {
       setBusy(false);
     }
@@ -299,6 +318,7 @@ function AuthPage() {
             value={tab}
             onValueChange={(v) => {
               setSignInProblem(null);
+              setSignUpProblem(null);
               navigate({ to: "/auth", search: { tab: v === "signup" ? "signup" : "signin" }, replace: true });
             }}
           >
@@ -389,15 +409,37 @@ function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup">
+              {signUpProblem?.kind === "weak-password" && (
+                <Alert variant="destructive" className="mb-3">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Choose a stronger password</AlertTitle>
+                  <AlertDescription className="text-xs mt-1">
+                    This password has appeared in known data breaches, so we can't accept it.
+                    Try a longer passphrase (3–4 unique words) or add numbers and symbols that
+                    aren't tied to your name or birth year.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {signUpProblem?.kind === "generic" && (
+                <Alert variant="destructive" className="mb-3">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Couldn't create your account</AlertTitle>
+                  <AlertDescription className="text-xs mt-1">
+                    {signUpProblem.message}
+                  </AlertDescription>
+                </Alert>
+              )}
               <form onSubmit={signUp} className="grid gap-3">
                 <div>
                   <Label>Email</Label>
-                  <Input type="email" className="h-11" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required />
+                  <Input type="email" className="h-11" value={email} onChange={(e) => { setEmail(e.target.value); setSignUpProblem(null); }} autoComplete="username" required />
                 </div>
                 <div>
                   <Label>Password</Label>
-                  <Input type="password" className="h-11" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required minLength={8} />
-                  <p className="text-[11px] text-muted-foreground mt-1">Minimum 8 characters.</p>
+                  <Input type="password" className="h-11" value={password} onChange={(e) => { setPassword(e.target.value); setSignUpProblem(null); }} autoComplete="new-password" required minLength={8} />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Minimum 8 characters. Avoid common passwords — passphrases work best.
+                  </p>
                 </div>
                 <Button type="submit" disabled={busy} className="h-11">
                   {busy ? "Creating…" : "Create account"}
