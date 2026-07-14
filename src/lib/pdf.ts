@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import type { Doc, Company, Banking, BillingSettings } from "./store";
 import { docTotals, fmtMoney, DEFAULT_THEME, effectiveVatPct } from "./store";
+import { MODULES, type ModuleKey } from "./modules";
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = (hex || "#000000").replace("#", "").trim();
@@ -127,6 +128,46 @@ export async function generatePdf(
     );
     pdf.setTextColor(20, 20, 20);
     y += 6;
+  }
+
+  // Module data (job details): render populated fields from enabled modules.
+  const enabled = (company.enabledModules ?? []) as ModuleKey[];
+  const moduleLines: Array<{ head: string; rows: Array<[string, string]> }> = [];
+  for (const k of enabled) {
+    if (k === "location") continue; // covered by addresses/distance already
+    const m = MODULES[k];
+    if (!m) continue;
+    const data = (doc.moduleData?.[k] as Record<string, unknown> | undefined) ?? {};
+    const rows: Array<[string, string]> = [];
+    for (const f of m.fields) {
+      const v = data[f.key];
+      if (v === undefined || v === null || v === "") continue;
+      rows.push([f.label + (f.suffix ? ` (${f.suffix})` : ""), String(v)]);
+    }
+    if (rows.length) moduleLines.push({ head: `${m.icon} ${m.label}`, rows });
+  }
+  if (moduleLines.length) {
+    y += 6;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("JOB DETAILS", M, y);
+    y += 4;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    for (const block of moduleLines) {
+      if (y > 265) { pdf.addPage(); y = 20; }
+      pdf.setFont("helvetica", "bold");
+      pdf.text(block.head, M, y);
+      y += 4;
+      pdf.setFont("helvetica", "normal");
+      for (const [k, v] of block.rows) {
+        if (y > 270) { pdf.addPage(); y = 20; }
+        const wrapped = pdf.splitTextToSize(`${k}: ${v}`, W - 2 * M);
+        pdf.text(wrapped, M + 2, y);
+        y += wrapped.length * 4;
+      }
+      y += 2;
+    }
   }
 
   y = Math.max(y + 10, 235);
