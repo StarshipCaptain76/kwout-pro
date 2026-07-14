@@ -414,6 +414,7 @@ async function resolveAndLoad() {
   try {
     const info = await resolveWorkspace();
     state.workspaceOwnerId = info.workspaceOwnerId;
+    useStore.getState().setCurrentWorkspaceOwnerId(info.workspaceOwnerId);
     const me: StaffMember | null = info.me
       ? {
           id: info.me.id,
@@ -429,6 +430,7 @@ async function resolveAndLoad() {
   } catch (e) {
     console.error("[sync resolveWorkspace]", e);
     state.workspaceOwnerId = state.userId; // fall back to own workspace
+    useStore.getState().setCurrentWorkspaceOwnerId(state.userId);
     useStore.getState().setCurrentUser(state.userId, null);
   }
 
