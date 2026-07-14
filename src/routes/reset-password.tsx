@@ -54,7 +54,7 @@ function ResetPasswordPage() {
     <div className="min-h-[100svh] grid place-items-center bg-background text-foreground p-4">
       <Card className="w-full max-w-sm p-6 grid gap-4">
         <div>
-          <div className="font-display text-2xl tracking-wide">Set a new password</div>
+          <h1 className="font-display text-2xl tracking-wide">Set a new password</h1>
           <div className="text-xs text-muted-foreground">
             {ready ? "Choose something at least 8 characters." : "Verifying reset link…"}
           </div>

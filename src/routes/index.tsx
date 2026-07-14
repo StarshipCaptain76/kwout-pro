@@ -17,26 +17,12 @@ export const Route = createFileRoute("/")({
   component: IndexRoute,
   head: () => ({
     meta: [
-      { title: "KWOUT — Run your business. Not your paperwork." },
-      {
-        name: "description",
-        content:
-          "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 DAYS FREE. Everything included.",
-      },
-      { property: "og:title", content: "KWOUT — Run your business. Not your paperwork." },
-      {
-        property: "og:description",
-        content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 DAYS FREE. Everything included.",
-      },
-      { property: "og:type", content: "website" },
       { property: "og:url", content: "https://kwout.co.za/" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "KWOUT — Run your business. Not your paperwork." },
-      { name: "twitter:description", content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 DAYS FREE. Everything included." },
     ],
     links: [{ rel: "canonical", href: "https://kwout.co.za/" }],
   }),
 });
+
 
 function IndexRoute() {
   const [state, setState] = useState<"loading" | "in" | "out">("loading");
@@ -88,7 +74,7 @@ function Landing() {
     <div className="min-h-[100svh] bg-[#F5F5F0] text-[#111111]">
       <header className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={kwoutLogo.url} alt="KWOUT" className="h-9 w-9 rounded object-contain" />
+          <img src={kwoutLogo.url} alt="KWOUT business stationery logo" className="h-9 w-9 rounded object-contain" />
           <span className="font-display text-2xl tracking-wide text-[#3FA34D]">KWOUT</span>
         </div>
         <button

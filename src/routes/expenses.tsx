@@ -146,7 +146,7 @@ function ExpensesPage() {
                     {e.receiptImage ? (
                       <img
                         src={e.receiptImage}
-                        alt=""
+                        alt="Business expense receipt"
                         className="h-12 w-12 rounded object-cover border shrink-0"
                       />
                     ) : (
@@ -278,7 +278,7 @@ function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: 
             <div className="relative">
               <img
                 src={draft.receiptImage}
-                alt="Receipt"
+                alt="Business expense receipt"
                 className="w-full max-h-64 object-contain rounded border bg-muted"
               />
               <button
