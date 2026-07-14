@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MailCheck, AlertCircle } from "lucide-react";
+import { MailCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { toast } from "sonner";
 const kwoutLogo = { url: "/kwout-logo.png" };
