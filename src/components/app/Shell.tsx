@@ -153,7 +153,12 @@ function MobileTabBar() {
     ...(canExpenses ? [{ to: "/expenses", label: "Expenses", icon: Wallet } as Tab] : []),
     ...(canSettings ? [{ to: "/settings", label: "Settings", icon: Settings } as Tab] : []),
   ];
-  const cols = `grid-cols-${Math.max(2, tabs.length)}`;
+  const colsClass =
+    tabs.length >= 5 ? "grid-cols-5"
+    : tabs.length === 4 ? "grid-cols-4"
+    : tabs.length === 3 ? "grid-cols-3"
+    : "grid-cols-2";
+
 
   return (
     <>
