@@ -181,43 +181,49 @@ function DocPage() {
                   onChange={(v) => updateCust({ address: v.address })}
                 />
               </div>
-              <div className="col-span-2">
-                <Label>From address</Label>
-                <AddressAutocomplete
-                  value={doc.fromAddress ?? ""}
-                  placeholder="Search address…"
-                  onChange={(v) => update({ fromAddress: v.address, fromCoords: v.coords })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>To address</Label>
-                <AddressAutocomplete
-                  value={doc.toAddress ?? ""}
-                  placeholder="Search address…"
-                  onChange={(v) => update({ toAddress: v.address, toCoords: v.coords })}
-                  extraButton={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="whitespace-nowrap"
-                      onClick={() =>
-                        update({ toAddress: DISPOSAL_SITE.address, toCoords: DISPOSAL_SITE.coords })
+              {showLocation && (
+                <>
+                  <div className="col-span-2">
+                    <Label>From address</Label>
+                    <AddressAutocomplete
+                      value={doc.fromAddress ?? ""}
+                      placeholder="Search address…"
+                      onChange={(v) => update({ fromAddress: v.address, fromCoords: v.coords })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>To address</Label>
+                    <AddressAutocomplete
+                      value={doc.toAddress ?? ""}
+                      placeholder="Search address…"
+                      onChange={(v) => update({ toAddress: v.address, toCoords: v.coords })}
+                      extraButton={
+                        enabledModules.has("waste") ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="whitespace-nowrap"
+                            onClick={() =>
+                              update({ toAddress: DISPOSAL_SITE.address, toCoords: DISPOSAL_SITE.coords })
+                            }
+                          >
+                            <Recycle className="h-4 w-4 mr-1" /> Disposal
+                          </Button>
+                        ) : undefined
                       }
-                    >
-                      <Recycle className="h-4 w-4 mr-1" /> Disposal
+                    />
+                  </div>
+                  <div className="col-span-2 flex items-center gap-2 text-sm">
+                    <Button type="button" size="sm" variant="secondary" onClick={calcDistance} disabled={calcing}>
+                      <RouteIcon className="h-4 w-4 mr-1" /> {calcing ? "Calculating…" : "Calculate distance"}
                     </Button>
-                  }
-                />
-              </div>
-              <div className="col-span-2 flex items-center gap-2 text-sm">
-                <Button type="button" size="sm" variant="secondary" onClick={calcDistance} disabled={calcing}>
-                  <RouteIcon className="h-4 w-4 mr-1" /> {calcing ? "Calculating…" : "Calculate distance"}
-                </Button>
-                {doc.distanceKm ? (
-                  <span className="text-muted-foreground">{doc.distanceKm} km</span>
-                ) : null}
-              </div>
+                    {doc.distanceKm ? (
+                      <span className="text-muted-foreground">{doc.distanceKm} km</span>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </div>
           </Card>
 
