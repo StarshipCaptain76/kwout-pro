@@ -169,8 +169,10 @@ interface State {
   staff: StaffMember[];
   currentUserId: string | null;
   currentStaff: StaffMember | null;
+  currentWorkspaceOwnerId: string | null;
   setStaffList: (s: StaffMember[]) => void;
   setCurrentUser: (userId: string | null, currentStaff: StaffMember | null) => void;
+  setCurrentWorkspaceOwnerId: (id: string | null) => void;
   upsertDoc: (d: Doc) => void;
   deleteDoc: (id: string) => void;
   upsertCatalog: (c: CatalogItem) => void;
