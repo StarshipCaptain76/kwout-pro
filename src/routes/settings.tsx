@@ -18,6 +18,7 @@ import { Slider } from "@/components/ui/slider";
 import { LogoUploader } from "@/components/app/LogoUploader";
 import { ColorPicker } from "@/components/app/ColorPicker";
 import { StaffSection } from "@/components/app/StaffSection";
+import { AddressAutocomplete } from "@/components/app/AddressAutocomplete";
 import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -810,6 +811,37 @@ function ModulesEditor() {
           })}
         </ul>
       </Card>
+
+      {enabled.has("waste") && (
+        <Card className="p-4 sm:p-6 grid gap-3">
+          <div>
+            <div className="font-semibold">Default disposal site</div>
+            <p className="text-sm text-muted-foreground">
+              Where your team dumps waste. Shown as a one-tap "Disposal" button on the job's <em>To address</em>.
+            </p>
+          </div>
+          <div>
+            <Label>Disposal site address</Label>
+            <AddressAutocomplete
+              value={company.disposalSite?.address ?? ""}
+              placeholder="Search dumpsite / landfill…"
+              onChange={(v) =>
+                setCompany({
+                  ...company,
+                  disposalSite: v.address
+                    ? { address: v.address, coords: v.coords ?? null }
+                    : undefined,
+                })
+              }
+            />
+            {!company.disposalSite?.address && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave empty to hide the Disposal button on jobs.
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
