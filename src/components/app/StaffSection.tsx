@@ -285,7 +285,7 @@ function EditStaffSheet({
   };
 
   const remove = async () => {
-    if (!confirm(`Delete ${draft.name || draft.email}? Their login will be removed.`)) return;
+    if (!confirm(`Remove ${draft.name || draft.email} from this workspace? Their KWOUT account stays active — this only revokes their access here.`)) return;
     setBusy(true);
     try {
       await deleteStaff({ data: { id: draft.id } });
