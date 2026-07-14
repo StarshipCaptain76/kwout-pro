@@ -296,21 +296,23 @@ async function loadAll() {
       return rows;
     };
 
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const [profileRes, catData, custData, docsData, expData, catCatData] = await Promise.all([
       supabase.from("company_profile").select("*").eq("owner_user_id", uid).maybeSingle(),
-      fetchAll((): ReturnType<typeof supabase.from<"catalog_items">> extends never ? never : ReturnType<typeof supabase.from> =>
-        supabase.from("catalog_items").select("*").eq("owner_user_id", uid) as never),
-      fetchAll(() => supabase.from("customers").select("*").eq("owner_user_id", uid) as never),
-      fetchAll(() => supabase.from("docs").select("*").eq("owner_user_id", uid) as never),
-      fetchAll(() => supabase.from("expenses").select("*").eq("owner_user_id", uid) as never),
-      fetchAll(() => supabase.from("expense_categories").select("*").eq("owner_user_id", uid) as never),
+      fetchAll<any>(() => supabase.from("catalog_items").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("customers").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("docs").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("expenses").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("expense_categories").select("*").eq("owner_user_id", uid) as any),
     ]);
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     if (profileRes.error) throw profileRes.error;
-    const catRes = { data: catData as Awaited<ReturnType<typeof supabase.from<"catalog_items">>["select"]>["data"] } as { data: Array<{ id: string; name: string; price: number | string; unit: string }> };
-    const custRes = { data: custData } as { data: Array<{ id: string; name: string; phone: string; email: string; address: string | null }> };
-    const docsRes = { data: docsData } as { data: Array<Record<string, unknown> & { id: string; number: string; type: string; status: string; created_at: string; archived: boolean; customer: unknown; items: unknown; deposit_pct: number | string; deposit_paid: boolean }> };
-    const expRes = { data: expData } as { data: Array<{ id: string; created_at: string; date: string; category: string; vendor: string; description: string | null; amount: number | string; vat_amount: number | string | null; payment_method: string | null; notes: string | null; receipt_image: string | null; linked_doc_id: string | null }> };
-    const catCatRes = { data: catCatData } as { data: Array<{ name: string }> };
+    const catRes = { data: catData };
+    const custRes = { data: custData };
+    const docsRes = { data: docsData };
+    const expRes = { data: expData };
+    const catCatRes = { data: catCatData };
+
 
 
 
