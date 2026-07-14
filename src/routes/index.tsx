@@ -208,6 +208,7 @@ function Landing() {
           <p className="mt-4 text-center text-[11px] text-[#111111]/80">R100/month after your trial. Cancel anytime.</p>
         </div>
       </section>
+      </main>
 
       <footer className="border-t border-black/10 mt-8">
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col items-center gap-2 text-xs text-[#111111]/80">
