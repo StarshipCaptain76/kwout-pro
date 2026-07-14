@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import type { Doc, Company, Banking, BillingSettings } from "./store";
-import { docTotals, fmtMoney, DEFAULT_THEME, effectiveVatPct } from "./store";
+import { docTotals, fmtMoney, DEFAULT_THEME, DEFAULT_BILLING_TERMS, effectiveVatPct } from "./store";
 import { MODULES, type ModuleKey } from "./modules";
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -189,7 +189,7 @@ export async function generatePdf(
   b.forEach((l, i) => pdf.text(l, M + 3 + (i % 2) * 90, y + 13 + Math.floor(i / 2) * 5));
 
   let extraY = y + 46;
-  const terms = (billing.terms ?? "").trim();
+  const terms = (billing.terms ?? DEFAULT_BILLING_TERMS).trim();
   if (terms) {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8);

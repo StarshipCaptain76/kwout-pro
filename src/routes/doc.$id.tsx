@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useStore, newId, docTotals, fmtMoney, type LineItem, type PayMethod } from "@/lib/store";
+import { useStore, newId, docTotals, fmtMoney, DEFAULT_BILLING_TERMS, type LineItem, type PayMethod } from "@/lib/store";
 import { downloadPdf } from "@/lib/pdf";
 import { Trash2, Plus, MessageCircle, Mail, Download, Check, ArrowLeft, Truck, Calendar as CalendarIcon, Route as RouteIcon, Recycle } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -300,12 +300,16 @@ function DocPage() {
             </div>
           </Card>
 
-          {(billing.terms ?? "").trim() && (
-            <Card className="p-4">
-              <Label>Terms &amp; conditions</Label>
-              <div className="text-sm whitespace-pre-wrap text-muted-foreground mt-1">{billing.terms}</div>
-            </Card>
-          )}
+          {(() => {
+            const termsText = (billing.terms ?? DEFAULT_BILLING_TERMS).trim();
+            if (!termsText) return null;
+            return (
+              <Card className="p-4">
+                <Label>Terms &amp; conditions</Label>
+                <div className="text-sm whitespace-pre-wrap text-muted-foreground mt-1">{termsText}</div>
+              </Card>
+            );
+          })()}
 
           <Card className="p-4">
             <Label>Notes</Label>

@@ -117,6 +117,9 @@ export interface Theme {
   accent: string; // hex like "#0f172a"
 }
 
+export const DEFAULT_BILLING_TERMS =
+  "Balances exceeding R1000.00 requires a 50% deposit before work starts. When making any payment please use the Quote/Invoice number as payment reference";
+
 export const DEFAULT_THEME: Theme = {
   primary: "#151C63", // KWOUT navy
   accent: "#4F8C2E", // KWOUT green
@@ -299,6 +302,7 @@ export const useStore = create<State>()(
         nextQuoteNo: 1001,
         nextInvoiceNo: 1001,
         currency: "R",
+        terms: DEFAULT_BILLING_TERMS,
         primaryUnit: "km",
         customUnits: [],
       },
@@ -508,6 +512,7 @@ export const useStore = create<State>()(
             nextQuoteNo: 1001,
             nextInvoiceNo: 1001,
             currency: "R",
+            terms: DEFAULT_BILLING_TERMS,
             primaryUnit: "km",
             customUnits: [],
           },
@@ -527,7 +532,7 @@ export const useStore = create<State>()(
     {
       name: "app-store", // ignored; perUserStorage handles the real key
       storage: createJSONStorage(() => perUserStorage),
-      version: 5,
+      version: 6,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
         const { staff: _s, currentUserId: _u, currentStaff: _c, currentWorkspaceOwnerId: _w, ...rest } = s;
@@ -552,6 +557,9 @@ export const useStore = create<State>()(
         if (version < 5) {
           if (s.company && !s.company.businessType) s.company.businessType = "other";
           if (s.company && !s.company.enabledModules) s.company.enabledModules = [];
+        }
+        if (version < 6) {
+          if (s.billing && s.billing.terms === undefined) s.billing.terms = DEFAULT_BILLING_TERMS;
         }
         return s;
       },
