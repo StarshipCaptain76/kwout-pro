@@ -281,17 +281,41 @@ async function loadAll() {
   emit();
 
   try {
-    const [profileRes, catRes, custRes, docsRes, expRes, catCatRes] = await Promise.all([
+    const fetchAll = async <T = unknown>(
+      table: "catalog_items" | "customers" | "docs" | "expenses" | "expense_categories",
+    ): Promise<T[]> => {
+      const pageSize = 1000;
+      const rows: T[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const to = from + pageSize - 1;
+        const { data, error } = await supabase
+          .from(table)
+          .select("*")
+          .eq("owner_user_id", uid)
+          .range(from, to);
+        if (error) throw error;
+        const chunk = (data ?? []) as T[];
+        rows.push(...chunk);
+        if (chunk.length < pageSize) break;
+      }
+      return rows;
+    };
+
+    const [profileRes, catData, custData, docsData, expData, catCatData] = await Promise.all([
       supabase.from("company_profile").select("*").eq("owner_user_id", uid).maybeSingle(),
-      supabase.from("catalog_items").select("*").eq("owner_user_id", uid),
-      supabase.from("customers").select("*").eq("owner_user_id", uid),
-      supabase.from("docs").select("*").eq("owner_user_id", uid),
-      supabase.from("expenses").select("*").eq("owner_user_id", uid),
-      supabase.from("expense_categories").select("*").eq("owner_user_id", uid),
+      fetchAll<Record<string, unknown>>("catalog_items"),
+      fetchAll<Record<string, unknown>>("customers"),
+      fetchAll<Record<string, unknown>>("docs"),
+      fetchAll<Record<string, unknown>>("expenses"),
+      fetchAll<Record<string, unknown>>("expense_categories"),
     ]);
-    for (const r of [profileRes, catRes, custRes, docsRes, expRes, catCatRes]) {
-      if (r.error) throw r.error;
-    }
+    if (profileRes.error) throw profileRes.error;
+    const catRes = { data: catData } as { data: Array<Record<string, unknown>> };
+    const custRes = { data: custData } as { data: Array<Record<string, unknown>> };
+    const docsRes = { data: docsData } as { data: Array<Record<string, unknown>> };
+    const expRes = { data: expData } as { data: Array<Record<string, unknown>> };
+    const catCatRes = { data: catCatData } as { data: Array<Record<string, unknown>> };
+
 
     const prev = useStore.getState();
     const profileRow = profileRes.data;
