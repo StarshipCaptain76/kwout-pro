@@ -34,8 +34,25 @@ export const Route = createFileRoute("/expenses")({
 
 function ExpensesPage() {
   const { expenses, billing } = useStore();
+  const canViewAll = useCan("expenses.viewAll");
+  const canAdd = useCan("expenses.addOwn");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [editing, setEditing] = useState<Expense | null>(null);
+
+  if (!canViewAll && !canAdd) {
+    return (
+      <Shell>
+        <h1 className="sr-only">Expenses</h1>
+        <Card className="p-6 max-w-lg mx-auto text-center">
+          <div className="font-display text-2xl mb-2">Access restricted</div>
+          <p className="text-sm text-muted-foreground">
+            Your role doesn't include Expenses access. Ask the workspace owner to enable it in Settings → Staff.
+          </p>
+        </Card>
+      </Shell>
+    );
+  }
+
 
   const monthExpenses = useMemo(() => {
     const start = startOfMonth(month);
