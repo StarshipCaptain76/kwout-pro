@@ -1,42 +1,86 @@
-# Add Legal page (Privacy, Terms, Cookies)
+# Platform admin console (`/admin`)
 
-## New route
-Create `src/routes/legal.tsx` — a single public route rendering three sections with in-page anchors (`#privacy`, `#terms`, `#cookies`) and a sticky/inline sub-nav at the top. Uses the KWOUT landing look & feel (bg `#F5F5F0`, green accent, Bebas display font) so it feels part of the marketing site. Includes `<main>` landmark, proper `head()` with title/description/canonical/og tags, and a "Back to home" link in the header.
+A KWOUT-flavoured version of the neomatrix Admin dashboard, restricted to
+`dawie@polka.co.za` and `julius@polka.co.za` — the two founders. Read-only,
+one page, mobile-friendly, matches the existing app shell.
 
-## Homepage footer
-Edit `src/routes/index.tsx` footer to add three links pointing to `/legal#privacy`, `/legal#terms`, `/legal#cookies`, alongside the existing copyright line.
+## Access control (two layers)
 
-## Content outline
+**Server (source of truth).** New server function `getAdminOverview` in
+`src/lib/admin.functions.ts` uses `requireSupabaseAuth`, reads
+`context.claims.email`, and throws 403 unless it is one of the two allowed
+addresses. All queries then run through dynamically-imported `supabaseAdmin`
+so we can read across every user (bypassing RLS by design — this is the
+platform view). The allowlist lives in one constant at the top of the file.
 
-**Business identity (used across all sections)**
-- KWOUT
-- 38 Geelhout Avenue, Still Bay, WC, South Africa, 6674
-- Contact: (email pulled from existing support address if present; otherwise a `mailto:` placeholder using `support@kwout.co.za` — verify against code before writing)
+**Client (UX only).** Route `src/routes/_authenticated/admin.tsx` uses the
+managed `_authenticated` gate for sign-in, and a `beforeLoad` checks the
+same email allowlist via `supabase.auth.getUser()`; non-allowed users are
+redirected to `/`. Owners see a new "Admin" entry in the app menu; anyone
+else does not.
 
-**Privacy Policy** — what data KWOUT collects (account email, company profile, customer/quote/invoice data the user enters, payment metadata via PayFast), why, retention, user rights (access/delete via contact), third-party processors (Lovable Cloud backend, PayFast for payments), no sale of data, security posture (encrypted in transit, RLS on backend), children's data (not directed at under-18s), contact for privacy requests.
+Emails come straight from `auth.users` (Supabase-managed) — no schema
+change, no role table entry needed.
 
-**Terms & Conditions** — PayFast merchant requirements:
-- Description of service (business stationery SaaS: quotes, invoices, statements, payslips)
-- Pricing: 30-day free trial, then R100/month, billed monthly in ZAR
-- Payment processor: PayFast (Pty) Ltd; card data handled by PayFast, not stored by KWOUT
-- Delivery: digital service, access granted immediately on successful payment
-- Refund/cancellation: **no refunds; cancel anytime to stop future billing; access continues to end of paid period**
-- Acceptable use, account responsibility, termination, limitation of liability, governing law (South Africa), jurisdiction (Western Cape courts)
-- Merchant contact details (name + physical address above)
-- Export control / country restrictions (available to SA customers)
+## Metrics (all derived from existing tables)
 
-**Cookie Policy** — what cookies KWOUT uses:
-- Essential: Supabase auth session cookie, `otm_brand` brand cache cookie (documented in `src/lib/brand-cookie.ts`)
-- No third-party analytics/advertising cookies
-- How to disable (browser settings) and consequence (sign-in won't persist)
+Computed inside `getAdminOverview` with `supabaseAdmin` against
+`auth.users`, `subscriptions`, `workspaces`, `docs`, `expenses`,
+`staff_members`:
 
-## Technical notes
-- Route: `createFileRoute("/legal")` with `head()` setting title "Legal — KWOUT", description, `og:url`, `og:type: website`, canonical `https://kwout.co.za/legal`.
-- Purely presentational — no data fetching, no auth gate.
-- Use `<Link to="/legal" hash="privacy">` style navigation from footer.
-- Anchor sections wrapped in `<section id="privacy">` etc. with `scroll-mt-24` so sticky header doesn't cover headings.
-- Single `<h1>Legal</h1>`, `<h2>` for each section.
+- **Hero KPIs**
+  - MRR — active paying subscriptions × R100
+  - Paying customers — count of `subscriptions.status = 'active'`
+  - Trial users — count with active `trial_started_at` window
+  - Total signups — `auth.users` count
+  - New signups (30 d) — `auth.users.created_at >= now() - 30d`
+  - Trial → Paid conversion % — active ÷ (active + expired trials to date)
+- **Subscription pipeline** — horizontal bar: active / trial / past_due /
+  cancelled / expired / none, from `subscriptions.status` + users with no
+  subscription row.
+- **Acquisition chart** — new signups by month for last 12 months (bar).
+- **Cumulative users** — running total per month (area).
+- **Activity signals** — docs created (30 d), invoices marked paid (30 d),
+  GMV processed through KWOUT invoices (30 d, sum of paid `docs` totals),
+  active workspaces in last 7 d (distinct `owner_user_id` with a doc/expense).
+- **Top workspaces** — top 10 by invoices-issued count with company name
+  (from `company_profile.data->>'name'`) and paid GMV.
+- **Recent signups** — last 15 users: email, created_at, current sub status.
+
+All computation is server-side; the page just renders the returned JSON.
+
+## UI
+
+New route file `src/routes/_authenticated/admin.tsx`, rendered inside the
+existing `<Shell>` so header/nav match the app.
+
+- Uses `useSuspenseQuery` + `queryOptions` (loader prefetches via
+  `context.queryClient.ensureQueryData`) — canonical Query pattern.
+- Charts with `recharts` (already installed).
+- Layout: hero KPI strip → subscription pipeline + activity tiles →
+  acquisition + cumulative charts → top-workspaces table → recent signups.
+- Colour language: primary green accent (`#3FA34D`), muted card surfaces,
+  no new tokens.
+- `head()` sets `noindex` (owner-only page, keep it out of search).
+- Loading + error boundaries per route rules.
+
+## Menu entry
+
+`src/components/app/Shell.tsx` — add an "Admin" link that only renders when
+the current signed-in email is on the allowlist (small `useAdminAccess()`
+hook that calls `supabase.auth.getUser()` and memoises the result).
 
 ## Files
-- New: `src/routes/legal.tsx`
-- Edit: `src/routes/index.tsx` (footer only)
+
+- New: `src/lib/admin.functions.ts` — server function + email allowlist +
+  Zod-validated inputs (revenue window select).
+- New: `src/routes/_authenticated/admin.tsx` — page + client-side allowlist
+  gate + charts.
+- New: `src/hooks/use-admin-access.ts` — small hook powering the menu entry.
+- Edit: `src/components/app/Shell.tsx` — conditional "Admin" nav item.
+
+## Non-goals
+
+- No writes, no impersonation, no destructive actions.
+- No demo-tenant generator (neomatrix-specific; KWOUT doesn't need it).
+- No schema changes and no new tables.

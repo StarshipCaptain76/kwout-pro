@@ -19,6 +19,9 @@ import { listMyWorkspaces, type WorkspaceDTO } from "@/lib/staff.functions";
 import { toast } from "sonner";
 import { readBrandCookie } from "@/lib/brand-cookie";
 import { TrialBanner } from "@/components/app/TrialBanner";
+import { useAdminAccess } from "@/hooks/use-admin-access";
+import { ShieldCheck } from "lucide-react";
+
 
 const NAV_ITEMS = [
   { to: "/", label: "Home", icon: LayoutDashboard, perm: null },
@@ -97,7 +100,9 @@ export function Shell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            <AdminNavLink path={path} />
           </nav>
+
           <div className="ml-auto md:ml-0 flex items-center gap-1">
             <WorkspaceSwitcher />
             <SyncBadge />
@@ -389,3 +394,23 @@ function WorkspaceSwitcher() {
     </DropdownMenu>
   );
 }
+
+function AdminNavLink({ path }: { path: string }) {
+  const { isAdmin } = useAdminAccess();
+  if (!isAdmin) return null;
+  const active = path.startsWith("/admin");
+  return (
+    <Link
+      to="/admin"
+      className={cn(
+        "px-3 py-2 rounded flex items-center gap-2 text-sm font-medium transition-colors",
+        active ? "bg-primary text-primary-foreground" : "hover:bg-white/10",
+      )}
+      title="Platform admin"
+    >
+      <ShieldCheck className="h-4 w-4" />
+      <span>Admin</span>
+    </Link>
+  );
+}
+
