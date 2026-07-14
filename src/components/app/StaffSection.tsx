@@ -232,9 +232,10 @@ function CreateStaffSheet({
 }
 
 function EditStaffSheet({
-  member, onClose, onRefresh,
+  member, canReset, onClose, onRefresh,
 }: {
   member: StaffMember | null;
+  canReset: boolean;
   onClose: () => void;
   onRefresh: () => Promise<void>;
 }) {
