@@ -338,6 +338,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         { status: "past_due", count: pastDue },
         { status: "cancelled", count: cancelled },
         { status: "no_sub", count: noSub },
+        { status: "legacy_free", count: legacyFree },
       ].filter((s) => s.count > 0),
       topWorkspaces,
       recentSignups,
