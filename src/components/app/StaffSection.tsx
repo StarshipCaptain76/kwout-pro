@@ -11,6 +11,7 @@ import { useStore, useIsOwner, type StaffMember } from "@/lib/store";
 import { ACTION_GROUPS, presetFor, type Action, type Permissions, type Role } from "@/lib/permissions";
 import {
   createStaffAccount, updateStaffMember, deleteStaffMember, resetStaffPassword, listStaff,
+  type StaffMemberDTO,
 } from "@/lib/staff.functions";
 import { listStaffCompensation, updateStaffCompensation, type PayType } from "@/lib/payslips.functions";
 import type { TaxStatus } from "@/lib/payroll";
@@ -38,9 +39,10 @@ export function StaffSection() {
   const [editing, setEditing] = useState<StaffMember | null>(null);
   const [creating, setCreating] = useState(false);
   const [justCreated, setJustCreated] = useState<{ email: string; password: string } | null>(null);
+  const [canResetById, setCanResetById] = useState<Record<string, boolean>>({});
 
   const refreshStaffList = useCallback(async () => {
-    const list = await fetchStaff();
+    const list: StaffMemberDTO[] = await fetchStaff();
     setStaffList(
       list.map((r) => ({
         id: r.id,
@@ -52,6 +54,9 @@ export function StaffSection() {
         active: r.active,
       })),
     );
+    const map: Record<string, boolean> = {};
+    for (const r of list) map[r.id] = r.canResetPassword;
+    setCanResetById(map);
   }, [fetchStaff, setStaffList]);
 
   useEffect(() => {
@@ -115,7 +120,12 @@ export function StaffSection() {
         onCreated={(email, password) => setJustCreated({ email, password })}
       />
 
-      <EditStaffSheet member={editing} onClose={() => setEditing(null)} onRefresh={refreshStaffList} />
+      <EditStaffSheet
+        member={editing}
+        canReset={editing ? !!canResetById[editing.id] : false}
+        onClose={() => setEditing(null)}
+        onRefresh={refreshStaffList}
+      />
 
       {justCreated && (
         <CredentialsDialog creds={justCreated} onClose={() => setJustCreated(null)} />
@@ -144,20 +154,32 @@ function CreateStaffSheet({
   };
 
   const save = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      toast.error("Fill in name, email and password"); return;
+    if (!name.trim() || !email.trim()) {
+      toast.error("Fill in name and email"); return;
     }
     setBusy(true);
     try {
-      await createStaff({
-        data: { name: name.trim(), email: email.trim().toLowerCase(), password, role, permissions: presetFor(role) },
+      const result = await createStaff({
+        data: {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password: password || null,
+          role,
+          permissions: presetFor(role),
+        },
       });
       await onRefresh();
-      onCreated(email.trim().toLowerCase(), password);
+      if (result.kind === "created") {
+        onCreated(email.trim().toLowerCase(), password);
+      } else {
+        toast.success("Existing KWOUT user linked to this workspace", {
+          description: "They can sign in with their existing password.",
+        });
+      }
       reset();
       onClose();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not create staff");
+      toast.error(e instanceof Error ? e.message : "Could not add staff");
     } finally {
       setBusy(false);
     }
@@ -177,14 +199,17 @@ function CreateStaffSheet({
           <div>
             <Label>Email</Label>
             <Input className="h-11" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" />
+            <p className="text-xs text-muted-foreground mt-1">
+              If this email already has a KWOUT account, they'll just be added to your business — no password change.
+            </p>
           </div>
           <div>
-            <Label>Temporary password</Label>
+            <Label>Temporary password <span className="text-muted-foreground font-normal">(new accounts only)</span></Label>
             <div className="flex gap-2">
               <Input className="h-11 font-mono" value={password} onChange={(e) => setPassword(e.target.value)} />
               <Button type="button" variant="outline" onClick={() => setPassword(randomPassword())}>New</Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Share with the staff member — they can change it after logging in.</p>
+            <p className="text-xs text-muted-foreground mt-1">Used only when we create a brand-new account for this email.</p>
           </div>
           <div>
             <Label>Role</Label>
@@ -197,7 +222,7 @@ function CreateStaffSheet({
           <div className="flex gap-2 pt-2">
             <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
             <Button onClick={save} disabled={busy} className="flex-1">
-              {busy ? "Creating…" : "Create account"}
+              {busy ? "Adding…" : "Add staff"}
             </Button>
           </div>
         </div>
@@ -207,9 +232,10 @@ function CreateStaffSheet({
 }
 
 function EditStaffSheet({
-  member, onClose, onRefresh,
+  member, canReset, onClose, onRefresh,
 }: {
   member: StaffMember | null;
+  canReset: boolean;
   onClose: () => void;
   onRefresh: () => Promise<void>;
 }) {
@@ -259,7 +285,7 @@ function EditStaffSheet({
   };
 
   const remove = async () => {
-    if (!confirm(`Delete ${draft.name || draft.email}? Their login will be removed.`)) return;
+    if (!confirm(`Remove ${draft.name || draft.email} from this workspace? Their KWOUT account stays active — this only revokes their access here.`)) return;
     setBusy(true);
     try {
       await deleteStaff({ data: { id: draft.id } });
@@ -347,18 +373,24 @@ function EditStaffSheet({
           <CompensationSection staffId={draft.id} />
 
 
-          <div className="border rounded-md p-3">
-            <div className="text-sm font-semibold mb-2 flex items-center gap-1"><KeyRound className="h-4 w-4" /> Reset password</div>
-            <div className="flex gap-2">
-              <Input className="h-11 font-mono" placeholder="new password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
-              <Button type="button" variant="outline" onClick={() => setNewPass(randomPassword())}>Gen</Button>
-              <Button onClick={doResetPass} disabled={busy}>Set</Button>
+          {canReset ? (
+            <div className="border rounded-md p-3">
+              <div className="text-sm font-semibold mb-2 flex items-center gap-1"><KeyRound className="h-4 w-4" /> Reset password</div>
+              <div className="flex gap-2">
+                <Input className="h-11 font-mono" placeholder="new password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
+                <Button type="button" variant="outline" onClick={() => setNewPass(randomPassword())}>Gen</Button>
+                <Button onClick={doResetPass} disabled={busy}>Set</Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="border rounded-md p-3 text-xs text-muted-foreground">
+              This user owns or works for other businesses on KWOUT — you can't change their password. Ask them to use "Forgot password" on the sign-in page.
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             <Button variant="ghost" className="text-destructive" onClick={remove} disabled={busy}>
-              <Trash2 className="h-4 w-4 mr-1" /> Delete
+              <Trash2 className="h-4 w-4 mr-1" /> Remove
             </Button>
             <div className="flex-1" />
             <Button variant="secondary" onClick={onClose}>Cancel</Button>

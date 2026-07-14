@@ -14,7 +14,7 @@ import {
   type Density,
   type StaffMember,
 } from "./store";
-import { resolveWorkspace, listStaff } from "./staff.functions";
+import { resolveWorkspace, listStaff, setActiveWorkspace } from "./staff.functions";
 import { buildBrandCache, writeBrandCookie, clearBrandCookie } from "./brand-cookie";
 
 type Status = "idle" | "loading" | "syncing" | "synced" | "error";
@@ -414,6 +414,7 @@ async function resolveAndLoad() {
   try {
     const info = await resolveWorkspace();
     state.workspaceOwnerId = info.workspaceOwnerId;
+    useStore.getState().setCurrentWorkspaceOwnerId(info.workspaceOwnerId);
     const me: StaffMember | null = info.me
       ? {
           id: info.me.id,
@@ -429,6 +430,7 @@ async function resolveAndLoad() {
   } catch (e) {
     console.error("[sync resolveWorkspace]", e);
     state.workspaceOwnerId = state.userId; // fall back to own workspace
+    useStore.getState().setCurrentWorkspaceOwnerId(state.userId);
     useStore.getState().setCurrentUser(state.userId, null);
   }
 
@@ -472,6 +474,21 @@ export async function refreshStaff() {
   }
 }
 
+export async function switchWorkspace(workspaceOwnerId: string) {
+  if (!state.userId) return;
+  await setActiveWorkspace({ data: { workspaceOwnerId } });
+  // Wipe in-memory data from the old workspace before hydrating the new one,
+  // otherwise the store briefly shows a mix of both workspaces' rows.
+  suppressPush = true;
+  try {
+    useStore.getState().resetToDefaults();
+  } finally {
+    suppressPush = false;
+  }
+  state.workspaceOwnerId = null;
+  await resolveAndLoad();
+}
+
 let started = false;
 export async function initSync() {
   if (started || typeof window === "undefined") return;
@@ -486,6 +503,7 @@ export async function initSync() {
       state.workspaceOwnerId = null;
       useStore.getState().resetToDefaults();
       useStore.getState().setCurrentUser(null, null);
+      useStore.getState().setCurrentWorkspaceOwnerId(null);
       useStore.getState().setStaffList([]);
       clearBrandCookie();
       setPersistKey(null);
