@@ -1,18 +1,14 @@
-## Add Terms field to Billing settings and documents
+## Default Terms & Conditions for all owners
 
-**Settings > Billing**
-- Add a new "Terms" textarea field (multi-line) alongside existing billing fields in `src/routes/settings.tsx`.
-- Persist as `terms?: string` on `BillingSettings` in `src/lib/store.ts` (with a sensible default like empty string, and migration guard so existing users don't break).
+Add a shared constant `DEFAULT_BILLING_TERMS` in `src/lib/store.ts`:
 
-**Quote / Invoice document view (`src/routes/doc.$id.tsx`)**
-- Render a "Terms" section above the existing "Notes" section, showing `billing.terms` when non-empty. Same styling/typography as Notes for consistency.
+> "Balances exceeding R1000.00 requires a 50% deposit before work starts. When making any payment please use the Quote/Invoice number as payment reference"
 
-**PDF output (`src/lib/pdf.ts`)**
-- Insert a "Terms" block above the "Notes" block in the generated PDF, only when terms text is present.
+Use it as the fallback wherever billing terms are read, so every existing and new owner sees it without a migration:
 
-**Share message (`src/lib/share-message.ts`)**
-- Out of scope — WhatsApp/email share text stays as-is unless you want terms appended too.
+- **`src/lib/store.ts`** — export `DEFAULT_BILLING_TERMS`; seed it on the initial `billing.terms` in the default state and in `resetToDefaults()`.
+- **`src/routes/settings.tsx`** — Terms textarea shows `s.billing.terms ?? DEFAULT_BILLING_TERMS` so the field is pre-filled; owners can still edit or blank it.
+- **`src/routes/doc.$id.tsx`** — render `billing.terms ?? DEFAULT_BILLING_TERMS` above Notes (only hide the block if the owner has explicitly cleared it to empty string).
+- **`src/lib/pdf.ts`** — same fallback for the Terms block above Notes.
 
-No database, permissions, or business-logic changes. Terms are a single global value stored in billing settings and applied to every quote/invoice.
-
-Confirm: should the Terms text also be appended to the WhatsApp share message, or PDF + on-screen view only?
+No DB changes; the field remains stored on the client-side `billing` blob and syncs through `company_profile.billing` as today. Owners who have already customised terms keep their value.
