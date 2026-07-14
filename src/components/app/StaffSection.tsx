@@ -50,6 +50,7 @@ export function StaffSection() {
         name: r.name,
         email: r.email,
         role: r.role,
+        title: r.title,
         permissions: r.permissions ?? {},
         active: r.active,
       })),
@@ -106,7 +107,7 @@ export function StaffSection() {
               <div className="text-xs text-muted-foreground truncate">{m.email}</div>
             </div>
             <span className="text-[10px] uppercase font-bold px-2 py-1 rounded bg-secondary text-secondary-foreground">
-              {ROLE_LABEL[m.role]}
+              {m.title?.trim() || ROLE_LABEL[m.role]}
             </span>
             {!m.active && <span className="text-[10px] text-red-600 ml-2">disabled</span>}
           </button>
