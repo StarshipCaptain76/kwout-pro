@@ -394,7 +394,12 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label>Password</Label>
-                  <Input ref={passwordRef} type="password" className="h-11" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+                  <div className="relative">
+                    <Input ref={passwordRef} type={showPassword ? "text" : "password"} className="h-11 pr-10" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} tabIndex={-1}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" disabled={busy} className="h-11">
                   {busy ? "Signing in…" : "Sign in"}
