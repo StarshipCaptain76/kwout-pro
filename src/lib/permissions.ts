@@ -97,7 +97,19 @@ export const ACTION_GROUPS: Array<{
       { key: "planner.edit", label: "Edit schedule" },
     ],
   },
+  {
+    title: "Settings sections",
+    actions: [
+      { key: "settings.company", label: "Company profile" },
+      { key: "settings.banking", label: "Banking details" },
+      { key: "settings.billing", label: "Billing / VAT / numbering" },
+      { key: "settings.appearance", label: "Appearance / theme" },
+      { key: "settings.catalog", label: "Catalog editor" },
+      { key: "settings.expenses", label: "Expense categories" },
+    ],
+  },
 ];
+
 
 // Preset defaults per role.
 const PRESETS: Record<Role, Permissions> = {
