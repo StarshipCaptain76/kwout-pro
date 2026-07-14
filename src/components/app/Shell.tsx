@@ -3,13 +3,18 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Calendar, BarChart3, Settings,
-  Cloud, CloudOff, Plus, FileText, Receipt, Wallet, LogIn, LogOut, User,
+  Cloud, CloudOff, Plus, FileText, Receipt, Wallet, LogIn, LogOut, User, Building2, ChevronDown, Check,
 } from "lucide-react";
-import { initSync, subscribeSync } from "@/lib/sync";
+import { initSync, subscribeSync, switchWorkspace } from "@/lib/sync";
 import { useStore, newId, type Doc } from "@/lib/store";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { listMyWorkspaces, type WorkspaceDTO } from "@/lib/staff.functions";
 import { toast } from "sonner";
 import { readBrandCookie } from "@/lib/brand-cookie";
 import { TrialBanner } from "@/components/app/TrialBanner";
