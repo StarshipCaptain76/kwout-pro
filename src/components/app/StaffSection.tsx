@@ -39,9 +39,10 @@ export function StaffSection() {
   const [editing, setEditing] = useState<StaffMember | null>(null);
   const [creating, setCreating] = useState(false);
   const [justCreated, setJustCreated] = useState<{ email: string; password: string } | null>(null);
+  const [canResetById, setCanResetById] = useState<Record<string, boolean>>({});
 
   const refreshStaffList = useCallback(async () => {
-    const list = await fetchStaff();
+    const list: StaffMemberDTO[] = await fetchStaff();
     setStaffList(
       list.map((r) => ({
         id: r.id,
@@ -53,6 +54,9 @@ export function StaffSection() {
         active: r.active,
       })),
     );
+    const map: Record<string, boolean> = {};
+    for (const r of list) map[r.id] = r.canResetPassword;
+    setCanResetById(map);
   }, [fetchStaff, setStaffList]);
 
   useEffect(() => {
