@@ -292,6 +292,57 @@ function DocPage() {
             <Label>Notes</Label>
             <Textarea value={doc.notes ?? ""} onChange={(e) => update({ notes: e.target.value })} placeholder="Terms, thanks, etc." />
           </Card>
+
+          {(company.enabledModules ?? [])
+            .filter((k) => k !== "location") // location fields live inside the Customer card
+            .map((k) => {
+              const m = MODULES[k];
+              if (!m) return null;
+              const data = (doc.moduleData?.[k] as Record<string, unknown> | undefined) ?? {};
+              const setField = (fieldKey: string, value: unknown) => {
+                const nextForModule = { ...data, [fieldKey]: value };
+                const nextModuleData = { ...(doc.moduleData ?? {}), [k]: nextForModule };
+                upsertDoc({ ...doc, moduleData: nextModuleData });
+              };
+              return (
+                <Card key={k} className="p-4">
+                  <h2 className="font-semibold mb-3 flex items-center gap-2">
+                    <span aria-hidden>{m.icon}</span>
+                    <span>{m.label}</span>
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {m.fields.map((f) => {
+                      const raw = data[f.key];
+                      const value = raw === undefined || raw === null ? "" : String(raw);
+                      const wide = f.type === "textarea";
+                      return (
+                        <div key={f.key} className={wide ? "col-span-2" : ""}>
+                          <Label>{f.label}{f.suffix ? ` (${f.suffix})` : ""}</Label>
+                          {f.type === "textarea" ? (
+                            <Textarea
+                              value={value}
+                              placeholder={f.placeholder}
+                              onChange={(e) => setField(f.key, e.target.value)}
+                            />
+                          ) : (
+                            <Input
+                              className="h-11"
+                              type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
+                              value={value}
+                              placeholder={f.placeholder}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setField(f.key, f.type === "number" ? (v === "" ? undefined : Number(v)) : v);
+                              }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              );
+            })}
         </div>
 
         <div className="space-y-4">
