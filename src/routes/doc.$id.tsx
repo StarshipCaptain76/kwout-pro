@@ -12,6 +12,7 @@ import { useStore, newId, docTotals, fmtMoney, type LineItem, type PayMethod } f
 import { downloadPdf } from "@/lib/pdf";
 import { Trash2, Plus, MessageCircle, Mail, Download, Check, ArrowLeft, Truck, Calendar as CalendarIcon, Route as RouteIcon, Recycle } from "lucide-react";
 import { useMemo, useState } from "react";
+import { MODULES, type ModuleKey } from "@/lib/modules";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
