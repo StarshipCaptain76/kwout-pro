@@ -19,6 +19,9 @@ import { listMyWorkspaces, type WorkspaceDTO } from "@/lib/staff.functions";
 import { toast } from "sonner";
 import { readBrandCookie } from "@/lib/brand-cookie";
 import { TrialBanner } from "@/components/app/TrialBanner";
+import { useAdminAccess } from "@/hooks/use-admin-access";
+import { ShieldCheck } from "lucide-react";
+
 
 const NAV_ITEMS = [
   { to: "/", label: "Home", icon: LayoutDashboard, perm: null },
@@ -97,7 +100,9 @@ export function Shell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            <AdminNavLink path={path} />
           </nav>
+
           <div className="ml-auto md:ml-0 flex items-center gap-1">
             <WorkspaceSwitcher />
             <SyncBadge />
