@@ -4,6 +4,11 @@ import { fetchAllRows } from "@/lib/pagination";
 
 
 const ADMIN_EMAILS = new Set(["dawie@polka.co.za", "julius@polka.co.za"]);
+const LEGACY_FREE_EMAILS = new Set([
+  "dawie@polka.co.za",
+  "julius@polka.co.za",
+  "nadia.jvr1668@gmail.com",
+]);
 const MONTHLY_PRICE_ZAR = 100;
 const TRIAL_DAYS = 30;
 const MS_PER_DAY = 86_400_000;
@@ -114,13 +119,25 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const subByUser = new Map<string, (typeof subs)[number]>();
     for (const s of subs) subByUser.set(s.user_id, s);
 
+    const legacyUserIds = new Set<string>();
+    for (const u of allUsers) {
+      if (LEGACY_FREE_EMAILS.has((u.email ?? "").toLowerCase())) legacyUserIds.add(u.id);
+    }
+
     const nowMs = now.getTime();
     let payingUsers = 0;
     let trialActive = 0;
     let trialExpired = 0;
     let cancelled = 0;
     let pastDue = 0;
+    let legacyFree = 0;
+    const legacySubUserIds = new Set<string>();
     for (const s of subs) {
+      if (legacyUserIds.has(s.user_id)) {
+        legacyFree++;
+        legacySubUserIds.add(s.user_id);
+        continue;
+      }
       const status = s.status ?? "trial";
       if (status === "active") payingUsers++;
       else if (status === "cancelled") cancelled++;
@@ -132,10 +149,15 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         else trialActive++;
       }
     }
-    const noSub = Math.max(0, allUsers.length - subs.length);
+    // Legacy users with no subscription row are still legacy_free, not "no_sub".
+    for (const uid of legacyUserIds) {
+      if (!legacySubUserIds.has(uid)) legacyFree++;
+    }
+    const noSub = Math.max(0, allUsers.length - subs.length - (legacyUserIds.size - legacySubUserIds.size));
     const trialConvBase = payingUsers + trialExpired;
     const trialConversionPct = trialConvBase > 0 ? Math.round((payingUsers / trialConvBase) * 100) : 0;
     const mrr = payingUsers * MONTHLY_PRICE_ZAR;
+
 
     // --- Users by month (last 12) ---
     const usersByMonth = emptyMonths(12);
@@ -262,15 +284,19 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, 15)
       .map((u) => {
-        const s = subByUser.get(u.id);
         let subStatus = "none";
-        if (s) {
-          if (s.status === "trial") {
-            const start = s.trial_started_at ? new Date(s.trial_started_at).getTime() : nowMs;
-            const daysElapsed = Math.floor((nowMs - start) / MS_PER_DAY);
-            subStatus = daysElapsed >= TRIAL_DAYS ? "trial_expired" : "trial";
-          } else {
-            subStatus = s.status ?? "trial";
+        if (legacyUserIds.has(u.id)) {
+          subStatus = "legacy_free";
+        } else {
+          const s = subByUser.get(u.id);
+          if (s) {
+            if (s.status === "trial") {
+              const start = s.trial_started_at ? new Date(s.trial_started_at).getTime() : nowMs;
+              const daysElapsed = Math.floor((nowMs - start) / MS_PER_DAY);
+              subStatus = daysElapsed >= TRIAL_DAYS ? "trial_expired" : "trial";
+            } else {
+              subStatus = s.status ?? "trial";
+            }
           }
         }
         return {
@@ -312,6 +338,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         { status: "past_due", count: pastDue },
         { status: "cancelled", count: cancelled },
         { status: "no_sub", count: noSub },
+        { status: "legacy_free", count: legacyFree },
       ].filter((s) => s.count > 0),
       topWorkspaces,
       recentSignups,
