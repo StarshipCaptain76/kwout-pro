@@ -64,6 +64,7 @@ function AuthPage() {
   const [signUpProblem, setSignUpProblem] = useState<SignUpProblem>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const passwordRef = useRef<HTMLInputElement | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useLayoutEffect(() => {
     if (typeof document === "undefined") return;
