@@ -48,7 +48,7 @@ function IndexRoute() {
 
 /* -------------------- Landing (signed out) -------------------- */
 
-const INCLUDED = ["Quotes", "Invoices", "Statements", "Payslips", "Expenses", "Reports"];
+const INCLUDED = ["Quotes", "Invoices", "Statements", "Reports", "Expenses"];
 
 function Landing() {
   const navigate = useNavigate();
