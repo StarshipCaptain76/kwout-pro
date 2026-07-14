@@ -503,6 +503,7 @@ export async function initSync() {
       state.workspaceOwnerId = null;
       useStore.getState().resetToDefaults();
       useStore.getState().setCurrentUser(null, null);
+      useStore.getState().setCurrentWorkspaceOwnerId(null);
       useStore.getState().setStaffList([]);
       clearBrandCookie();
       setPersistKey(null);
