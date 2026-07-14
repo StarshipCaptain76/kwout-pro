@@ -300,8 +300,10 @@ export const useStore = create<State>()(
       staff: [],
       currentUserId: null,
       currentStaff: null,
+      currentWorkspaceOwnerId: null,
       setStaffList: (s) => set({ staff: s }),
       setCurrentUser: (userId, currentStaff) => set({ currentUserId: userId, currentStaff }),
+      setCurrentWorkspaceOwnerId: (id) => set({ currentWorkspaceOwnerId: id }),
       upsertDoc: (d) =>
         {
           set((s) => ({
