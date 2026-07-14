@@ -456,18 +456,17 @@ function AgendaJob({ doc, currency, vat }: { doc: Doc; currency: string; vat: nu
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const t = docTotals(doc, vat);
-  const c = MATERIALS[jobMaterialCategory(doc)];
   const open = usePlannerActions();
   const lp = useLongPress(() => open(doc));
   return (
     <div ref={setNodeRef} style={style} className={cn(
-      "flex items-stretch rounded-lg border-l-4 bg-background border overflow-hidden",
-      c.border, isDragging && "opacity-50",
+      "flex items-stretch rounded-lg bg-background border overflow-hidden",
+      isDragging && "opacity-50",
     )} {...lp}>
       <button {...listeners} {...attributes} className="px-2 flex items-center text-muted-foreground touch-none cursor-grab active:cursor-grabbing">
         <GripVertical className="h-4 w-4" />
       </button>
-      <Link to="/doc/$id" params={{ id: doc.id }} className={cn("flex-1 flex items-center justify-between py-2 pr-3 gap-2", c.card)}>
+      <Link to="/doc/$id" params={{ id: doc.id }} className="flex-1 flex items-center justify-between py-2 pr-3 gap-2">
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-sm truncate">{doc.customer.name || "—"}</div>
           <div className="text-[11px] text-muted-foreground truncate">{doc.number} · {doc.fromAddress || "no address"}</div>
@@ -481,6 +480,7 @@ function AgendaJob({ doc, currency, vat }: { doc: Doc; currency: string; vat: nu
     </div>
   );
 }
+
 
 function DayCol({ date, iso, docs, currency, vat }: { date: Date; iso: string; docs: Doc[]; currency: string; vat: number }) {
 
