@@ -228,6 +228,7 @@ function Landing() {
 function Dashboard() {
   const { docs, billing, upsertDoc, company } = useStore();
   const canSeeAll = useCan("reports.viewAll");
+  const isOwner = useIsOwner();
   const canSeeDocs = useCan("jobs.viewAll");
   const canPickType = useCan("settings.modules");
   const needsBusinessType = canPickType && (!company.businessType || company.businessType === "other");
