@@ -44,6 +44,11 @@ type SignInProblem =
   | { kind: "unverified"; email: string }
   | null;
 
+type SignUpProblem =
+  | { kind: "weak-password" }
+  | { kind: "generic"; message: string }
+  | null;
+
 function AuthPage() {
   const navigate = useNavigate();
   const { tab } = Route.useSearch();
