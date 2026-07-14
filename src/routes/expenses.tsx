@@ -173,14 +173,17 @@ function ExpensesPage() {
       )}
 
       {/* Floating Add button (mobile) */}
-      <button
-        onClick={newExpense}
-        aria-label="Add expense"
-        className="sm:hidden fixed right-4 z-30 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95"
-        style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
-      >
-        <Plus className="h-7 w-7" />
-      </button>
+      {canAdd && (
+        <button
+          onClick={newExpense}
+          aria-label="Add expense"
+          className="sm:hidden fixed right-4 z-30 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95"
+          style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+        >
+          <Plus className="h-7 w-7" />
+        </button>
+      )}
+
 
       <ExpenseSheet expense={editing} onClose={() => setEditing(null)} />
     </Shell>
