@@ -14,7 +14,7 @@ import {
   type Density,
   type StaffMember,
 } from "./store";
-import { resolveWorkspace, listStaff } from "./staff.functions";
+import { resolveWorkspace, listStaff, setActiveWorkspace } from "./staff.functions";
 import { buildBrandCache, writeBrandCookie, clearBrandCookie } from "./brand-cookie";
 
 type Status = "idle" | "loading" | "syncing" | "synced" | "error";
