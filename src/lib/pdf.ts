@@ -188,11 +188,24 @@ export async function generatePdf(
   ].filter(Boolean);
   b.forEach((l, i) => pdf.text(l, M + 3 + (i % 2) * 90, y + 13 + Math.floor(i / 2) * 5));
 
+  let extraY = y + 46;
+  const terms = (billing.terms ?? "").trim();
+  if (terms) {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.text("TERMS & CONDITIONS", M, extraY);
+    pdf.setFont("helvetica", "normal");
+    const wrapped = pdf.splitTextToSize(terms, W - 2 * M);
+    pdf.text(wrapped, M, extraY + 4);
+    extraY += 4 + wrapped.length * 3.5 + 3;
+  }
+
   if (doc.notes) {
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(8);
-    pdf.text(doc.notes, M, y + 46);
+    pdf.text(doc.notes, M, extraY);
   }
+
 
   pdf.setFillColor(...PRIMARY);
   pdf.rect(0, 293, W, 4, "F");

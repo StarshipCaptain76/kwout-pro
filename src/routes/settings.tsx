@@ -281,6 +281,15 @@ function SettingsPage() {
                 <TumblerField label="Next quote #" v={s.billing.nextQuoteNo} on={(v) => s.setBilling({ ...s.billing, nextQuoteNo: v })} step={1} />
                 <TumblerField label="Next invoice #" v={s.billing.nextInvoiceNo} on={(v) => s.setBilling({ ...s.billing, nextInvoiceNo: v })} step={1} />
               </div>
+              <div>
+                <Label>Terms &amp; conditions</Label>
+                <textarea
+                  className="w-full min-h-24 rounded-md border bg-background px-3 py-2 text-sm"
+                  value={s.billing.terms ?? ""}
+                  onChange={(e) => s.setBilling({ ...s.billing, terms: e.target.value })}
+                  placeholder="Payment terms, warranty, etc. Shown above Notes on quotes & invoices."
+                />
+              </div>
               <Button onClick={() => toast.success("Saved")} className="w-fit">Save</Button>
             </Card>
           </div>

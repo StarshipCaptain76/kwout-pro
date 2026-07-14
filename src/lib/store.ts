@@ -162,6 +162,7 @@ export interface BillingSettings {
   nextQuoteNo: number;
   nextInvoiceNo: number;
   currency: string;
+  terms?: string;
   primaryUnit?: Unit;
   customUnits?: string[];
 }
