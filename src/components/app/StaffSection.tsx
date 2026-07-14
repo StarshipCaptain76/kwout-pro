@@ -288,6 +288,7 @@ function EditStaffSheet({
           id: draft.id,
           name: draft.name,
           role: draft.role,
+          title: draft.title ?? null,
           permissions: draft.permissions,
           active: draft.active,
         },
@@ -345,7 +346,7 @@ function EditStaffSheet({
               <Input className="h-11" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             </div>
             <div>
-              <Label>Role</Label>
+              <Label>Role preset</Label>
               <select
                 className="h-11 w-full border rounded-md px-2 bg-background"
                 value={draft.role}
@@ -356,6 +357,19 @@ function EditStaffSheet({
                 <option value="owner">Owner</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <Label>Job title <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              className="h-11"
+              value={draft.title ?? ""}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              placeholder="e.g. Lead Technician, Office Admin, Site Foreman"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Custom label shown in lists. Tick the permissions below to define what they can actually do.
+            </p>
           </div>
 
           <label className="flex items-center gap-2 text-sm">
