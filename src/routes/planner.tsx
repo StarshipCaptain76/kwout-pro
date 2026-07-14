@@ -545,13 +545,12 @@ function MonthCell({ date, iso, inMonth, docs }: { date: Date; iso: string; inMo
 function MiniJob({ doc }: { doc: Doc }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
-  const c = MATERIALS[jobMaterialCategory(doc)];
   const open = usePlannerActions();
   const lp = useLongPress(() => open(doc));
   return (
     <Link to="/doc/$id" params={{ id: doc.id }}>
       <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...lp}
-        className={cn("rounded px-1 py-0.5 truncate border-l-2 cursor-grab text-[10px] flex items-center gap-1", c.card, c.border, isDragging && "opacity-50")}
+        className={cn("rounded px-1 py-0.5 truncate cursor-grab text-[10px] flex items-center gap-1 bg-secondary/60", isDragging && "opacity-50")}
         title={`${doc.customer.name || "—"} · ${doc.number} · ${jobSummary(doc)}`}>
         <PaymentIndicator doc={doc} />
         {doc.customer.name || doc.number}
@@ -565,12 +564,11 @@ function JobCard({ doc, currency, vat }: { doc: Doc; currency: string; vat: numb
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const t = docTotals(doc, vat);
-  const c = MATERIALS[jobMaterialCategory(doc)];
   const open = usePlannerActions();
   const lp = useLongPress(() => open(doc));
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...lp}
-      className={cn("rounded p-2 text-xs cursor-grab border-l-4", c.card, c.border, isDragging && "opacity-50")}>
+      className={cn("rounded p-2 text-xs cursor-grab border bg-background", isDragging && "opacity-50")}>
       <div className="font-semibold truncate">{doc.customer.name || "—"}</div>
       <div className="opacity-80 truncate">{doc.fromAddress || "no address"}</div>
       <div className="opacity-80 truncate">{jobSummary(doc)}</div>
@@ -582,6 +580,7 @@ function JobCard({ doc, currency, vat }: { doc: Doc; currency: string; vat: numb
     </div>
   );
 }
+
 
 
 function DropZone({ id, children, className }: { id: string; children: React.ReactNode; className?: string }) {
