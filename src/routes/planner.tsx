@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useStore, docTotals, fmtMoney, type Doc, type PayMethod } from "@/lib/store";
+import { useStore, docTotals, fmtMoney, useCan, type Doc, type PayMethod } from "@/lib/store";
 import {
   addDays, addMonths, endOfMonth, endOfWeek, format, isSameMonth, isToday, isTomorrow,
   startOfMonth, startOfWeek,
