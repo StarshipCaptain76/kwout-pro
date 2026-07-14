@@ -175,5 +175,9 @@ export function effective(role: Role, overrides?: Permissions | null): Permissio
 
 export function can(role: Role | null | undefined, overrides: Permissions | null | undefined, action: Action): boolean {
   if (!role) return true; // no staff record yet ⇒ treat as owner of own workspace
-  return !!effective(role, overrides)[action];
+  const eff = effective(role, overrides);
+  // settings.view is derived from any sub-section being granted (or the role being owner).
+  if (action === "settings.view") return role === "owner" || anySettingsGranted(eff);
+  return !!eff[action];
 }
+
