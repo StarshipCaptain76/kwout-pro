@@ -146,7 +146,7 @@ function ExpensesPage() {
                     {e.receiptImage ? (
                       <img
                         src={e.receiptImage}
-                        alt=""
+                        alt="Business expense receipt"
                         className="h-12 w-12 rounded object-cover border shrink-0"
                       />
                     ) : (
