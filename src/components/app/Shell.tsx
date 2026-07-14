@@ -29,9 +29,25 @@ const NAV_ITEMS = [
 ] as const;
 
 
+function useVisibleNav() {
+  const canPlanner = useCan("planner.view");
+  const canExpenses = useCan("expenses.addOwn");
+  const canResults = useCan("reports.viewOwn");
+  const canSettings = useCan("settings.view");
+  const allowed: Record<string, boolean> = {
+    "/": true,
+    "/planner": canPlanner,
+    "/expenses": canExpenses,
+    "/results": canResults,
+    "/settings": canSettings,
+  };
+  return NAV_ITEMS.filter((n) => allowed[n.to]);
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const company = useStore((s) => s.company);
+  const visibleNav = useVisibleNav();
 
   // Read the cookie only after hydration to avoid SSR/client mismatch.
   const [cookieBrand, setCookieBrand] = useState<{ name?: string; logo?: string } | null>(null);
@@ -39,6 +55,7 @@ export function Shell({ children }: { children: ReactNode }) {
     const b = readBrandCookie();
     if (b) setCookieBrand({ name: b.n, logo: b.l });
   }, []);
+
 
   const name = company.name || cookieBrand?.name || "";
   const logo = company.logo || cookieBrand?.logo || "";
