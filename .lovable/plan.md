@@ -1,30 +1,58 @@
-## What's happening
+## The problem
 
-The signup request IS reaching the server and returning an error — it's just not surfacing visibly. From the network log:
+When an owner tries to add a staff member whose email is already registered (either they have their own KWOUT account, or work for another business on KWOUT), the create-staff flow fails: `supabaseAdmin.auth.admin.createUser` errors with "already registered" and no staff row is created.
 
-```
-POST /_serverFn/...  (sendSignupEmail)
-Response: { error: "Password is known to be weak and easy to guess, please choose a different one." }
-```
+Related issues in the same code path:
+- `deleteStaffMember` deletes the underlying auth user. With `staff_members.user_id ON DELETE CASCADE`, removing someone from Business A also destroys their own KWOUT account and every other workspace they belong to.
+- `resolveWorkspace` picks the oldest active staff row, so a user in multiple workspaces has no way to switch.
+- `resetStaffPassword` lets an owner overwrite the password of a user who owns their own account or works for another business.
 
-The password `Dawie@1976` is being rejected by Supabase's HIBP (Have I Been Pwned) leaked-password check, which is enabled on this project. The Supabase auth log confirms it: `POST /admin/generate_link → 422`.
-
-Why the user perceives "nothing happens":
-1. The signup handler throws, `signUp()`'s catch runs `toast.error(...)` — but the toast is easy to miss, and there's no inline error on the form.
-2. No console log because it's a handled rejection (toast only).
-3. No email because the user was never created (generate_link failed at 422).
+The schema already supports the multi-workspace case: `staff_members` is unique on `(workspace_owner_id, user_id)`, so one user can hold rows in many workspaces.
 
 ## Fix
 
-Frontend-only change in `src/routes/auth.tsx`:
+### 1. Add-by-email that reuses existing users (`src/lib/staff.functions.ts`)
 
-1. Add a `signUpProblem` state (similar to existing `signInProblem`) and render an inline `<Alert variant="destructive">` above the signup form when set.
-2. In `signUp()`'s catch, detect weak/pwned password messages (`"weak"`, `"easy to guess"`, `"pwned"`, `"compromised"`) and set a specific `{ kind: "weak-password" }` problem with helpful copy ("This password has appeared in known data breaches. Please choose a different one — try a longer passphrase or add unique words."). For other errors, set `{ kind: "generic", message }`.
-3. Clear `signUpProblem` on input change / tab switch.
-4. Add a small helper hint under the password field on the signup tab: "Avoid common passwords; passphrases work best."
+Rework `createStaffAccount` into an "add staff" flow:
 
-No backend changes — HIBP protection stays on (it's a good security default).
+- Look up the email via `supabaseAdmin.auth.admin.listUsers` (paginated filter). Two branches:
+  - **Existing user**: skip user creation, do NOT touch their password. Insert the staff_members row with their existing `user_id`. If a row for `(workspace_owner_id, user_id)` already exists, surface "already a staff member of this workspace".
+  - **New user**: create with `email_confirm: true` and the provided password (current behavior).
+- Return a discriminated result `{ kind: "created", tempPassword } | { kind: "linked" }` so the UI can show the right confirmation.
 
-## Files
+Password field on the add form becomes optional — required only when the email is new. Simpler UX: try to link first; if the API reports "new user", prompt for a password inline.
 
-- `src/routes/auth.tsx` — add inline signup error alert + weak-password detection.
+### 2. Removing a staff member unlinks — never deletes the auth account
+
+Rewrite `deleteStaffMember` to `DELETE FROM staff_members WHERE id = $1 AND workspace_owner_id = caller` and delete the matching `user_roles` row scoped to that workspace. The auth user is never touched. Also remove/clean up any `user_roles` row where `workspace_owner_id` matches.
+
+### 3. Owner can't reset another owner's password
+
+`resetStaffPassword` should only work when the target staff row was originally provisioned by this workspace and the user isn't the owner of another workspace or already using their own account. Safest and simplest: only allow reset when the target user's email is not confirmed by another means and they have exactly one staff row (this workspace). Otherwise return an error telling the owner to ask the user to use "Forgot password" themselves. In the UI, hide the reset button in this case.
+
+### 4. Workspace switching
+
+- Add `active_workspace_id uuid` to a new `user_preferences` table (or reuse an existing lightweight table if one exists) keyed by `user_id`, with RLS `user_id = auth.uid()`.
+- New server fn `setActiveWorkspace({ workspaceOwnerId })` — validates the caller has an active staff row in that workspace, then upserts the preference.
+- `resolveWorkspace` uses the preference if set and still valid; otherwise falls back to the oldest active row (current behavior).
+- New server fn `listMyWorkspaces()` returning `{ workspaceOwnerId, businessName, role }[]` for every active staff row.
+- UI: a small workspace switcher in the app shell header (dropdown), visible only when the user has more than one workspace. Selecting a workspace calls `setActiveWorkspace` then invalidates queries / reloads.
+
+### 5. UI updates
+
+- `StaffSection.tsx` (add-staff sheet): make password optional; label the primary button "Add staff"; after submit, show either "Account created — share this temporary password" (new) or "Existing KWOUT user linked to this workspace" (linked).
+- Hide the key/reset-password button on rows where reset isn't allowed (server returns a small `canResetPassword` flag on each staff row via `listStaff`).
+- Add the workspace switcher control in `src/components/app/Shell.tsx`.
+
+## Files touched
+
+- `src/lib/staff.functions.ts` — rewrite create/delete/reset, add `listMyWorkspaces`, `setActiveWorkspace`, `canResetPassword` on `listStaff`.
+- `src/components/app/StaffSection.tsx` — optional-password form, updated result copy, hide reset when disallowed.
+- `src/components/app/Shell.tsx` — workspace switcher.
+- New migration — `user_preferences` table (or equivalent) with RLS + grants; no destructive schema changes.
+
+## Out of scope
+
+- Sending an invite email to new staff users (still shows the temp password inline, current behavior).
+- Cross-workspace notifications.
+- Per-workspace role admin UI beyond what already exists.
