@@ -126,6 +126,7 @@ function PlannerPage() {
   const unscheduled = jobs.filter((d) => !d.scheduledDate && d.status === "accepted");
 
   const onDragEnd = (e: DragEndEvent) => {
+    if (!canEdit) return;
     const id = String(e.active.id);
     const overId = e.over?.id ? String(e.over.id) : null;
     if (!overId) return;
@@ -134,6 +135,7 @@ function PlannerPage() {
     if (overId === "unscheduled") upsertDoc({ ...doc, scheduledDate: undefined });
     else upsertDoc({ ...doc, scheduledDate: overId, dayOrder: byDay(overId).length });
   };
+
 
   // Agenda: next 30 days that have jobs, plus today
   const agendaDays = useMemo(() => {
