@@ -119,13 +119,25 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const subByUser = new Map<string, (typeof subs)[number]>();
     for (const s of subs) subByUser.set(s.user_id, s);
 
+    const legacyUserIds = new Set<string>();
+    for (const u of allUsers) {
+      if (LEGACY_FREE_EMAILS.has((u.email ?? "").toLowerCase())) legacyUserIds.add(u.id);
+    }
+
     const nowMs = now.getTime();
     let payingUsers = 0;
     let trialActive = 0;
     let trialExpired = 0;
     let cancelled = 0;
     let pastDue = 0;
+    let legacyFree = 0;
+    const legacySubUserIds = new Set<string>();
     for (const s of subs) {
+      if (legacyUserIds.has(s.user_id)) {
+        legacyFree++;
+        legacySubUserIds.add(s.user_id);
+        continue;
+      }
       const status = s.status ?? "trial";
       if (status === "active") payingUsers++;
       else if (status === "cancelled") cancelled++;
@@ -137,10 +149,15 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         else trialActive++;
       }
     }
-    const noSub = Math.max(0, allUsers.length - subs.length);
+    // Legacy users with no subscription row are still legacy_free, not "no_sub".
+    for (const uid of legacyUserIds) {
+      if (!legacySubUserIds.has(uid)) legacyFree++;
+    }
+    const noSub = Math.max(0, allUsers.length - subs.length - (legacyUserIds.size - legacySubUserIds.size));
     const trialConvBase = payingUsers + trialExpired;
     const trialConversionPct = trialConvBase > 0 ? Math.round((payingUsers / trialConvBase) * 100) : 0;
     const mrr = payingUsers * MONTHLY_PRICE_ZAR;
+
 
     // --- Users by month (last 12) ---
     const usersByMonth = emptyMonths(12);
