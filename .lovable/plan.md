@@ -1,31 +1,18 @@
-## Goal
+## Add Terms field to Billing settings and documents
 
-Treat `dawie@polka.co.za`, `julius@polka.co.za`, and `nadia.jvr1668@gmail.com` as legacy free-unlimited accounts in the `/admin` overview. They should never appear as "trial", "trial_expired", "paying", "past_due", or "cancelled" — they get their own "legacy_free" bucket and are excluded from MRR and trial-conversion math.
+**Settings > Billing**
+- Add a new "Terms" textarea field (multi-line) alongside existing billing fields in `src/routes/settings.tsx`.
+- Persist as `terms?: string` on `BillingSettings` in `src/lib/store.ts` (with a sensible default like empty string, and migration guard so existing users don't break).
 
-## Changes
+**Quote / Invoice document view (`src/routes/doc.$id.tsx`)**
+- Render a "Terms" section above the existing "Notes" section, showing `billing.terms` when non-empty. Same styling/typography as Notes for consistency.
 
-**`src/lib/admin.functions.ts`** (only file touched):
+**PDF output (`src/lib/pdf.ts`)**
+- Insert a "Terms" block above the "Notes" block in the generated PDF, only when terms text is present.
 
-1. Add a constant set:
-   ```ts
-   const LEGACY_FREE_EMAILS = new Set([
-     "dawie@polka.co.za",
-     "julius@polka.co.za",
-     "nadia.jvr1668@gmail.com",
-   ]);
-   ```
-2. Build a `legacyUserIds: Set<string>` from `allUsers` by matching lowercased email.
-3. In the subscription-tally loop, `continue` early for any `s.user_id` in `legacyUserIds` and increment a `legacyFree` counter instead.
-4. Adjust `noSub` so legacy users without a subscription row are also counted as legacy, not as `no_sub`:
-   `noSub = max(0, allUsers.length - subs.length - (legacyUsersWithoutSubRow))`.
-5. Exclude legacy users from `mrr` (already handled since they're skipped from `payingUsers`) and from `trialConversionPct` base.
-6. Add `{ status: "legacy_free", count: legacyFree }` to `subscriptionBreakdown` (filtered out if 0).
-7. In `recentSignups`, override `subStatus` to `"legacy_free"` when the user's email is in the set.
+**Share message (`src/lib/share-message.ts`)**
+- Out of scope — WhatsApp/email share text stays as-is unless you want terms appended too.
 
-No UI changes needed — `/admin` renders whatever statuses come back from `subscriptionBreakdown` and `recentSignups`, so the new `legacy_free` label will render automatically.
+No database, permissions, or business-logic changes. Terms are a single global value stored in billing settings and applied to every quote/invoice.
 
-## Non-goals
-
-- No schema change, no `subscriptions` row edits, no billing logic changes.
-- No changes to `subscription.functions.ts` — those users' own `/settings` view is out of scope for this request.
-- Access rules (who can view `/admin`) unchanged.
+Confirm: should the Terms text also be appended to the WhatsApp share message, or PDF + on-screen view only?
