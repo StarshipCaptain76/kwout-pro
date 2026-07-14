@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { fetchAllRows } from "@/lib/pagination";
+
 
 const ADMIN_EMAILS = new Set(["dawie@polka.co.za", "julius@polka.co.za"]);
 const MONTHLY_PRICE_ZAR = 100;
@@ -96,11 +98,18 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const newUsers30d = allUsers.filter((u) => u.created_at >= since30).length;
 
     // --- Subscriptions ---
-    const { data: subsRaw, error: subsErr } = await supabaseAdmin
-      .from("subscriptions")
-      .select("user_id, status, trial_started_at, current_period_end, created_at");
-    if (subsErr) throw new Error(subsErr.message);
-    const subs = subsRaw ?? [];
+    const subs = await fetchAllRows<{
+      user_id: string;
+      status: string | null;
+      trial_started_at: string | null;
+      current_period_end: string | null;
+      created_at: string;
+    }>(() =>
+      supabaseAdmin
+        .from("subscriptions")
+        .select("user_id, status, trial_started_at, current_period_end, created_at"),
+    );
+
 
     const subByUser = new Map<string, (typeof subs)[number]>();
     for (const s of subs) subByUser.set(s.user_id, s);
@@ -151,11 +160,18 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     }
 
     // --- Docs (30d activity + GMV + per-user aggregates) ---
-    const { data: docsRaw, error: docsErr } = await supabaseAdmin
-      .from("docs")
-      .select("owner_user_id, type, status, items, paid_at, created_at");
-    if (docsErr) throw new Error(docsErr.message);
-    const docs = docsRaw ?? [];
+    const docs = await fetchAllRows<{
+      owner_user_id: string | null;
+      type: string;
+      status: string;
+      items: unknown;
+      paid_at: string | null;
+      created_at: string;
+    }>(() =>
+      supabaseAdmin
+        .from("docs")
+        .select("owner_user_id, type, status, items, paid_at, created_at"),
+    );
 
     let docsCreated30d = 0;
     let invoicesPaid30d = 0;
@@ -194,26 +210,29 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     }
 
     // --- Expenses (30d + 7d activity) ---
-    const { data: expensesRaw } = await supabaseAdmin
-      .from("expenses")
-      .select("owner_user_id, created_at");
+    const expensesRaw = await fetchAllRows<{
+      owner_user_id: string | null;
+      created_at: string;
+    }>(() => supabaseAdmin.from("expenses").select("owner_user_id, created_at"));
     let expensesLogged30d = 0;
-    for (const e of expensesRaw ?? []) {
+    for (const e of expensesRaw) {
       if (e.created_at >= since30) expensesLogged30d++;
       if (e.created_at >= since7 && e.owner_user_id) active7dUsers.add(e.owner_user_id);
     }
 
     // --- Workspaces / company profile for names ---
-    const { data: workspacesRaw } = await supabaseAdmin
-      .from("workspaces")
-      .select("owner_user_id");
-    const totalWorkspaces = workspacesRaw?.length ?? 0;
+    const workspacesRaw = await fetchAllRows<{ owner_user_id: string | null }>(() =>
+      supabaseAdmin.from("workspaces").select("owner_user_id"),
+    );
+    const totalWorkspaces = workspacesRaw.length;
 
-    const { data: companyRaw } = await supabaseAdmin
-      .from("company_profile")
-      .select("owner_user_id, company");
+    const companyRaw = await fetchAllRows<{
+      owner_user_id: string | null;
+      company: unknown;
+    }>(() => supabaseAdmin.from("company_profile").select("owner_user_id, company"));
+
     const nameByUser = new Map<string, string>();
-    for (const c of companyRaw ?? []) {
+    for (const c of companyRaw) {
       const co = (c.company as { name?: string } | null) ?? null;
       const nm = co?.name;
       if (nm && c.owner_user_id) nameByUser.set(c.owner_user_id, nm);

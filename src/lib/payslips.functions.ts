@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { fetchAllRows } from "@/lib/pagination";
+
 import {
   computeDeductions,
   ageFromSaId,
@@ -187,18 +189,28 @@ export const generatePayslipDraft = createServerFn({ method: "POST" })
 
     // Commission: sum of paid docs assigned to this staff in the period.
     if (payType === "commission" || (payType !== "manual" && commissionPct > 0)) {
-      const { data: docs } = await supabase
-        .from("docs")
-        .select("subtotal, paid_at, assigned_to")
-        .eq("owner_user_id", userId)
-        .eq("assigned_to", staffUserId)
-        .eq("status", "paid")
-        .gte("paid_at", data.periodStart)
-        .lte("paid_at", data.periodEnd + "T23:59:59");
-      const revenue = (docs ?? []).reduce(
-        (s, d) => s + Number((d as { subtotal?: number }).subtotal ?? 0),
-        0,
+      const docs = await fetchAllRows<{ subtotal: number | null }>(
+        () =>
+          supabase
+            .from("docs")
+            .select("subtotal, paid_at, assigned_to")
+            .eq("owner_user_id", userId)
+            .eq("assigned_to", staffUserId)
+            .eq("status", "paid")
+            .gte("paid_at", data.periodStart)
+            .lte("paid_at", data.periodEnd + "T23:59:59") as unknown as {
+            range: (
+              from: number,
+              to: number,
+            ) => PromiseLike<{
+              data: { subtotal: number | null }[] | null;
+              error: { message: string } | null;
+            }>;
+          },
       );
+      const revenue = docs.reduce((s, d) => s + Number(d.subtotal ?? 0), 0);
+
+
       commissionAmount = Math.round(revenue * (commissionPct / 100) * 100) / 100;
       if (payType === "commission") gross = commissionAmount;
       else gross += commissionAmount;
@@ -297,18 +309,30 @@ export const listPayslips = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<PayslipDTO[]> => {
     const { supabase, userId } = context;
     await assertOwner(supabase, userId);
-    let q = supabase
-      .from("payslips")
-      .select(
-        "id, staff_id, period_start, period_end, period_label, hours, gross, commission_amount, paye, uif_employee, uif_employer, sdl, other_deductions, deductions_breakdown, net, status, finalized_at, sent_at, staff_members!inner(name, email)",
-      )
-      .eq("workspace_owner_id", userId)
-      .order("period_start", { ascending: false });
-    if (data.from) q = q.gte("period_start", data.from);
-    if (data.to) q = q.lte("period_end", data.to);
-    const { data: rows, error } = await q;
-    if (error) throw error;
-    return (rows ?? []).map((r) => {
+    const rows = await fetchAllRows<Record<string, unknown>>(
+      () => {
+        let q = supabase
+          .from("payslips")
+          .select(
+            "id, staff_id, period_start, period_end, period_label, hours, gross, commission_amount, paye, uif_employee, uif_employer, sdl, other_deductions, deductions_breakdown, net, status, finalized_at, sent_at, staff_members!inner(name, email)",
+          )
+          .eq("workspace_owner_id", userId)
+          .order("period_start", { ascending: false });
+        if (data.from) q = q.gte("period_start", data.from);
+        if (data.to) q = q.lte("period_end", data.to);
+        return q as unknown as {
+          range: (
+            from: number,
+            to: number,
+          ) => PromiseLike<{
+            data: Record<string, unknown>[] | null;
+            error: { message: string } | null;
+          }>;
+        };
+      },
+    );
+    return rows.map((r) => {
+
       const rec = r as unknown as {
         id: string; staff_id: string; period_start: string; period_end: string;
         period_label: string; hours: number; gross: number; commission_amount: number;
