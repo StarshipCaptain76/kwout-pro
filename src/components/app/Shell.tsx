@@ -394,3 +394,23 @@ function WorkspaceSwitcher() {
     </DropdownMenu>
   );
 }
+
+function AdminNavLink({ path }: { path: string }) {
+  const { isAdmin } = useAdminAccess();
+  if (!isAdmin) return null;
+  const active = path.startsWith("/admin");
+  return (
+    <Link
+      to="/admin"
+      className={cn(
+        "px-3 py-2 rounded flex items-center gap-2 text-sm font-medium transition-colors",
+        active ? "bg-primary text-primary-foreground" : "hover:bg-white/10",
+      )}
+      title="Platform admin"
+    >
+      <ShieldCheck className="h-4 w-4" />
+      <span>Admin</span>
+    </Link>
+  );
+}
+
