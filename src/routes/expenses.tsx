@@ -278,7 +278,7 @@ function ExpenseSheet({ expense, onClose }: { expense: Expense | null; onClose: 
             <div className="relative">
               <img
                 src={draft.receiptImage}
-                alt="Receipt"
+                alt="Business expense receipt"
                 className="w-full max-h-64 object-contain rounded border bg-muted"
               />
               <button
