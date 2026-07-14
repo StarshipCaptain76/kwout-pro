@@ -107,6 +107,7 @@ export interface Doc {
   toCoords?: { lat: number; lng: number };
   distanceKm?: number;
   assignedTo?: string; // staff user_id
+  moduleData?: Partial<Record<import("./modules").ModuleKey, Record<string, unknown>>>;
 }
 
 export interface Theme {
@@ -129,6 +130,8 @@ export interface Company {
   vatNo?: string;
   logo?: string; // data URL
   theme?: Theme;
+  businessType?: import("./modules").BusinessType;
+  enabledModules?: import("./modules").ModuleKey[];
 }
 
 export interface Banking {
@@ -516,7 +519,7 @@ export const useStore = create<State>()(
     {
       name: "app-store", // ignored; perUserStorage handles the real key
       storage: createJSONStorage(() => perUserStorage),
-      version: 4,
+      version: 5,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
         const { staff: _s, currentUserId: _u, currentStaff: _c, currentWorkspaceOwnerId: _w, ...rest } = s;
@@ -537,6 +540,10 @@ export const useStore = create<State>()(
           if (s.company && (!p || priorDefaults.has(p))) {
             s.company.theme = DEFAULT_THEME;
           }
+        }
+        if (version < 5) {
+          if (s.company && !s.company.businessType) s.company.businessType = "other";
+          if (s.company && !s.company.enabledModules) s.company.enabledModules = [];
         }
         return s;
       },

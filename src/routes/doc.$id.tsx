@@ -12,6 +12,7 @@ import { useStore, newId, docTotals, fmtMoney, type LineItem, type PayMethod } f
 import { downloadPdf } from "@/lib/pdf";
 import { Trash2, Plus, MessageCircle, Mail, Download, Check, ArrowLeft, Truck, Calendar as CalendarIcon, Route as RouteIcon, Recycle } from "lucide-react";
 import { useMemo, useState } from "react";
+import { MODULES, type ModuleKey } from "@/lib/modules";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -42,6 +43,8 @@ function DocPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { docs, company, banking, billing, catalog, customers, staff, currentStaff, upsertDoc, deleteDoc, nextDocNumber } = useStore();
+  const enabledModules = new Set<ModuleKey>(company.enabledModules ?? []);
+  const showLocation = enabledModules.has("location") || enabledModules.has("waste");
   const doc = docs.find((d) => d.id === id);
   const distanceFn = useServerFn(routeDistance);
   const [calcing, setCalcing] = useState(false);
@@ -178,43 +181,49 @@ function DocPage() {
                   onChange={(v) => updateCust({ address: v.address })}
                 />
               </div>
-              <div className="col-span-2">
-                <Label>From address</Label>
-                <AddressAutocomplete
-                  value={doc.fromAddress ?? ""}
-                  placeholder="Search address…"
-                  onChange={(v) => update({ fromAddress: v.address, fromCoords: v.coords })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>To address</Label>
-                <AddressAutocomplete
-                  value={doc.toAddress ?? ""}
-                  placeholder="Search address…"
-                  onChange={(v) => update({ toAddress: v.address, toCoords: v.coords })}
-                  extraButton={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="whitespace-nowrap"
-                      onClick={() =>
-                        update({ toAddress: DISPOSAL_SITE.address, toCoords: DISPOSAL_SITE.coords })
+              {showLocation && (
+                <>
+                  <div className="col-span-2">
+                    <Label>From address</Label>
+                    <AddressAutocomplete
+                      value={doc.fromAddress ?? ""}
+                      placeholder="Search address…"
+                      onChange={(v) => update({ fromAddress: v.address, fromCoords: v.coords })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>To address</Label>
+                    <AddressAutocomplete
+                      value={doc.toAddress ?? ""}
+                      placeholder="Search address…"
+                      onChange={(v) => update({ toAddress: v.address, toCoords: v.coords })}
+                      extraButton={
+                        enabledModules.has("waste") ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="whitespace-nowrap"
+                            onClick={() =>
+                              update({ toAddress: DISPOSAL_SITE.address, toCoords: DISPOSAL_SITE.coords })
+                            }
+                          >
+                            <Recycle className="h-4 w-4 mr-1" /> Disposal
+                          </Button>
+                        ) : undefined
                       }
-                    >
-                      <Recycle className="h-4 w-4 mr-1" /> Disposal
+                    />
+                  </div>
+                  <div className="col-span-2 flex items-center gap-2 text-sm">
+                    <Button type="button" size="sm" variant="secondary" onClick={calcDistance} disabled={calcing}>
+                      <RouteIcon className="h-4 w-4 mr-1" /> {calcing ? "Calculating…" : "Calculate distance"}
                     </Button>
-                  }
-                />
-              </div>
-              <div className="col-span-2 flex items-center gap-2 text-sm">
-                <Button type="button" size="sm" variant="secondary" onClick={calcDistance} disabled={calcing}>
-                  <RouteIcon className="h-4 w-4 mr-1" /> {calcing ? "Calculating…" : "Calculate distance"}
-                </Button>
-                {doc.distanceKm ? (
-                  <span className="text-muted-foreground">{doc.distanceKm} km</span>
-                ) : null}
-              </div>
+                    {doc.distanceKm ? (
+                      <span className="text-muted-foreground">{doc.distanceKm} km</span>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </div>
           </Card>
 
@@ -283,6 +292,57 @@ function DocPage() {
             <Label>Notes</Label>
             <Textarea value={doc.notes ?? ""} onChange={(e) => update({ notes: e.target.value })} placeholder="Terms, thanks, etc." />
           </Card>
+
+          {(company.enabledModules ?? [])
+            .filter((k) => k !== "location") // location fields live inside the Customer card
+            .map((k) => {
+              const m = MODULES[k];
+              if (!m) return null;
+              const data = (doc.moduleData?.[k] as Record<string, unknown> | undefined) ?? {};
+              const setField = (fieldKey: string, value: unknown) => {
+                const nextForModule = { ...data, [fieldKey]: value };
+                const nextModuleData = { ...(doc.moduleData ?? {}), [k]: nextForModule };
+                upsertDoc({ ...doc, moduleData: nextModuleData });
+              };
+              return (
+                <Card key={k} className="p-4">
+                  <h2 className="font-semibold mb-3 flex items-center gap-2">
+                    <span aria-hidden>{m.icon}</span>
+                    <span>{m.label}</span>
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {m.fields.map((f) => {
+                      const raw = data[f.key];
+                      const value = raw === undefined || raw === null ? "" : String(raw);
+                      const wide = f.type === "textarea";
+                      return (
+                        <div key={f.key} className={wide ? "col-span-2" : ""}>
+                          <Label>{f.label}{f.suffix ? ` (${f.suffix})` : ""}</Label>
+                          {f.type === "textarea" ? (
+                            <Textarea
+                              value={value}
+                              placeholder={f.placeholder}
+                              onChange={(e) => setField(f.key, e.target.value)}
+                            />
+                          ) : (
+                            <Input
+                              className="h-11"
+                              type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
+                              value={value}
+                              placeholder={f.placeholder}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setField(f.key, f.type === "number" ? (v === "" ? undefined : Number(v)) : v);
+                              }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              );
+            })}
         </div>
 
         <div className="space-y-4">

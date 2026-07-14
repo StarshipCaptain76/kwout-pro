@@ -48,10 +48,12 @@ export type Database = {
         Row: {
           banking: Json
           billing: Json
+          business_type: string | null
           company: Json
           created_at: string
           custom_units: string[]
           density: string
+          enabled_modules: string[] | null
           logo_url: string | null
           migrated_at: string | null
           owner_user_id: string
@@ -62,10 +64,12 @@ export type Database = {
         Insert: {
           banking?: Json
           billing?: Json
+          business_type?: string | null
           company?: Json
           created_at?: string
           custom_units?: string[]
           density?: string
+          enabled_modules?: string[] | null
           logo_url?: string | null
           migrated_at?: string | null
           owner_user_id: string
@@ -76,10 +80,12 @@ export type Database = {
         Update: {
           banking?: Json
           billing?: Json
+          business_type?: string | null
           company?: Json
           created_at?: string
           custom_units?: string[]
           density?: string
+          enabled_modules?: string[] | null
           logo_url?: string | null
           migrated_at?: string | null
           owner_user_id?: string
@@ -136,6 +142,7 @@ export type Database = {
           from_coords: Json | null
           id: string
           items: Json
+          module_data: Json | null
           notes: string | null
           number: string
           owner_user_id: string
@@ -161,6 +168,7 @@ export type Database = {
           from_coords?: Json | null
           id: string
           items?: Json
+          module_data?: Json | null
           notes?: string | null
           number: string
           owner_user_id: string
@@ -186,6 +194,7 @@ export type Database = {
           from_coords?: Json | null
           id?: string
           items?: Json
+          module_data?: Json | null
           notes?: string | null
           number?: string
           owner_user_id?: string

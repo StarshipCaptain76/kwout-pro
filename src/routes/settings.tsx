@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore, newId, BUILTIN_UNITS, DEFAULT_THEME, useCan, type Unit, type Density } from "@/lib/store";
+import { BUSINESS_TYPES, MODULES, MODULE_KEYS, defaultModulesFor, type BusinessType, type ModuleKey } from "@/lib/modules";
+import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus, Search, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { useMemo, useState } from "react";
@@ -59,12 +61,15 @@ function SettingsPage() {
   const canBilling = useCan("settings.billing");
   const canAppearance = useCan("settings.appearance");
 
+  const canModules = useCan("settings.modules");
+
   const ALL_TABS: Array<{ value: string; label: string; allowed: boolean }> = [
     { value: "subscription", label: "Subscription", allowed: canSubscription },
     { value: "company", label: "Company", allowed: canCompany },
     { value: "banking", label: "Banking", allowed: canBanking },
     { value: "staff", label: "Staff", allowed: canStaff },
     { value: "catalog", label: "Catalog", allowed: canCatalog },
+    { value: "modules", label: "Modules", allowed: canModules },
     { value: "expenses", label: "Expenses", allowed: canExpenseCats },
     { value: "billing", label: "Billing", allowed: canBilling },
     { value: "appearance", label: "Appearance", allowed: canAppearance },
@@ -111,7 +116,7 @@ function SettingsPage() {
         </div>
 
         {/* Tablet: horizontal scroll. Desktop (lg+): 8-col grid */}
-        <TabsList className="mb-4 hidden sm:flex sm:w-full sm:overflow-x-auto sm:whitespace-nowrap lg:grid lg:grid-cols-8">
+        <TabsList className="mb-4 hidden sm:flex sm:w-full sm:overflow-x-auto sm:whitespace-nowrap lg:grid lg:grid-cols-9">
           {TABS.map((t) => (
             <TabsTrigger key={t.value} value={t.value} className="shrink-0">
               {t.label}
@@ -147,9 +152,38 @@ function SettingsPage() {
                   />
                 </div>
               ))}
+              <div>
+                <Label>Business type</Label>
+                <Select
+                  value={s.company.businessType ?? "other"}
+                  onValueChange={(v) => {
+                    const bt = v as BusinessType;
+                    s.setCompany({
+                      ...s.company,
+                      businessType: bt,
+                      enabledModules: defaultModulesFor(bt),
+                    });
+                    toast.success("Business type updated — modules refreshed");
+                  }}
+                >
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BUSINESS_TYPES.map((b) => (
+                      <SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Picking a type turns on the extra invoice fields most useful for that industry. You can fine-tune them under Modules.
+                </p>
+              </div>
               <Button onClick={() => toast.success("Saved")} className="w-fit">Save</Button>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="modules">
+          <ModulesEditor />
         </TabsContent>
 
         <TabsContent value="banking">
@@ -728,5 +762,54 @@ function CatalogEditor() {
         </ul>
       )}
     </Card>
+  );
+}
+
+function ModulesEditor() {
+  const { company, setCompany } = useStore();
+  const bt = company.businessType ?? "other";
+  const enabled = new Set<ModuleKey>(company.enabledModules ?? []);
+
+  const toggle = (k: ModuleKey, on: boolean) => {
+    const next = new Set(enabled);
+    if (on) next.add(k); else next.delete(k);
+    setCompany({ ...company, enabledModules: Array.from(next) });
+  };
+
+  const resetDefaults = () => {
+    setCompany({ ...company, enabledModules: defaultModulesFor(bt) });
+    toast.success("Modules reset to defaults for this business type");
+  };
+
+  return (
+    <div className="grid gap-4 max-w-2xl">
+      <Card className="p-4 sm:p-6 grid gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="font-semibold">Invoice modules</div>
+            <p className="text-sm text-muted-foreground">
+              Turn on extra fields that appear on your quotes &amp; invoices. Off modules stay hidden.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={resetDefaults}>Reset to defaults</Button>
+        </div>
+        <ul className="grid gap-2">
+          {MODULE_KEYS.map((k) => {
+            const m = MODULES[k];
+            const on = enabled.has(k);
+            return (
+              <li key={k} className="flex items-start gap-3 border rounded-md p-3">
+                <div className="text-2xl leading-none" aria-hidden>{m.icon}</div>
+                <div className="flex-1">
+                  <div className="font-medium">{m.label}</div>
+                  <p className="text-xs text-muted-foreground">{m.description}</p>
+                </div>
+                <Switch checked={on} onCheckedChange={(v) => toggle(k, v)} aria-label={`Toggle ${m.label}`} />
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    </div>
   );
 }

@@ -238,9 +238,11 @@ function Landing() {
 /* -------------------- Dashboard (signed in) -------------------- */
 
 function Dashboard() {
-  const { docs, billing, upsertDoc } = useStore();
+  const { docs, billing, upsertDoc, company } = useStore();
   const canSeeAll = useCan("reports.viewAll");
   const canSeeDocs = useCan("jobs.viewAll");
+  const canPickType = useCan("settings.modules");
+  const needsBusinessType = canPickType && (!company.businessType || company.businessType === "other");
 
 
   useEffect(() => {
@@ -288,6 +290,15 @@ function Dashboard() {
   return (
     <Shell>
       <h1 className="sr-only">Business Dashboard</h1>
+      {needsBusinessType && (
+        <Card className="p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <div className="font-semibold text-sm">Tailor KWOUT to your business</div>
+            <p className="text-xs text-muted-foreground">Pick your business type to switch on the invoice fields most useful for your industry.</p>
+          </div>
+          <Link to="/settings" className="text-sm font-medium underline underline-offset-4 hover:text-primary">Choose type →</Link>
+        </Card>
+      )}
       {canSeeAll && (
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
           <Stat

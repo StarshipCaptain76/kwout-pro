@@ -94,7 +94,9 @@ export function pushCompanyProfile() {
       banking: s.banking as unknown as never,
       billing: s.billing as unknown as never,
       density: s.density,
-    });
+      business_type: s.company.businessType ?? null,
+      enabled_modules: (s.company.enabledModules ?? []) as unknown as never,
+    } as never);
     if (error) throw error;
   });
 }
@@ -173,7 +175,8 @@ export function pushDoc(d: Doc) {
       to_coords: (d.toCoords ?? null) as unknown as never,
       distance_km: d.distanceKm ?? null,
       assigned_to: d.assignedTo ?? null,
-    });
+      module_data: (d.moduleData ?? null) as unknown as never,
+    } as never);
     if (error) throw error;
   });
 }
@@ -329,6 +332,7 @@ async function loadAll() {
       toCoords: (r.to_coords as Doc["toCoords"]) ?? undefined,
       distanceKm: r.distance_km != null ? Number(r.distance_km) : undefined,
       assignedTo: (r as { assigned_to?: string | null }).assigned_to ?? undefined,
+      moduleData: ((r as { module_data?: unknown }).module_data ?? undefined) as Doc["moduleData"],
     }));
     const remoteExpenses: Expense[] = (expRes.data ?? []).map((r) => ({
       id: r.id,
@@ -359,6 +363,11 @@ async function loadAll() {
     const company = (profileRow?.company as Company | null) && Object.keys(profileRow!.company as object).length
       ? (profileRow!.company as unknown as Company)
       : prev.company;
+    // Overlay dedicated columns onto company for business type + module toggles.
+    const rowBt = (profileRow as { business_type?: string | null } | null)?.business_type;
+    const rowMods = (profileRow as { enabled_modules?: string[] | null } | null)?.enabled_modules;
+    if (rowBt) company.businessType = rowBt as Company["businessType"];
+    if (rowMods) company.enabledModules = rowMods as Company["enabledModules"];
     const banking = (profileRow?.banking as Banking | null) && Object.keys(profileRow!.banking as object).length
       ? (profileRow!.banking as unknown as Banking)
       : prev.banking;
