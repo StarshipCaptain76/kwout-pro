@@ -98,11 +98,18 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const newUsers30d = allUsers.filter((u) => u.created_at >= since30).length;
 
     // --- Subscriptions ---
-    const { data: subsRaw, error: subsErr } = await supabaseAdmin
-      .from("subscriptions")
-      .select("user_id, status, trial_started_at, current_period_end, created_at");
-    if (subsErr) throw new Error(subsErr.message);
-    const subs = subsRaw ?? [];
+    const subs = await fetchAllRows<{
+      user_id: string;
+      status: string | null;
+      trial_started_at: string | null;
+      current_period_end: string | null;
+      created_at: string;
+    }>(() =>
+      supabaseAdmin
+        .from("subscriptions")
+        .select("user_id, status, trial_started_at, current_period_end, created_at"),
+    );
+
 
     const subByUser = new Map<string, (typeof subs)[number]>();
     for (const s of subs) subByUser.set(s.user_id, s);
