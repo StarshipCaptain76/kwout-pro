@@ -12,6 +12,7 @@ export interface StaffMemberDTO {
   name: string;
   email: string;
   role: Role;
+  title: string | null;
   permissions: Permissions;
   active: boolean;
   /** True when the owner can safely reset this staff member's password. False for users who own or work for other workspaces. */
