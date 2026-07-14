@@ -379,6 +379,7 @@ export type Database = {
           permissions: Json
           role: Database["public"]["Enums"]["app_role"]
           tax_status: string
+          title: string | null
           updated_at: string
           user_id: string
           workspace_owner_id: string
@@ -397,6 +398,7 @@ export type Database = {
           permissions?: Json
           role?: Database["public"]["Enums"]["app_role"]
           tax_status?: string
+          title?: string | null
           updated_at?: string
           user_id: string
           workspace_owner_id: string
@@ -415,6 +417,7 @@ export type Database = {
           permissions?: Json
           role?: Database["public"]["Enums"]["app_role"]
           tax_status?: string
+          title?: string | null
           updated_at?: string
           user_id?: string
           workspace_owner_id?: string
