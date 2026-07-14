@@ -4,6 +4,11 @@ import { fetchAllRows } from "@/lib/pagination";
 
 
 const ADMIN_EMAILS = new Set(["dawie@polka.co.za", "julius@polka.co.za"]);
+const LEGACY_FREE_EMAILS = new Set([
+  "dawie@polka.co.za",
+  "julius@polka.co.za",
+  "nadia.jvr1668@gmail.com",
+]);
 const MONTHLY_PRICE_ZAR = 100;
 const TRIAL_DAYS = 30;
 const MS_PER_DAY = 86_400_000;
