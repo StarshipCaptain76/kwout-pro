@@ -117,6 +117,9 @@ export interface Theme {
   accent: string; // hex like "#0f172a"
 }
 
+export const DEFAULT_BILLING_TERMS =
+  "Balances exceeding R1000.00 requires a 50% deposit before work starts. When making any payment please use the Quote/Invoice number as payment reference";
+
 export const DEFAULT_THEME: Theme = {
   primary: "#151C63", // KWOUT navy
   accent: "#4F8C2E", // KWOUT green
