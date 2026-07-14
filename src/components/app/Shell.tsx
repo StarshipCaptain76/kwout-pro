@@ -20,13 +20,14 @@ import { toast } from "sonner";
 import { readBrandCookie } from "@/lib/brand-cookie";
 import { TrialBanner } from "@/components/app/TrialBanner";
 
-const nav = [
-  { to: "/", label: "Home", icon: LayoutDashboard },
-  { to: "/planner", label: "Planner", icon: Calendar },
-  { to: "/expenses", label: "Expenses", icon: Wallet },
-  { to: "/results", label: "Results", icon: BarChart3 },
-  { to: "/settings", label: "Settings", icon: Settings },
+const NAV_ITEMS = [
+  { to: "/", label: "Home", icon: LayoutDashboard, perm: null },
+  { to: "/planner", label: "Planner", icon: Calendar, perm: "planner.view" as const },
+  { to: "/expenses", label: "Expenses", icon: Wallet, perm: "expenses.addOwn" as const },
+  { to: "/results", label: "Results", icon: BarChart3, perm: "reports.viewOwn" as const },
+  { to: "/settings", label: "Settings", icon: Settings, perm: "settings.view" as const },
 ] as const;
+
 
 export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
