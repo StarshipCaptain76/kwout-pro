@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useStore, docTotals, fmtMoney, useCan, type Doc } from "@/lib/store";
+import { useStore, docTotals, fmtMoney, useCan, useIsOwner, type Doc } from "@/lib/store";
 import { ChevronRight, FileText, Truck, Check } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { useEffect, useLayoutEffect, useState } from "react";
@@ -228,6 +228,7 @@ function Landing() {
 function Dashboard() {
   const { docs, billing, upsertDoc, company } = useStore();
   const canSeeAll = useCan("reports.viewAll");
+  const isOwner = useIsOwner();
   const canSeeDocs = useCan("jobs.viewAll");
   const canPickType = useCan("settings.modules");
   const needsBusinessType = canPickType && (!company.businessType || company.businessType === "other");
@@ -289,14 +290,18 @@ function Dashboard() {
       )}
       {canSeeAll && (
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
-          <Stat
-            label="Outstanding"
-            value={fmtMoney(stats.outstanding, billing.currency)}
-            accent
-            to="/docs"
-            search={{ status: "unpaid" }}
-          />
-          <Stat label="Paid (month)" value={fmtMoney(stats.paidThisMonth, billing.currency)} />
+          {isOwner && (
+            <>
+              <Stat
+                label="Outstanding"
+                value={fmtMoney(stats.outstanding, billing.currency)}
+                accent
+                to="/docs"
+                search={{ status: "unpaid" }}
+              />
+              <Stat label="Paid (month)" value={fmtMoney(stats.paidThisMonth, billing.currency)} />
+            </>
+          )}
           <Stat label="Quotes (month)" value={String(stats.quotes)} to="/docs" search={{ type: "quote" }} />
           <Stat label="Invoices (month)" value={String(stats.invoices)} to="/docs" search={{ type: "invoice" }} />
         </div>
