@@ -85,6 +85,7 @@ function Landing() {
         </button>
       </header>
 
+      <main>
       <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 sm:pt-16 pb-20 grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-16 items-start">
         <div>
           <motion.h1
