@@ -11,6 +11,7 @@ import { useStore, useIsOwner, type StaffMember } from "@/lib/store";
 import { ACTION_GROUPS, presetFor, type Action, type Permissions, type Role } from "@/lib/permissions";
 import {
   createStaffAccount, updateStaffMember, deleteStaffMember, resetStaffPassword, listStaff,
+  type StaffMemberDTO,
 } from "@/lib/staff.functions";
 import { listStaffCompensation, updateStaffCompensation, type PayType } from "@/lib/payslips.functions";
 import type { TaxStatus } from "@/lib/payroll";
