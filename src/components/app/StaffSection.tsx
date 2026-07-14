@@ -147,11 +147,12 @@ function CreateStaffSheet({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(() => randomPassword());
   const [role, setRole] = useState<Role>("staff");
+  const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const createStaff = useServerFn(createStaffAccount);
 
   const reset = () => {
-    setName(""); setEmail(""); setPassword(randomPassword()); setRole("staff");
+    setName(""); setEmail(""); setPassword(randomPassword()); setRole("staff"); setTitle("");
   };
 
   const save = async () => {
@@ -166,6 +167,7 @@ function CreateStaffSheet({
           email: email.trim().toLowerCase(),
           password: password || null,
           role,
+          title: title.trim() || null,
           permissions: presetFor(role),
         },
       });
@@ -213,12 +215,27 @@ function CreateStaffSheet({
             <p className="text-xs text-muted-foreground mt-1">Used only when we create a brand-new account for this email.</p>
           </div>
           <div>
-            <Label>Role</Label>
+            <Label>Role preset</Label>
             <select className="h-11 w-full border rounded-md px-2 bg-background" value={role} onChange={(e) => setRole(e.target.value as Role)}>
               <option value="staff">Field staff — assigned jobs only</option>
               <option value="manager">Manager — all except staff and settings</option>
               <option value="owner">Owner — full access</option>
             </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sets default permissions. You can override any tickbox after adding, and give them a custom job title below.
+            </p>
+          </div>
+          <div>
+            <Label>Job title <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              className="h-11"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Lead Technician, Office Admin, Site Foreman"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Shown instead of "Field staff" / "Manager" in lists. Doesn't change permissions.
+            </p>
           </div>
           <div className="flex gap-2 pt-2">
             <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
