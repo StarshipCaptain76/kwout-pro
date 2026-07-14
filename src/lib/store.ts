@@ -302,6 +302,7 @@ export const useStore = create<State>()(
         nextQuoteNo: 1001,
         nextInvoiceNo: 1001,
         currency: "R",
+        terms: DEFAULT_BILLING_TERMS,
         primaryUnit: "km",
         customUnits: [],
       },
