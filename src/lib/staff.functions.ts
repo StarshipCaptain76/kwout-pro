@@ -14,47 +14,99 @@ export interface StaffMemberDTO {
   role: Role;
   permissions: Permissions;
   active: boolean;
+  /** True when the owner can safely reset this staff member's password. False for users who own or work for other workspaces. */
+  canResetPassword: boolean;
 }
 
-// Resolve which workspace the caller belongs to.
-// Owner = own user id. Staff = the workspace_owner_id from their staff_members row.
+export interface WorkspaceDTO {
+  workspaceOwnerId: string;
+  businessName: string;
+  role: Role;
+  isOwner: boolean;
+}
+
+// ---------- helpers ----------
+
+async function findAuthUserByEmail(email: string): Promise<{ id: string } | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // Paginate until we find them or run out. Most workspaces are small.
+  let page = 1;
+  const perPage = 200;
+  const target = email.trim().toLowerCase();
+  for (;;) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = data?.users ?? [];
+    const match = users.find((u) => (u.email ?? "").toLowerCase() === target);
+    if (match) return { id: match.id };
+    if (users.length < perPage) return null;
+    page += 1;
+    if (page > 50) return null; // safety cap
+  }
+}
+
+async function countStaffRowsForUser(userId: string): Promise<number> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { count } = await supabaseAdmin
+    .from("staff_members")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  return count ?? 0;
+}
+
+// ---------- Resolve current workspace ----------
+
 export const resolveWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    // Check if the caller is a staff member of someone else's workspace.
-    const { data: staff } = await supabase
+
+    // 1. Check saved preference.
+    const { data: pref } = await supabase
+      .from("user_preferences")
+      .select("active_workspace_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const preferred = (pref?.active_workspace_id as string | null) ?? null;
+
+    // 2. Load all active staff rows for this user.
+    const { data: rows } = await supabase
       .from("staff_members")
-      .select("workspace_owner_id, role, permissions, name, email, id, user_id, active")
+      .select("workspace_owner_id, role, permissions, name, email, id, user_id, active, created_at")
       .eq("user_id", userId)
       .eq("active", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (staff) {
-      return {
-        workspaceOwnerId: staff.workspace_owner_id as string,
-        isOwner: staff.workspace_owner_id === userId,
-        me: {
-          id: staff.id as string,
-          userId: staff.user_id as string,
-          name: (staff.name as string) ?? "",
-          email: (staff.email as string) ?? "",
-          role: staff.role as Role,
-          permissions: (staff.permissions ?? {}) as Permissions,
-          active: !!staff.active,
-        } as StaffMemberDTO,
-      };
+      .order("created_at", { ascending: true });
+
+    const list = rows ?? [];
+    if (list.length === 0) {
+      // No staff row → user owns their own workspace. Backfill an owner row.
+      await ensureOwnerStaffInternal(userId);
+      return { workspaceOwnerId: userId, isOwner: true, me: null };
     }
-    // No staff row → user owns their own workspace. Backfill an owner row.
-    await ensureOwnerStaffInternal(userId);
-    return { workspaceOwnerId: userId, isOwner: true, me: null };
+
+    // Pick preferred row if still valid, otherwise oldest.
+    const staff =
+      (preferred && list.find((r) => r.workspace_owner_id === preferred)) || list[0];
+
+    return {
+      workspaceOwnerId: staff.workspace_owner_id as string,
+      isOwner: staff.workspace_owner_id === userId,
+      me: {
+        id: staff.id as string,
+        userId: staff.user_id as string,
+        name: (staff.name as string) ?? "",
+        email: (staff.email as string) ?? "",
+        role: staff.role as Role,
+        permissions: (staff.permissions ?? {}) as Permissions,
+        active: !!staff.active,
+        canResetPassword: false, // not meaningful for "me"
+      } as StaffMemberDTO,
+    };
   });
 
 async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Already exists?
   const { data: existing } = await supabaseAdmin
     .from("staff_members")
     .select("id, user_id, name, email, role, permissions, active")
@@ -70,10 +122,10 @@ async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO>
       role: existing.role as Role,
       permissions: (existing.permissions ?? {}) as Permissions,
       active: !!existing.active,
+      canResetPassword: false,
     };
   }
 
-  // Fetch auth user for email / name.
   const { data: authRes } = await supabaseAdmin.auth.admin.getUserById(userId);
   const authUser = authRes?.user;
   const email = authUser?.email ?? "";
@@ -101,12 +153,12 @@ async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO>
     throw new Error(iErr?.message ?? "Could not create owner staff row");
   }
 
-  // Make sure the owner has a role row (idempotent).
   const { data: hasRole } = await supabaseAdmin
     .from("user_roles")
     .select("id")
     .eq("user_id", userId)
     .eq("role", "owner")
+    .eq("workspace_owner_id", userId)
     .maybeSingle();
   if (!hasRole) {
     await supabaseAdmin
@@ -125,27 +177,40 @@ async function ensureOwnerStaffInternal(userId: string): Promise<StaffMemberDTO>
     role: inserted.role as Role,
     permissions: (inserted.permissions ?? {}) as Permissions,
     active: !!inserted.active,
+    canResetPassword: false,
   };
 }
 
-// Public server fn: create-or-fetch the caller's owner staff row.
 export const ensureOwnerStaff = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => ensureOwnerStaffInternal(context.userId));
+
+// ---------- List staff (with canResetPassword flag) ----------
 
 export const listStaff = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<StaffMemberDTO[]> => {
     const { supabase, userId } = context;
-    // Find caller's workspace owner id (see resolveWorkspace).
-    const { data: self } = await supabase
+
+    // Match resolveWorkspace: prefer active_workspace_id, else oldest active row, else self.
+    const { data: pref } = await supabase
+      .from("user_preferences")
+      .select("active_workspace_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const preferred = (pref?.active_workspace_id as string | null) ?? null;
+
+    const { data: rows } = await supabase
       .from("staff_members")
-      .select("workspace_owner_id")
+      .select("workspace_owner_id, created_at")
       .eq("user_id", userId)
       .eq("active", true)
-      .limit(1)
-      .maybeSingle();
-    const owner = (self?.workspace_owner_id as string) ?? userId;
+      .order("created_at", { ascending: true });
+    const memberships = (rows ?? []).map((r) => r.workspace_owner_id as string);
+    const owner =
+      (preferred && memberships.includes(preferred) && preferred) ||
+      memberships[0] ||
+      userId;
 
     const { data, error } = await supabase
       .from("staff_members")
@@ -153,16 +218,110 @@ export const listStaff = createServerFn({ method: "GET" })
       .eq("workspace_owner_id", owner)
       .order("created_at", { ascending: true });
     if (error) throw error;
-    return (data ?? []).map((r) => ({
-      id: r.id as string,
-      userId: r.user_id as string,
-      name: (r.name as string) ?? "",
-      email: (r.email as string) ?? "",
-      role: r.role as Role,
-      permissions: (r.permissions ?? {}) as Permissions,
-      active: !!r.active,
-    }));
+
+    // Enrich with canResetPassword. A user is "workspace-only" (safe to reset)
+    // when they hold no other active staff row and don't own another workspace.
+    const list = data ?? [];
+    const results: StaffMemberDTO[] = [];
+    for (const r of list) {
+      const uid = r.user_id as string;
+      // Never allow resetting your own password from here.
+      const isSelf = uid === userId;
+      // Never allow resetting the workspace owner's password from staff panel.
+      const isOwnerRow = uid === owner;
+      let canReset = false;
+      if (!isSelf && !isOwnerRow) {
+        const count = await countStaffRowsForUser(uid);
+        canReset = count <= 1; // only linked to this workspace
+      }
+      results.push({
+        id: r.id as string,
+        userId: uid,
+        name: (r.name as string) ?? "",
+        email: (r.email as string) ?? "",
+        role: r.role as Role,
+        permissions: (r.permissions ?? {}) as Permissions,
+        active: !!r.active,
+        canResetPassword: canReset,
+      });
+    }
+    return results;
   });
+
+// ---------- List my workspaces ----------
+
+export const listMyWorkspaces = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<WorkspaceDTO[]> => {
+    const { supabase, userId } = context;
+
+    // Ensure the owner row exists so a brand-new user still shows up.
+    await ensureOwnerStaffInternal(userId).catch(() => {});
+
+    const { data, error } = await supabase
+      .from("staff_members")
+      .select("workspace_owner_id, role, created_at")
+      .eq("user_id", userId)
+      .eq("active", true)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+
+    const rows = data ?? [];
+    if (rows.length === 0) return [];
+
+    // Pull business names from company_profile for each workspace.
+    const ownerIds = Array.from(new Set(rows.map((r) => r.workspace_owner_id as string)));
+    const { data: profiles } = await supabase
+      .from("company_profile")
+      .select("owner_user_id, company")
+      .in("owner_user_id", ownerIds);
+    const nameByOwner = new Map<string, string>();
+    for (const p of profiles ?? []) {
+      const owner = p.owner_user_id as string;
+      const company = (p.company ?? {}) as { name?: string };
+      if (company?.name) nameByOwner.set(owner, company.name);
+    }
+
+    return rows.map((r) => {
+      const owner = r.workspace_owner_id as string;
+      return {
+        workspaceOwnerId: owner,
+        businessName: nameByOwner.get(owner) || (owner === userId ? "My workspace" : "Workspace"),
+        role: r.role as Role,
+        isOwner: owner === userId,
+      };
+    });
+  });
+
+// ---------- Switch active workspace ----------
+
+export const setActiveWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ workspaceOwnerId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Verify the caller actually has an active staff row in the target workspace.
+    const { data: row } = await supabase
+      .from("staff_members")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("workspace_owner_id", data.workspaceOwnerId)
+      .eq("active", true)
+      .maybeSingle();
+    if (!row) throw new Error("You don't have access to that workspace");
+
+    const { error } = await supabase
+      .from("user_preferences")
+      .upsert(
+        { user_id: userId, active_workspace_id: data.workspaceOwnerId },
+        { onConflict: "user_id" },
+      );
+    if (error) throw error;
+    return { ok: true as const };
+  });
+
+// ---------- Add staff (create or link existing) ----------
 
 export const createStaffAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -170,7 +329,8 @@ export const createStaffAccount = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email(),
-        password: z.string().min(6),
+        // Optional — required only when the email doesn't already have an account.
+        password: z.string().min(6).optional().nullable(),
         name: z.string().min(1),
         role: ROLE,
         permissions: PERMISSIONS,
@@ -180,28 +340,73 @@ export const createStaffAccount = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const ownerId = context.userId;
+    const email = data.email.trim().toLowerCase();
 
-    // Create the auth user with email pre-confirmed so they can sign in immediately.
-    const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: { name: data.name, invited_by: ownerId },
-    });
-    if (cErr || !created.user) {
-      console.error("[createStaffAccount] auth.admin.createUser failed", cErr);
-      throw new Error(cErr?.message ?? "Could not create account");
+    const existing = await findAuthUserByEmail(email);
+    let targetUserId: string;
+    let created = false;
+
+    if (existing) {
+      // Guard: is this user already a staff member of this workspace?
+      const { data: dupe } = await supabaseAdmin
+        .from("staff_members")
+        .select("id, active")
+        .eq("workspace_owner_id", ownerId)
+        .eq("user_id", existing.id)
+        .maybeSingle();
+      if (dupe) {
+        if (dupe.active) throw new Error("That user is already a staff member of this workspace.");
+        // Reactivate the disabled row instead of inserting a duplicate.
+        const { error: uErr } = await supabaseAdmin
+          .from("staff_members")
+          .update({
+            active: true,
+            name: data.name,
+            email,
+            role: data.role,
+            permissions: (data.permissions ?? {}) as never,
+          } as never)
+          .eq("id", dupe.id as string);
+        if (uErr) throw new Error(uErr.message);
+        await supabaseAdmin.from("user_roles").upsert(
+          { user_id: existing.id, role: data.role, workspace_owner_id: ownerId } as never,
+          { onConflict: "user_id,workspace_owner_id" } as never,
+        );
+        return {
+          kind: "linked" as const,
+          id: dupe.id as string,
+          userId: existing.id,
+          name: data.name,
+          email,
+          role: data.role,
+          permissions: (data.permissions ?? {}) as Permissions,
+          active: true,
+        };
+      }
+      targetUserId = existing.id;
+    } else {
+      if (!data.password) throw new Error("Password is required for new accounts.");
+      const { data: createdRes, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: data.password,
+        email_confirm: true,
+        user_metadata: { name: data.name, invited_by: ownerId },
+      });
+      if (cErr || !createdRes.user) {
+        console.error("[createStaffAccount] createUser failed", cErr);
+        throw new Error(cErr?.message ?? "Could not create account");
+      }
+      targetUserId = createdRes.user.id;
+      created = true;
     }
-
-    const newUserId = created.user.id;
 
     const { data: sm, error: sErr } = await supabaseAdmin
       .from("staff_members")
       .insert({
         workspace_owner_id: ownerId,
-        user_id: newUserId,
+        user_id: targetUserId,
         name: data.name,
-        email: data.email,
+        email,
         role: data.role,
         permissions: (data.permissions ?? {}) as never,
         active: true,
@@ -210,32 +415,33 @@ export const createStaffAccount = createServerFn({ method: "POST" })
       .single();
     if (sErr) {
       console.error("[createStaffAccount] staff_members insert failed", sErr);
-      // Roll back the auth user so a retry doesn't collide on the same email.
-      await supabaseAdmin.auth.admin.deleteUser(newUserId).catch(() => {});
+      if (created) await supabaseAdmin.auth.admin.deleteUser(targetUserId).catch(() => {});
       throw new Error(`Could not add staff row: ${sErr.message}`);
     }
 
-    const { error: rErr } = await supabaseAdmin.from("user_roles").insert({
-      user_id: newUserId,
-      role: data.role,
-      workspace_owner_id: ownerId,
-    });
+    // Upsert user_role scoped to this workspace (unique on user_id, workspace_owner_id).
+    const { error: rErr } = await supabaseAdmin.from("user_roles").upsert(
+      { user_id: targetUserId, role: data.role, workspace_owner_id: ownerId } as never,
+      { onConflict: "user_id,workspace_owner_id" } as never,
+    );
     if (rErr) {
-      console.error("[createStaffAccount] user_roles insert failed", rErr);
-      // Non-fatal for login, but the caller should know.
-      throw new Error(`Account created but role grant failed: ${rErr.message}`);
+      console.error("[createStaffAccount] user_roles upsert failed", rErr);
+      throw new Error(`Added but role grant failed: ${rErr.message}`);
     }
 
     return {
+      kind: created ? ("created" as const) : ("linked" as const),
       id: sm.id as string,
-      userId: newUserId,
+      userId: targetUserId,
       name: data.name,
-      email: data.email,
+      email,
       role: data.role,
       permissions: (data.permissions ?? {}) as Permissions,
       active: true,
-    } satisfies StaffMemberDTO;
+    };
   });
+
+// ---------- Update staff row ----------
 
 export const updateStaffMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -271,12 +477,13 @@ export const updateStaffMember = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- Remove staff (unlink only — never deletes the auth account) ----------
+
 export const deleteStaffMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Look up the row, verifying the caller owns this workspace.
     const { data: row, error: fErr } = await supabaseAdmin
       .from("staff_members")
       .select("user_id, workspace_owner_id")
@@ -284,10 +491,32 @@ export const deleteStaffMember = createServerFn({ method: "POST" })
       .maybeSingle();
     if (fErr) throw fErr;
     if (!row || row.workspace_owner_id !== context.userId) throw new Error("Not found");
-    // Delete auth account first (cascades to staff row via FK).
-    await supabaseAdmin.auth.admin.deleteUser(row.user_id as string);
+
+    const targetUserId = row.user_id as string;
+    if (targetUserId === context.userId) {
+      throw new Error("You can't remove yourself from your own workspace.");
+    }
+
+    // Delete only the staff row for THIS workspace. The user keeps their account
+    // and any other workspace memberships they have.
+    const { error: dErr } = await supabaseAdmin
+      .from("staff_members")
+      .delete()
+      .eq("id", data.id)
+      .eq("workspace_owner_id", context.userId);
+    if (dErr) throw dErr;
+
+    // Also drop the role row for this workspace so has_role() no longer matches.
+    await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", targetUserId)
+      .eq("workspace_owner_id", context.userId);
+
     return { ok: true };
   });
+
+// ---------- Reset password (only when user is workspace-only) ----------
 
 export const resetStaffPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -303,7 +532,21 @@ export const resetStaffPassword = createServerFn({ method: "POST" })
       .maybeSingle();
     if (fErr) throw fErr;
     if (!row || row.workspace_owner_id !== context.userId) throw new Error("Not found");
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(row.user_id as string, {
+
+    const targetUserId = row.user_id as string;
+    if (targetUserId === context.userId) {
+      throw new Error("Use your account settings to change your own password.");
+    }
+
+    // Refuse when this user is a member of, or owns, another workspace.
+    const others = await countStaffRowsForUser(targetUserId);
+    if (others > 1) {
+      throw new Error(
+        "This user works for another business on KWOUT too. Ask them to reset their password via Forgot password.",
+      );
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
       password: data.newPassword,
     });
     if (error) throw error;
