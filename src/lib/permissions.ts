@@ -121,7 +121,10 @@ const PRESETS: Record<Role, Permissions> = {
     "reports.viewOwn": true, "reports.viewAll": true,
     "planner.view": true, "planner.edit": true,
     "payslips.view": true, "payslips.manage": true,
-    "settings.staff": true, "settings.company": true,
+    "settings.view": true,
+    "settings.staff": true, "settings.subscription": true,
+    "settings.company": true, "settings.banking": true, "settings.billing": true,
+    "settings.appearance": true, "settings.catalog": true, "settings.expenses": true,
   },
   manager: {
     "jobs.viewAll": true, "jobs.create": true, "jobs.edit": true, "jobs.markPaid": true, "jobs.delete": false,
@@ -131,7 +134,10 @@ const PRESETS: Record<Role, Permissions> = {
     "reports.viewOwn": true, "reports.viewAll": true,
     "planner.view": true, "planner.edit": true,
     "payslips.view": false, "payslips.manage": false,
-    "settings.staff": false, "settings.company": false,
+    "settings.view": false,
+    "settings.staff": false, "settings.subscription": false,
+    "settings.company": false, "settings.banking": false, "settings.billing": false,
+    "settings.appearance": false, "settings.catalog": false, "settings.expenses": false,
   },
   staff: {
     "jobs.viewAll": false, "jobs.create": false, "jobs.edit": false, "jobs.markPaid": false, "jobs.delete": false,
@@ -141,9 +147,23 @@ const PRESETS: Record<Role, Permissions> = {
     "reports.viewOwn": true, "reports.viewAll": false,
     "planner.view": true, "planner.edit": false,
     "payslips.view": false, "payslips.manage": false,
-    "settings.staff": false, "settings.company": false,
+    "settings.view": false,
+    "settings.staff": false, "settings.subscription": false,
+    "settings.company": false, "settings.banking": false, "settings.billing": false,
+    "settings.appearance": false, "settings.catalog": false, "settings.expenses": false,
   },
 };
+
+// Derived: does the effective permission set grant *any* settings sub-section?
+const SETTINGS_SUBS: Action[] = [
+  "settings.company", "settings.banking", "settings.billing",
+  "settings.appearance", "settings.catalog", "settings.expenses",
+  "settings.staff", "settings.subscription",
+];
+function anySettingsGranted(effective: Permissions): boolean {
+  return SETTINGS_SUBS.some((k) => !!effective[k]);
+}
+
 
 export function presetFor(role: Role): Permissions {
   return { ...PRESETS[role] };
