@@ -239,6 +239,9 @@ function Landing() {
 
 function Dashboard() {
   const { docs, billing, upsertDoc } = useStore();
+  const canSeeAll = useCan("reports.viewAll");
+  const canSeeDocs = useCan("jobs.viewAll");
+
 
   useEffect(() => {
     const now = new Date();
