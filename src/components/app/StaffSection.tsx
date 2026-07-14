@@ -390,7 +390,7 @@ function EditStaffSheet({
 
           <div className="flex gap-2 pt-2">
             <Button variant="ghost" className="text-destructive" onClick={remove} disabled={busy}>
-              <Trash2 className="h-4 w-4 mr-1" /> Delete
+              <Trash2 className="h-4 w-4 mr-1" /> Remove
             </Button>
             <div className="flex-1" />
             <Button variant="secondary" onClick={onClose}>Cancel</Button>
