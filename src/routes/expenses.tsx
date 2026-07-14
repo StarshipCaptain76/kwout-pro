@@ -153,6 +153,60 @@ function ExpensesPage() {
         </Card>
       )}
 
+      {categoryBreakdown.length > 0 && (
+        <Card className="p-3 mb-3">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2 px-1">
+            By category
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="h-44 w-44 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryBreakdown}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={40}
+                    outerRadius={78}
+                    paddingAngle={1}
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
+                  >
+                    {categoryBreakdown.map((c) => (
+                      <Cell key={c.name} fill={c.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: number) => fmtMoney(v, billing.currency)}
+                    contentStyle={{
+                      background: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-sm">
+              {categoryBreakdown.map((c) => {
+                const pct = total > 0 ? Math.round((c.value / total) * 100) : 0;
+                return (
+                  <li key={c.name} className="flex items-center gap-2 min-w-0">
+                    <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
+                    <span className="truncate flex-1">{c.name}</span>
+                    <span className="text-muted-foreground text-xs shrink-0">{pct}%</span>
+                    <span className="font-medium tabular-nums shrink-0">{fmtMoney(c.value, billing.currency)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </Card>
+      )}
+
+
+
       {grouped.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm">
           {canAdd ? "No expenses this month. Tap + to snap a slip." : "No expenses to show."}
