@@ -154,20 +154,32 @@ function CreateStaffSheet({
   };
 
   const save = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      toast.error("Fill in name, email and password"); return;
+    if (!name.trim() || !email.trim()) {
+      toast.error("Fill in name and email"); return;
     }
     setBusy(true);
     try {
-      await createStaff({
-        data: { name: name.trim(), email: email.trim().toLowerCase(), password, role, permissions: presetFor(role) },
+      const result = await createStaff({
+        data: {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password: password || null,
+          role,
+          permissions: presetFor(role),
+        },
       });
       await onRefresh();
-      onCreated(email.trim().toLowerCase(), password);
+      if (result.kind === "created") {
+        onCreated(email.trim().toLowerCase(), password);
+      } else {
+        toast.success("Existing KWOUT user linked to this workspace", {
+          description: "They can sign in with their existing password.",
+        });
+      }
       reset();
       onClose();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not create staff");
+      toast.error(e instanceof Error ? e.message : "Could not add staff");
     } finally {
       setBusy(false);
     }
@@ -187,14 +199,17 @@ function CreateStaffSheet({
           <div>
             <Label>Email</Label>
             <Input className="h-11" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" />
+            <p className="text-xs text-muted-foreground mt-1">
+              If this email already has a KWOUT account, they'll just be added to your business — no password change.
+            </p>
           </div>
           <div>
-            <Label>Temporary password</Label>
+            <Label>Temporary password <span className="text-muted-foreground font-normal">(new accounts only)</span></Label>
             <div className="flex gap-2">
               <Input className="h-11 font-mono" value={password} onChange={(e) => setPassword(e.target.value)} />
               <Button type="button" variant="outline" onClick={() => setPassword(randomPassword())}>New</Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Share with the staff member — they can change it after logging in.</p>
+            <p className="text-xs text-muted-foreground mt-1">Used only when we create a brand-new account for this email.</p>
           </div>
           <div>
             <Label>Role</Label>
@@ -207,7 +222,7 @@ function CreateStaffSheet({
           <div className="flex gap-2 pt-2">
             <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
             <Button onClick={save} disabled={busy} className="flex-1">
-              {busy ? "Creating…" : "Create account"}
+              {busy ? "Adding…" : "Add staff"}
             </Button>
           </div>
         </div>
