@@ -764,3 +764,52 @@ function CatalogEditor() {
     </Card>
   );
 }
+
+function ModulesEditor() {
+  const { company, setCompany } = useStore();
+  const bt = company.businessType ?? "other";
+  const enabled = new Set<ModuleKey>(company.enabledModules ?? []);
+
+  const toggle = (k: ModuleKey, on: boolean) => {
+    const next = new Set(enabled);
+    if (on) next.add(k); else next.delete(k);
+    setCompany({ ...company, enabledModules: Array.from(next) });
+  };
+
+  const resetDefaults = () => {
+    setCompany({ ...company, enabledModules: defaultModulesFor(bt) });
+    toast.success("Modules reset to defaults for this business type");
+  };
+
+  return (
+    <div className="grid gap-4 max-w-2xl">
+      <Card className="p-4 sm:p-6 grid gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="font-semibold">Invoice modules</div>
+            <p className="text-sm text-muted-foreground">
+              Turn on extra fields that appear on your quotes &amp; invoices. Off modules stay hidden.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={resetDefaults}>Reset to defaults</Button>
+        </div>
+        <ul className="grid gap-2">
+          {MODULE_KEYS.map((k) => {
+            const m = MODULES[k];
+            const on = enabled.has(k);
+            return (
+              <li key={k} className="flex items-start gap-3 border rounded-md p-3">
+                <div className="text-2xl leading-none" aria-hidden>{m.icon}</div>
+                <div className="flex-1">
+                  <div className="font-medium">{m.label}</div>
+                  <p className="text-xs text-muted-foreground">{m.description}</p>
+                </div>
+                <Switch checked={on} onCheckedChange={(v) => toggle(k, v)} aria-label={`Toggle ${m.label}`} />
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    </div>
+  );
+}
