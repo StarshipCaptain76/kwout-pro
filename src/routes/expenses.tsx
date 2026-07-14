@@ -17,6 +17,23 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Sparkles, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, addMonths } from "date-fns";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+
+const CATEGORY_PALETTE = [
+  "#4F8C2E", "#2563eb", "#f97316", "#a855f7", "#14b8a6",
+  "#ef4444", "#eab308", "#0ea5e9", "#ec4899", "#6366f1",
+  "#22c55e", "#f43f5e", "#8b5cf6", "#0891b2", "#84cc16",
+  "#d946ef", "#f59e0b", "#334155",
+];
+function categoryColor(cat: string, categories: string[]): string {
+  const i = categories.findIndex((c) => c.toLowerCase() === cat.toLowerCase());
+  if (i >= 0) return CATEGORY_PALETTE[i % CATEGORY_PALETTE.length];
+  // Deterministic fallback for unknown categories
+  let h = 0;
+  for (let k = 0; k < cat.length; k++) h = (h * 31 + cat.charCodeAt(k)) >>> 0;
+  return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length];
+}
+
 
 export const Route = createFileRoute("/expenses")({
   component: ExpensesPage,
@@ -33,7 +50,8 @@ export const Route = createFileRoute("/expenses")({
 });
 
 function ExpensesPage() {
-  const { expenses, billing } = useStore();
+  const { expenses, billing, expenseCategories } = useStore();
+
   const canViewAll = useCan("expenses.viewAll");
   const canAdd = useCan("expenses.addOwn");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
@@ -80,6 +98,17 @@ function ExpensesPage() {
     return Array.from(g.entries());
   }, [monthExpenses]);
 
+  const categoryBreakdown = useMemo(() => {
+    const m = new Map<string, number>();
+    monthExpenses.forEach((e) => {
+      m.set(e.category || "Other", (m.get(e.category || "Other") ?? 0) + (e.amount || 0));
+    });
+    return Array.from(m.entries())
+      .map(([name, value]) => ({ name, value, color: categoryColor(name, expenseCategories) }))
+      .sort((a, b) => b.value - a.value);
+  }, [monthExpenses, expenseCategories]);
+
+
   const newExpense = () => {
     setEditing({
       id: newId(),
@@ -124,6 +153,60 @@ function ExpensesPage() {
         </Card>
       )}
 
+      {categoryBreakdown.length > 0 && (
+        <Card className="p-3 mb-3">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2 px-1">
+            By category
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="h-44 w-44 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryBreakdown}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={40}
+                    outerRadius={78}
+                    paddingAngle={1}
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
+                  >
+                    {categoryBreakdown.map((c) => (
+                      <Cell key={c.name} fill={c.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: number) => fmtMoney(v, billing.currency)}
+                    contentStyle={{
+                      background: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-sm">
+              {categoryBreakdown.map((c) => {
+                const pct = total > 0 ? Math.round((c.value / total) * 100) : 0;
+                return (
+                  <li key={c.name} className="flex items-center gap-2 min-w-0">
+                    <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
+                    <span className="truncate flex-1">{c.name}</span>
+                    <span className="text-muted-foreground text-xs shrink-0">{pct}%</span>
+                    <span className="font-medium tabular-nums shrink-0">{fmtMoney(c.value, billing.currency)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </Card>
+      )}
+
+
+
       {grouped.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm">
           {canAdd ? "No expenses this month. Tap + to snap a slip." : "No expenses to show."}
@@ -137,35 +220,44 @@ function ExpensesPage() {
                 {format(parseISO(date), "EEE d MMM")}
               </div>
               <Card className="divide-y">
-                {items.map((e) => (
-                  <button
-                    key={e.id}
-                    onClick={() => setEditing(e)}
-                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50"
-                  >
-                    {e.receiptImage ? (
-                      <img
-                        src={e.receiptImage}
-                        alt="Business expense receipt"
-                        className="h-12 w-12 rounded object-cover border shrink-0"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground shrink-0">
-                        —
+                {items.map((e) => {
+                  const color = categoryColor(e.category, expenseCategories);
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => setEditing(e)}
+                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 border-l-4"
+                      style={{ borderLeftColor: color }}
+                    >
+                      {e.receiptImage ? (
+                        <img
+                          src={e.receiptImage}
+                          alt="Business expense receipt"
+                          className="h-12 w-12 rounded object-cover border shrink-0"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground shrink-0">
+                          —
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium truncate">{e.vendor || "Unknown"}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] mr-1 font-medium"
+                            style={{ backgroundColor: `${color}22`, color }}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {e.category}
+                          </span>
+                          {e.description}
+                        </div>
                       </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium truncate">{e.vendor || "Unknown"}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground text-[10px] mr-1">
-                          {e.category}
-                        </span>
-                        {e.description}
-                      </div>
-                    </div>
-                    <div className="font-semibold shrink-0">{fmtMoney(e.amount, billing.currency)}</div>
-                  </button>
-                ))}
+                      <div className="font-semibold shrink-0">{fmtMoney(e.amount, billing.currency)}</div>
+                    </button>
+                  );
+                })}
+
               </Card>
             </div>
           ))}

@@ -281,17 +281,40 @@ async function loadAll() {
   emit();
 
   try {
-    const [profileRes, catRes, custRes, docsRes, expRes, catCatRes] = await Promise.all([
+    const PAGE = 1000;
+    const fetchAll = async <T>(
+      builder: () => { range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }> },
+    ): Promise<T[]> => {
+      const rows: T[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await builder().range(from, from + PAGE - 1);
+        if (error) throw error;
+        const chunk = data ?? [];
+        rows.push(...chunk);
+        if (chunk.length < PAGE) break;
+      }
+      return rows;
+    };
+
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const [profileRes, catData, custData, docsData, expData, catCatData] = await Promise.all([
       supabase.from("company_profile").select("*").eq("owner_user_id", uid).maybeSingle(),
-      supabase.from("catalog_items").select("*").eq("owner_user_id", uid),
-      supabase.from("customers").select("*").eq("owner_user_id", uid),
-      supabase.from("docs").select("*").eq("owner_user_id", uid),
-      supabase.from("expenses").select("*").eq("owner_user_id", uid),
-      supabase.from("expense_categories").select("*").eq("owner_user_id", uid),
+      fetchAll<any>(() => supabase.from("catalog_items").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("customers").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("docs").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("expenses").select("*").eq("owner_user_id", uid) as any),
+      fetchAll<any>(() => supabase.from("expense_categories").select("*").eq("owner_user_id", uid) as any),
     ]);
-    for (const r of [profileRes, catRes, custRes, docsRes, expRes, catCatRes]) {
-      if (r.error) throw r.error;
-    }
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+    if (profileRes.error) throw profileRes.error;
+    const catRes = { data: catData };
+    const custRes = { data: custData };
+    const docsRes = { data: docsData };
+    const expRes = { data: expData };
+    const catCatRes = { data: catCatData };
+
+
+
 
     const prev = useStore.getState();
     const profileRow = profileRes.data;
