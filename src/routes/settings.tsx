@@ -49,17 +49,48 @@ const CURRENCIES = [
 
 function SettingsPage() {
   const s = useStore();
-  const [tab, setTab] = useState("subscription");
-  const TABS: Array<{ value: string; label: string }> = [
-    { value: "subscription", label: "Subscription" },
-    { value: "company", label: "Company" },
-    { value: "banking", label: "Banking" },
-    { value: "staff", label: "Staff" },
-    { value: "catalog", label: "Catalog" },
-    { value: "expenses", label: "Expenses" },
-    { value: "billing", label: "Billing" },
-    { value: "appearance", label: "Appearance" },
+  const canView = useCan("settings.view");
+  const canSubscription = useCan("settings.subscription");
+  const canCompany = useCan("settings.company");
+  const canBanking = useCan("settings.banking");
+  const canStaff = useCan("settings.staff");
+  const canCatalog = useCan("settings.catalog");
+  const canExpenseCats = useCan("settings.expenses");
+  const canBilling = useCan("settings.billing");
+  const canAppearance = useCan("settings.appearance");
+
+  const ALL_TABS: Array<{ value: string; label: string; allowed: boolean }> = [
+    { value: "subscription", label: "Subscription", allowed: canSubscription },
+    { value: "company", label: "Company", allowed: canCompany },
+    { value: "banking", label: "Banking", allowed: canBanking },
+    { value: "staff", label: "Staff", allowed: canStaff },
+    { value: "catalog", label: "Catalog", allowed: canCatalog },
+    { value: "expenses", label: "Expenses", allowed: canExpenseCats },
+    { value: "billing", label: "Billing", allowed: canBilling },
+    { value: "appearance", label: "Appearance", allowed: canAppearance },
   ];
+  const TABS = ALL_TABS.filter((t) => t.allowed);
+  const [tab, setTab] = useState<string>(() => TABS[0]?.value ?? "subscription");
+  // Keep tab valid if permissions change.
+  if (TABS.length > 0 && !TABS.some((t) => t.value === tab)) {
+    setTab(TABS[0].value);
+  }
+
+  if (!canView) {
+    return (
+      <Shell>
+        <h1 className="sr-only">Settings</h1>
+        <Card className="p-6 max-w-lg mx-auto text-center">
+          <div className="font-display text-2xl mb-2">Access restricted</div>
+          <p className="text-sm text-muted-foreground">
+            Your role doesn't include Settings access. Ask the workspace owner to grant you access from
+            Settings → Staff.
+          </p>
+        </Card>
+      </Shell>
+    );
+  }
+
   const activeLabel = TABS.find((t) => t.value === tab)?.label ?? "Settings";
   return (
     <Shell>
@@ -78,6 +109,7 @@ function SettingsPage() {
             </SelectContent>
           </Select>
         </div>
+
         {/* Tablet: horizontal scroll. Desktop (lg+): 8-col grid */}
         <TabsList className="mb-4 hidden sm:flex sm:w-full sm:overflow-x-auto sm:whitespace-nowrap lg:grid lg:grid-cols-8">
           {TABS.map((t) => (
