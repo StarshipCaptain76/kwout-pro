@@ -585,7 +585,7 @@ function Stat({
   );
 }
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return <Card className="p-3 sm:p-4"><h3 className="font-semibold text-sm mb-2">{title}</h3>{children}</Card>;
+  return <Card className="p-3 sm:p-4"><h2 className="font-semibold text-sm mb-2">{title}</h2>{children}</Card>;
 }
 
 function TrendBlock({
