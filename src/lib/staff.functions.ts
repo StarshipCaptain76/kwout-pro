@@ -338,6 +338,7 @@ export const createStaffAccount = createServerFn({ method: "POST" })
         password: z.string().min(6).optional().nullable(),
         name: z.string().min(1),
         role: ROLE,
+        title: z.string().max(80).optional().nullable(),
         permissions: PERMISSIONS,
       })
       .parse(d),
