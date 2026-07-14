@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import type { Doc, Company, Banking, BillingSettings } from "./store";
-import { docTotals, fmtMoney, DEFAULT_THEME, effectiveVatPct } from "./store";
+import { docTotals, fmtMoney, DEFAULT_THEME, DEFAULT_BILLING_TERMS, effectiveVatPct } from "./store";
 import { MODULES, type ModuleKey } from "./modules";
 
 function hexToRgb(hex: string): [number, number, number] {
