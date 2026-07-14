@@ -43,6 +43,8 @@ function DocPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { docs, company, banking, billing, catalog, customers, staff, currentStaff, upsertDoc, deleteDoc, nextDocNumber } = useStore();
+  const enabledModules = new Set<ModuleKey>(company.enabledModules ?? []);
+  const showLocation = enabledModules.has("location") || enabledModules.has("waste");
   const doc = docs.find((d) => d.id === id);
   const distanceFn = useServerFn(routeDistance);
   const [calcing, setCalcing] = useState(false);
