@@ -17,6 +17,23 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Sparkles, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, addMonths } from "date-fns";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+
+const CATEGORY_PALETTE = [
+  "#4F8C2E", "#2563eb", "#f97316", "#a855f7", "#14b8a6",
+  "#ef4444", "#eab308", "#0ea5e9", "#ec4899", "#6366f1",
+  "#22c55e", "#f43f5e", "#8b5cf6", "#0891b2", "#84cc16",
+  "#d946ef", "#f59e0b", "#334155",
+];
+function categoryColor(cat: string, categories: string[]): string {
+  const i = categories.findIndex((c) => c.toLowerCase() === cat.toLowerCase());
+  if (i >= 0) return CATEGORY_PALETTE[i % CATEGORY_PALETTE.length];
+  // Deterministic fallback for unknown categories
+  let h = 0;
+  for (let k = 0; k < cat.length; k++) h = (h * 31 + cat.charCodeAt(k)) >>> 0;
+  return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length];
+}
+
 
 export const Route = createFileRoute("/expenses")({
   component: ExpensesPage,
