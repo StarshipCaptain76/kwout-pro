@@ -51,16 +51,20 @@ export interface StaffCompensationDTO {
 
 // ------------- Helpers -------------
 
+// Confirms the caller owns at least one workspace (i.e. has a staff_members row
+// where they are their own workspace_owner_id). Tolerant of users who are also
+// staff of other workspaces — those add extra rows we must not choke on.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertOwner(supabase: any, userId: string): Promise<void> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("staff_members")
-    .select("workspace_owner_id")
+    .select("id")
     .eq("user_id", userId)
+    .eq("workspace_owner_id", userId)
     .eq("active", true)
-    .maybeSingle();
-  const owner = (data as { workspace_owner_id?: string } | null)?.workspace_owner_id ?? userId;
-  if (owner !== userId) {
+    .limit(1);
+  if (error) throw error;
+  if (!data || data.length === 0) {
     throw new Error("Only the workspace owner can access payslips.");
   }
 }
