@@ -96,9 +96,11 @@ function ExpensesPage() {
     <Shell>
       <h1 className="sr-only">Expenses</h1>
       <div className="flex items-center justify-end mb-3">
-        <Button size="sm" onClick={newExpense} className="hidden sm:inline-flex">
-          <Plus className="h-4 w-4 mr-1" /> Add
-        </Button>
+        {canAdd && (
+          <Button size="sm" onClick={newExpense} className="hidden sm:inline-flex">
+            <Plus className="h-4 w-4 mr-1" /> Add
+          </Button>
+        )}
       </div>
 
       <Card className="p-3 mb-3 flex items-center gap-2">
@@ -116,10 +118,17 @@ function ExpensesPage() {
         </Button>
       </Card>
 
+      {!canViewAll && (
+        <Card className="p-4 mb-3 text-xs text-muted-foreground">
+          You can add expenses, but only the workspace owner and managers can see the full history.
+        </Card>
+      )}
+
       {grouped.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm">
-          No expenses this month. Tap + to snap a slip.
+          {canAdd ? "No expenses this month. Tap + to snap a slip." : "No expenses to show."}
         </Card>
+
       ) : (
         <div className="space-y-4">
           {grouped.map(([date, items]) => (
