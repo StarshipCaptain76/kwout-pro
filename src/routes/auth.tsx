@@ -318,6 +318,7 @@ function AuthPage() {
             value={tab}
             onValueChange={(v) => {
               setSignInProblem(null);
+              setSignUpProblem(null);
               navigate({ to: "/auth", search: { tab: v === "signup" ? "signup" : "signin" }, replace: true });
             }}
           >
