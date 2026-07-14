@@ -1,63 +1,85 @@
-## Problem
+## Goal
 
-Field-staff and manager accounts currently see everything because permission checks are almost never wired up:
+Introduce a **Business Type → Feature Modules** system so owners can pick their industry once and the invoice/quote form automatically shows the right extra fields. Owners can also toggle individual modules on/off in Settings.
 
-- The `Shell` nav shows **Settings** to every signed-in user, and `/settings` has no role gate — a non-owner can open every tab (Company, Banking, Staff, Catalog, Billing…).
-- `/expenses` and `/planner` never look at `currentStaff.role` or `useCan(...)`, so a field-staff user sees all workspace data.
-- Home (`/`) shows owner-only KPIs and lists without gating.
-- Only `docs`, `doc.$id`, `results`, `statements` do partial checks — inconsistent and easy to bypass.
-- The staff permission editor in Settings has no rows for **Settings sub-sections**, so an owner can't grant/deny per-section access.
+## Data model
 
-## Fix
+### New file `src/lib/modules.ts` (single source of truth)
 
-### 1. Central gating hooks (`src/lib/store.ts` / `src/lib/permissions.ts`)
-- Keep `useCan(action)` / `useIsOwner()` as the single source of truth.
-- Add finer settings actions to `Action` and `PRESETS`:
-  - `settings.view` (any settings access at all)
-  - `settings.company`, `settings.banking`, `settings.billing`, `settings.appearance`, `settings.catalog`, `settings.expenses`, `settings.staff`, `settings.subscription`
-- Presets: owner = all true; manager/staff = all false by default. Owner can tick individual sub-sections on per staff/manager in the Staff editor.
+- `BusinessType` union of the 20 types + `"other"`.
+- `ModuleKey` union: `location | vehicle | equipment | time | materials | waste | measurements | delivery | compliance`.
+- `MODULES: Record<ModuleKey, { label; icon; description; fields: FieldDef[] }>` describing each module and the fields it adds.
+- `BUSINESS_TYPES: Array<{ key; label; defaultModules: ModuleKey[] }>` — the 20 types with the module mapping from the brief.
+- Helpers: `defaultModulesFor(type)`, `moduleFields(key)`.
 
-### 2. Staff permission editor (`src/components/app/StaffSection.tsx` + `permissions.ts` `ACTION_GROUPS`)
-- Add a new "Settings access" group listing every `settings.*` sub-section as tickable overrides so an owner can grant a manager access to, e.g., Catalog + Billing only.
-- `settings.staff` and `settings.subscription` remain owner-only (not shown as tickable, or shown disabled).
+Field definitions are declarative (`{ key, label, type: 'text'|'number'|'date'|'time'|'textarea'|'address', unit?, group? }`) so the invoice form can render them generically without per-module React components.
 
-### 3. Nav gating (`src/components/app/Shell.tsx`)
-- Desktop `nav` array and mobile `tabs` array: filter out `Settings` when `!useCan("settings.view")` (i.e. no sub-section granted and not owner).
-- Same treatment for **Results** (`reports.viewOwn || reports.viewAll`), **Planner** (`planner.view`), **Expenses** (`expenses.addOwn || expenses.viewAll`).
+### Store additions (`src/lib/store.ts`)
 
-### 4. Route-level guards
-For each route, if the user lacks the minimum permission, render an "Access restricted" card instead of the page body (do not throw redirects — keeps back-button sane). Applies to:
-- `/settings` — require `settings.view`; render each `TabsTrigger` + `TabsContent` conditionally on its `settings.<sub>` action. Filter the mobile `<Select>` list the same way.
-- `/expenses` — require `expenses.addOwn || expenses.viewAll`; scope list to own rows when only `addOwn`.
-- `/planner` — require `planner.view`; hide edit controls when `!planner.edit`.
-- `/results` — already partially gated; add outer `reports.viewOwn` guard.
-- `/statements` — already gated; keep.
-- `/` (index) — hide owner-only KPI tiles/lists behind `reports.viewAll`; show a simplified "My jobs today" for field staff.
+- Extend `Company` with `businessType?: BusinessType` and `enabledModules?: ModuleKey[]`.
+- Extend `Doc` with `moduleData?: Partial<Record<ModuleKey, Record<string, unknown>>>` (JSON blob keyed by module → field key → value). Line items unchanged.
+- Migration in the persisted store `migrate()` to seed `enabledModules` from `defaultModulesFor(company.businessType ?? 'other')` when missing.
 
-### 5. Server-side safety net
-RLS today lets any workspace member read most workspace rows. Client gating hides UI but the API is still open. Add restrictive RLS so a field-staff user can only:
-- `SELECT` docs where `assigned_to = auth.uid()` OR their role permits `jobs.viewAll` (encoded via a `has_workspace_permission(uid, workspace, action)` SQL function reading `staff_members.permissions` + role preset).
-- `SELECT/INSERT` expenses restricted to own `user_id` unless `expenses.viewAll`.
-- Block all writes to `company_profile`, `catalog_items`, `expense_categories`, `staff_members` unless the corresponding `settings.*` permission is granted.
+### Database migration
 
-This is the only way "restrictions actually work" — client-only gating is cosmetic.
+- Add `business_type text` and `enabled_modules text[]` columns to `company_profile`.
+- Add `module_data jsonb` column to `docs`.
+- `sync.ts` `pushCompanyProfile` / `pushDoc` extended to persist the new columns.
+- Types regenerate after migration.
 
-### 6. QA
-Sign in as `moove@mweb.co.za` (field staff) and verify:
-- Settings tab is hidden in header + bottom bar.
-- Direct navigation to `/settings` shows "Access restricted".
-- `/expenses` shows only own rows; no "add category" / edit-any controls.
-- `/planner` is read-only.
-- Home hides workspace totals.
-Repeat as a manager to confirm defaults + owner-granted overrides.
+Using JSONB keeps the schema stable regardless of which modules a business enables and avoids 9 side tables.
+
+## UI
+
+### Onboarding / first-run
+
+- In Settings → Company, add a required **Business type** select (the 20 options). Selecting a type calls `setCompany({ ...c, businessType, enabledModules: defaultModulesFor(type) })`. A short helper text lists which modules were enabled.
+- If `businessType` is unset on load and the current user is the owner, show a one-time inline prompt on `/` ("Pick your business type to tailor the app").
+
+### Settings → new "Modules" tab
+
+- Owner-only (gated behind a new `settings.modules` permission added to `permissions.ts`, defaulted on for owner).
+- Lists every module with the icon, label, description, and a `<Switch>` bound to `enabledModules`.
+- "Reset to defaults for {business type}" button.
+
+### Invoice / quote form (`src/routes/doc.$id.tsx`)
+
+- After the customer + line-items sections, render one collapsible card per **enabled** module (`company.enabledModules`).
+- Each card renders its `FieldDef[]` generically, writing into `doc.moduleData[moduleKey][fieldKey]` via `upsertDoc`.
+- Existing hard-coded blocks that duplicate module concepts get folded in rather than duplicated:
+  - **Location** module owns `fromAddress`, `toAddress`, `fromCoords`, `toCoords`, `distanceKm` (already on `Doc`) — the module card wraps the existing address/route UI so behaviour is unchanged when Location is on, and hidden when off.
+  - **Waste** module owns the existing disposal-site helper.
+  - Other modules render only inside `moduleData`.
+- If no modules are enabled, no extra cards render — form stays clean.
+
+### PDF (`src/lib/pdf.ts`)
+
+- Append a "Job details" section listing populated module fields (label: value) grouped by module. Empty fields are skipped so PDFs stay tidy.
+
+## Permissions
+
+- Add `settings.modules` to `Action`, `ACTION_GROUPS` ("Settings sections"), and `PRESETS` (owner: true, manager/staff: false).
+- Gate the new Modules tab and the business-type select behind it.
 
 ## Files to change
 
-- `src/lib/permissions.ts` — new `settings.*` actions, presets, `ACTION_GROUPS` entry.
-- `src/components/app/StaffSection.tsx` — render new group; keep `settings.staff` / `settings.subscription` owner-only.
-- `src/components/app/Shell.tsx` — filter desktop nav + mobile tabs by permission.
-- `src/routes/settings.tsx` — outer guard + per-tab filtering.
-- `src/routes/expenses.tsx`, `src/routes/planner.tsx`, `src/routes/index.tsx` — add role/permission guards and scoped queries.
-- New migration: `has_workspace_permission()` SQL function + restrictive RLS policies on `docs`, `expenses`, `catalog_items`, `expense_categories`, `company_profile`, `staff_members`.
+- **New:** `src/lib/modules.ts`
+- **New migration:** add `business_type`, `enabled_modules`, `module_data` columns
+- `src/lib/store.ts` — extend `Company`, `Doc`, add migration step
+- `src/lib/sync.ts` — persist new columns
+- `src/lib/permissions.ts` — add `settings.modules`
+- `src/routes/settings.tsx` — Business type select in Company tab + new Modules tab
+- `src/routes/doc.$id.tsx` — render module cards; fold Location/Waste into modules
+- `src/routes/index.tsx` — one-time "pick your business type" nudge for owners
+- `src/lib/pdf.ts` — render module data section
 
-No changes to auth, workspace switching, or the payments flow.
+## Out of scope
+
+- No changes to auth, workspace switching, payments, or the 20-type wording beyond what the brief listed.
+- No per-module DB tables — JSONB only. Can be split later if reporting on specific fields is needed.
+- No RLS changes.
+
+## Open questions
+
+1. Should the business-type picker appear as a **required step at first sign-in** (blocking modal) or as a soft prompt on the home page? I've planned the soft prompt — confirm if you want it enforced.
+2. For existing workspaces with data, should I default `businessType` to `"other"` with **all modules off** (safe, invoice looks exactly like today) or infer from usage? Planned: default `"other"` + all off.
