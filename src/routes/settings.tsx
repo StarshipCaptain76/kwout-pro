@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore, newId, BUILTIN_UNITS, DEFAULT_THEME, useCan, type Unit, type Density } from "@/lib/store";
+import { BUSINESS_TYPES, MODULES, MODULE_KEYS, defaultModulesFor, type BusinessType, type ModuleKey } from "@/lib/modules";
+import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus, Search, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { useMemo, useState } from "react";
