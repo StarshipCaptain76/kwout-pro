@@ -129,6 +129,8 @@ export interface Company {
   vatNo?: string;
   logo?: string; // data URL
   theme?: Theme;
+  businessType?: import("./modules").BusinessType;
+  enabledModules?: import("./modules").ModuleKey[];
 }
 
 export interface Banking {
