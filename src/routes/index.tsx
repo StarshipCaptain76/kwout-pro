@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useStore, docTotals, fmtMoney, useCan, type Doc } from "@/lib/store";
+import { useStore, docTotals, fmtMoney, useCan, useIsOwner, type Doc } from "@/lib/store";
 import { ChevronRight, FileText, Truck, Check } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { useEffect, useLayoutEffect, useState } from "react";
