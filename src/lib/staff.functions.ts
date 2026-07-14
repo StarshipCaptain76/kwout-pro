@@ -459,6 +459,7 @@ export const updateStaffMember = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         name: z.string().optional(),
         role: ROLE.optional(),
+        title: z.string().max(80).nullable().optional(),
         permissions: PERMISSIONS,
         active: z.boolean().optional(),
       })
@@ -469,11 +470,13 @@ export const updateStaffMember = createServerFn({ method: "POST" })
     const patch: {
       name?: string;
       role?: Role;
+      title?: string | null;
       permissions?: Permissions;
       active?: boolean;
     } = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.role !== undefined) patch.role = data.role;
+    if (data.title !== undefined) patch.title = data.title ?? null;
     if (data.permissions !== undefined) patch.permissions = (data.permissions ?? {}) as Permissions;
     if (data.active !== undefined) patch.active = data.active;
     const { error } = await supabase
