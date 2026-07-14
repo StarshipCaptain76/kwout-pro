@@ -107,6 +107,7 @@ export interface Doc {
   toCoords?: { lat: number; lng: number };
   distanceKm?: number;
   assignedTo?: string; // staff user_id
+  moduleData?: Partial<Record<import("./modules").ModuleKey, Record<string, unknown>>>;
 }
 
 export interface Theme {
