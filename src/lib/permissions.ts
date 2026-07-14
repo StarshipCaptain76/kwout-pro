@@ -30,9 +30,19 @@ export type Action =
   // Payslips (owner-only feature)
   | "payslips.view"
   | "payslips.manage"
-  // Settings — always owner only, kept here for a single source of truth
-  | "settings.staff"
-  | "settings.company";
+  // Settings — sub-sections. Owners always have all; managers/staff off by default.
+  // Owner can tick individual sections to grant.
+  | "settings.view"          // any settings access at all (derived, but kept as a preset)
+  | "settings.company"
+  | "settings.banking"
+  | "settings.billing"
+  | "settings.appearance"
+  | "settings.catalog"
+  | "settings.expenses"
+  | "settings.staff"         // owner only
+  | "settings.subscription"; // owner only
+
+
 
 export type Permissions = Partial<Record<Action, boolean>>;
 
