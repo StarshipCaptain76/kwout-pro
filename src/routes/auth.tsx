@@ -61,6 +61,7 @@ function AuthPage() {
   const [pendingVerification, setPendingVerification] = useState<{ email: string } | null>(null);
   const [resetSent, setResetSent] = useState<{ email: string } | null>(null);
   const [signInProblem, setSignInProblem] = useState<SignInProblem>(null);
+  const [signUpProblem, setSignUpProblem] = useState<SignUpProblem>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
