@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MailCheck, AlertCircle } from "lucide-react";
+import { MailCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { toast } from "sonner";
 const kwoutLogo = { url: "/kwout-logo.png" };
@@ -64,6 +64,7 @@ function AuthPage() {
   const [signUpProblem, setSignUpProblem] = useState<SignUpProblem>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const passwordRef = useRef<HTMLInputElement | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useLayoutEffect(() => {
     if (typeof document === "undefined") return;
@@ -393,7 +394,12 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label>Password</Label>
-                  <Input ref={passwordRef} type="password" className="h-11" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+                  <div className="relative">
+                    <Input ref={passwordRef} type={showPassword ? "text" : "password"} className="h-11 pr-10" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} tabIndex={-1}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" disabled={busy} className="h-11">
                   {busy ? "Signing in…" : "Sign in"}
@@ -436,7 +442,12 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label>Password</Label>
-                  <Input type="password" className="h-11" value={password} onChange={(e) => { setPassword(e.target.value); setSignUpProblem(null); }} autoComplete="new-password" required minLength={8} />
+                  <div className="relative">
+                    <Input type={showPassword ? "text" : "password"} className="h-11 pr-10" value={password} onChange={(e) => { setPassword(e.target.value); setSignUpProblem(null); }} autoComplete="new-password" required minLength={8} />
+                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} tabIndex={-1}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Minimum 8 characters. Avoid common passwords — passphrases work best.
                   </p>
