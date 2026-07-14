@@ -279,3 +279,79 @@ function AuthButton() {
     </button>
   );
 }
+
+function WorkspaceSwitcher() {
+  const [workspaces, setWorkspaces] = useState<WorkspaceDTO[]>([]);
+  const [authed, setAuthed] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const workspaceOwnerId = useStore((s) => s.currentWorkspaceOwnerId);
+  const fetchWorkspaces = useServerFn(listMyWorkspaces);
+
+  useEffect(() => {
+    let cancel = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancel) return;
+      const signedIn = !!data.user;
+      setAuthed(signedIn);
+      if (!signedIn) return;
+      fetchWorkspaces()
+        .then((list) => { if (!cancel) setWorkspaces(list); })
+        .catch((e) => console.error("[WorkspaceSwitcher]", e));
+    });
+    return () => { cancel = true; };
+  }, [fetchWorkspaces, workspaceOwnerId]);
+
+  if (!authed || workspaces.length < 2) return null;
+
+  const current =
+    workspaces.find((w) => w.workspaceOwnerId === workspaceOwnerId) ?? workspaces[0];
+
+  const pick = async (owner: string) => {
+    if (owner === current.workspaceOwnerId || switching) return;
+    setSwitching(true);
+    try {
+      await switchWorkspace(owner);
+      toast.success("Switched workspace");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not switch workspace");
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 max-w-[180px]"
+        title="Switch workspace"
+      >
+        <Building2 className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{current.businessName}</span>
+        <ChevronDown className="h-3 w-3 opacity-60 shrink-0" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel>Your workspaces</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {workspaces.map((w) => {
+          const isCurrent = w.workspaceOwnerId === current.workspaceOwnerId;
+          return (
+            <DropdownMenuItem
+              key={w.workspaceOwnerId}
+              onSelect={() => void pick(w.workspaceOwnerId)}
+              className="flex items-center gap-2"
+            >
+              <Building2 className="h-4 w-4 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm">{w.businessName}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {w.isOwner ? "Owner" : w.role}
+                </div>
+              </div>
+              {isCurrent && <Check className="h-4 w-4 text-primary" />}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
