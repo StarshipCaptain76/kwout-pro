@@ -238,9 +238,11 @@ function Landing() {
 /* -------------------- Dashboard (signed in) -------------------- */
 
 function Dashboard() {
-  const { docs, billing, upsertDoc } = useStore();
+  const { docs, billing, upsertDoc, company } = useStore();
   const canSeeAll = useCan("reports.viewAll");
   const canSeeDocs = useCan("jobs.viewAll");
+  const canPickType = useCan("settings.modules");
+  const needsBusinessType = canPickType && (!company.businessType || company.businessType === "other");
 
 
   useEffect(() => {
