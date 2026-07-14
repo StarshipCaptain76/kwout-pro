@@ -18,6 +18,7 @@ function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     // Supabase parses the recovery token from the URL hash into a session.
