@@ -309,18 +309,30 @@ export const listPayslips = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<PayslipDTO[]> => {
     const { supabase, userId } = context;
     await assertOwner(supabase, userId);
-    let q = supabase
-      .from("payslips")
-      .select(
-        "id, staff_id, period_start, period_end, period_label, hours, gross, commission_amount, paye, uif_employee, uif_employer, sdl, other_deductions, deductions_breakdown, net, status, finalized_at, sent_at, staff_members!inner(name, email)",
-      )
-      .eq("workspace_owner_id", userId)
-      .order("period_start", { ascending: false });
-    if (data.from) q = q.gte("period_start", data.from);
-    if (data.to) q = q.lte("period_end", data.to);
-    const { data: rows, error } = await q;
-    if (error) throw error;
-    return (rows ?? []).map((r) => {
+    const rows = await fetchAllRows<Record<string, unknown>>(
+      () => {
+        let q = supabase
+          .from("payslips")
+          .select(
+            "id, staff_id, period_start, period_end, period_label, hours, gross, commission_amount, paye, uif_employee, uif_employer, sdl, other_deductions, deductions_breakdown, net, status, finalized_at, sent_at, staff_members!inner(name, email)",
+          )
+          .eq("workspace_owner_id", userId)
+          .order("period_start", { ascending: false });
+        if (data.from) q = q.gte("period_start", data.from);
+        if (data.to) q = q.lte("period_end", data.to);
+        return q as unknown as {
+          range: (
+            from: number,
+            to: number,
+          ) => PromiseLike<{
+            data: Record<string, unknown>[] | null;
+            error: { message: string } | null;
+          }>;
+        };
+      },
+    );
+    return rows.map((r) => {
+
       const rec = r as unknown as {
         id: string; staff_id: string; period_start: string; period_end: string;
         period_label: string; hours: number; gross: number; commission_amount: number;
