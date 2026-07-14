@@ -79,7 +79,10 @@ export function Shell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <div className="ml-auto md:ml-0"><SyncBadge /></div>
+          <div className="ml-auto md:ml-0 flex items-center gap-1">
+            <WorkspaceSwitcher />
+            <SyncBadge />
+          </div>
           <AuthButton />
         </div>
       </header>
