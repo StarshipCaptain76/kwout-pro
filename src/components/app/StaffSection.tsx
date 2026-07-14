@@ -120,7 +120,12 @@ export function StaffSection() {
         onCreated={(email, password) => setJustCreated({ email, password })}
       />
 
-      <EditStaffSheet member={editing} onClose={() => setEditing(null)} onRefresh={refreshStaffList} />
+      <EditStaffSheet
+        member={editing}
+        canReset={editing ? !!canResetById[editing.id] : false}
+        onClose={() => setEditing(null)}
+        onRefresh={refreshStaffList}
+      />
 
       {justCreated && (
         <CredentialsDialog creds={justCreated} onClose={() => setJustCreated(null)} />
