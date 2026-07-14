@@ -152,9 +152,38 @@ function SettingsPage() {
                   />
                 </div>
               ))}
+              <div>
+                <Label>Business type</Label>
+                <Select
+                  value={s.company.businessType ?? "other"}
+                  onValueChange={(v) => {
+                    const bt = v as BusinessType;
+                    s.setCompany({
+                      ...s.company,
+                      businessType: bt,
+                      enabledModules: defaultModulesFor(bt),
+                    });
+                    toast.success("Business type updated — modules refreshed");
+                  }}
+                >
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BUSINESS_TYPES.map((b) => (
+                      <SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Picking a type turns on the extra invoice fields most useful for that industry. You can fine-tune them under Modules.
+                </p>
+              </div>
               <Button onClick={() => toast.success("Saved")} className="w-fit">Save</Button>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="modules">
+          <ModulesEditor />
         </TabsContent>
 
         <TabsContent value="banking">
