@@ -54,29 +54,18 @@ function ExpensesPage() {
   }
 
 
-  const [currentUid, setCurrentUid] = useState<string | null>(null);
-  useState(() => {
-    supabase.auth.getUser().then(({ data }) => setCurrentUid(data.user?.id ?? null));
-    return null;
-  });
-
   const monthExpenses = useMemo(() => {
+    if (!canViewAll) return [] as Expense[]; // staff without view-all see nothing until server-side scoping lands
     const start = startOfMonth(month);
     const end = endOfMonth(month);
     return expenses
       .filter((e) => {
         const d = parseISO(e.date);
-        if (!(d >= start && d <= end)) return false;
-        // Field staff without viewAll: only their own expenses (identified by createdAt+userId isn't tracked
-        // locally, so we hide all workspace history and let them see only items they add this session).
-        if (!canViewAll) {
-          const own = (e as unknown as { userId?: string }).userId ?? currentUid;
-          return own === currentUid;
-        }
-        return true;
+        return d >= start && d <= end;
       })
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [expenses, month, canViewAll, currentUid]);
+  }, [expenses, month, canViewAll]);
+
 
 
   const total = monthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
