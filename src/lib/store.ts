@@ -509,6 +509,7 @@ export const useStore = create<State>()(
           staff: [],
           currentUserId: null,
           currentStaff: null,
+          currentWorkspaceOwnerId: null,
         });
       },
     }),
