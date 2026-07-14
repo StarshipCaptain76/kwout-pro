@@ -98,6 +98,17 @@ function ExpensesPage() {
     return Array.from(g.entries());
   }, [monthExpenses]);
 
+  const categoryBreakdown = useMemo(() => {
+    const m = new Map<string, number>();
+    monthExpenses.forEach((e) => {
+      m.set(e.category || "Other", (m.get(e.category || "Other") ?? 0) + (e.amount || 0));
+    });
+    return Array.from(m.entries())
+      .map(([name, value]) => ({ name, value, color: categoryColor(name, expenseCategories) }))
+      .sort((a, b) => b.value - a.value);
+  }, [monthExpenses, expenseCategories]);
+
+
   const newExpense = () => {
     setEditing({
       id: newId(),
