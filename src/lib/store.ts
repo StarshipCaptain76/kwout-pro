@@ -519,8 +519,8 @@ export const useStore = create<State>()(
       version: 4,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
-        const { staff: _s, currentUserId: _u, currentStaff: _c, ...rest } = s;
-        void _s; void _u; void _c;
+        const { staff: _s, currentUserId: _u, currentStaff: _c, currentWorkspaceOwnerId: _w, ...rest } = s;
+        void _s; void _u; void _c; void _w;
         return rest as unknown as State;
       },
       migrate: (persisted: unknown, version: number) => {
