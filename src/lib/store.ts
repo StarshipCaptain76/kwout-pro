@@ -134,6 +134,11 @@ export interface Company {
   theme?: Theme;
   businessType?: import("./modules").BusinessType;
   enabledModules?: import("./modules").ModuleKey[];
+  /** Default disposal / dump-site address, used by the "Disposal" quick-fill button on job addresses when the Waste module is active. */
+  disposalSite?: {
+    address: string;
+    coords?: { lat: number; lng: number } | null;
+  };
 }
 
 export interface Banking {

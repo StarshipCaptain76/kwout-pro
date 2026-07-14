@@ -32,10 +32,6 @@ import { flushSync } from "@/lib/sync";
 const nn = (v: number) => (isFinite(v) && v > 0 ? v : 0);
 
 
-const DISPOSAL_SITE = {
-  address: "Melkhoutfontein Dumpsite, Stilbaai, South Africa",
-  coords: { lat: -34.321459, lng: 21.437664 },
-};
 
 export const Route = createFileRoute("/doc/$id")({ component: DocPage });
 
@@ -198,14 +194,17 @@ function DocPage() {
                       placeholder="Search address…"
                       onChange={(v) => update({ toAddress: v.address, toCoords: v.coords })}
                       extraButton={
-                        enabledModules.has("waste") ? (
+                        enabledModules.has("waste") && company.disposalSite?.address ? (
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             className="whitespace-nowrap"
                             onClick={() =>
-                              update({ toAddress: DISPOSAL_SITE.address, toCoords: DISPOSAL_SITE.coords })
+                              update({
+                                toAddress: company.disposalSite!.address,
+                                toCoords: company.disposalSite!.coords ?? undefined,
+                              })
                             }
                           >
                             <Recycle className="h-4 w-4 mr-1" /> Disposal
