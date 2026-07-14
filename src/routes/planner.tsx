@@ -257,7 +257,7 @@ function PlannerPage() {
           </div>
         )}
 
-        <Legend />
+        
 
         <div {...swipe} style={{ touchAction: "pan-y" }}>
         {view === "agenda" && (
