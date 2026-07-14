@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useStore, newId, fmtMoney, computeVat, useCan, type Expense, type PayMethod } from "@/lib/store";
-import { supabase } from "@/integrations/supabase/client";
+
 
 import { ReceiptCapture } from "@/components/app/ReceiptCapture";
 import { parseReceipt } from "@/lib/expenses.functions";
