@@ -82,7 +82,7 @@ export function Shell({ children }: { children: ReactNode }) {
             )}
           </Link>
           <nav className="hidden md:flex gap-1 ml-auto items-center">
-            {nav.map((n) => {
+            {visibleNav.map((n) => {
               const active = n.to === "/" ? path === "/" : path.startsWith(n.to);
               const Icon = n.icon;
               return (
