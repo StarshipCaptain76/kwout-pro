@@ -6,7 +6,8 @@ import {
   Cloud, CloudOff, Plus, FileText, Receipt, Wallet, LogIn, LogOut, User, Building2, ChevronDown, Check,
 } from "lucide-react";
 import { initSync, subscribeSync, switchWorkspace } from "@/lib/sync";
-import { useStore, newId, type Doc } from "@/lib/store";
+import { useStore, newId, useCan, type Doc } from "@/lib/store";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
