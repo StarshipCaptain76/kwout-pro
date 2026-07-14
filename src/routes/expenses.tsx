@@ -220,35 +220,44 @@ function ExpensesPage() {
                 {format(parseISO(date), "EEE d MMM")}
               </div>
               <Card className="divide-y">
-                {items.map((e) => (
-                  <button
-                    key={e.id}
-                    onClick={() => setEditing(e)}
-                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50"
-                  >
-                    {e.receiptImage ? (
-                      <img
-                        src={e.receiptImage}
-                        alt="Business expense receipt"
-                        className="h-12 w-12 rounded object-cover border shrink-0"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground shrink-0">
-                        —
+                {items.map((e) => {
+                  const color = categoryColor(e.category, expenseCategories);
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => setEditing(e)}
+                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 border-l-4"
+                      style={{ borderLeftColor: color }}
+                    >
+                      {e.receiptImage ? (
+                        <img
+                          src={e.receiptImage}
+                          alt="Business expense receipt"
+                          className="h-12 w-12 rounded object-cover border shrink-0"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground shrink-0">
+                          —
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium truncate">{e.vendor || "Unknown"}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] mr-1 font-medium"
+                            style={{ backgroundColor: `${color}22`, color }}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {e.category}
+                          </span>
+                          {e.description}
+                        </div>
                       </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium truncate">{e.vendor || "Unknown"}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground text-[10px] mr-1">
-                          {e.category}
-                        </span>
-                        {e.description}
-                      </div>
-                    </div>
-                    <div className="font-semibold shrink-0">{fmtMoney(e.amount, billing.currency)}</div>
-                  </button>
-                ))}
+                      <div className="font-semibold shrink-0">{fmtMoney(e.amount, billing.currency)}</div>
+                    </button>
+                  );
+                })}
+
               </Card>
             </div>
           ))}
