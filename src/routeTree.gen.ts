@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResultsRouteImport } from './routes/results'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PlannerRouteImport } from './routes/planner'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -46,6 +47,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const PlannerRoute = PlannerRouteImport.update({
   id: '/planner',
   path: '/planner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpensesRoute = ExpensesRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/expenses': typeof ExpensesRoute
+  '/legal': typeof LegalRoute
   '/planner': typeof PlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/expenses': typeof ExpensesRoute
+  '/legal': typeof LegalRoute
   '/planner': typeof PlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/expenses': typeof ExpensesRoute
+  '/legal': typeof LegalRoute
   '/planner': typeof PlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/results': typeof ResultsRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/expenses'
+    | '/legal'
     | '/planner'
     | '/reset-password'
     | '/results'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/expenses'
+    | '/legal'
     | '/planner'
     | '/reset-password'
     | '/results'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/expenses'
+    | '/legal'
     | '/planner'
     | '/reset-password'
     | '/results'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   DocsRoute: typeof DocsRoute
   ExpensesRoute: typeof ExpensesRoute
+  LegalRoute: typeof LegalRoute
   PlannerRoute: typeof PlannerRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ResultsRoute: typeof ResultsRoute
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/planner'
       fullPath: '/planner'
       preLoaderRoute: typeof PlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expenses': {
@@ -309,6 +329,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   DocsRoute: DocsRoute,
   ExpensesRoute: ExpensesRoute,
+  LegalRoute: LegalRoute,
   PlannerRoute: PlannerRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ResultsRoute: ResultsRoute,
@@ -321,13 +342,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
