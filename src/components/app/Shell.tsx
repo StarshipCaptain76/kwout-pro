@@ -138,13 +138,22 @@ function MobileTabBar() {
     nav({ to: "/doc/$id", params: { id } });
   };
 
-  const tabs = [
+  const canPlanner = useCan("planner.view");
+  const canExpenses = useCan("expenses.addOwn");
+  const canSettings = useCan("settings.view");
+  const canCreateJob = useCan("jobs.create");
+
+  type Tab =
+    | { to: string; label: string; icon: typeof LayoutDashboard }
+    | { fab: true };
+  const tabs: Tab[] = [
     { to: "/", label: "Home", icon: LayoutDashboard },
-    { to: "/planner", label: "Planner", icon: Calendar },
-    { fab: true },
-    { to: "/expenses", label: "Expenses", icon: Wallet },
-    { to: "/settings", label: "Settings", icon: Settings },
-  ] as const;
+    ...(canPlanner ? [{ to: "/planner", label: "Planner", icon: Calendar } as Tab] : []),
+    ...(canCreateJob ? [{ fab: true } as Tab] : []),
+    ...(canExpenses ? [{ to: "/expenses", label: "Expenses", icon: Wallet } as Tab] : []),
+    ...(canSettings ? [{ to: "/settings", label: "Settings", icon: Settings } as Tab] : []),
+  ];
+  const cols = `grid-cols-${Math.max(2, tabs.length)}`;
 
   return (
     <>
@@ -152,7 +161,8 @@ function MobileTabBar() {
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-secondary text-secondary-foreground border-t border-white/10"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <ul className="grid grid-cols-5 h-16 max-w-md mx-auto">
+        <ul className={cn("grid h-16 max-w-md mx-auto", cols)}>
+
           {tabs.map((t, i) => {
             if ("fab" in t) {
               return (
