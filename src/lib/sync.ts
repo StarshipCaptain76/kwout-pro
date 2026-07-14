@@ -281,40 +281,37 @@ async function loadAll() {
   emit();
 
   try {
-    const fetchAll = async <T = unknown>(
-      table: "catalog_items" | "customers" | "docs" | "expenses" | "expense_categories",
+    const PAGE = 1000;
+    const fetchAll = async <T>(
+      builder: () => { range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }> },
     ): Promise<T[]> => {
-      const pageSize = 1000;
       const rows: T[] = [];
-      for (let from = 0; ; from += pageSize) {
-        const to = from + pageSize - 1;
-        const { data, error } = await supabase
-          .from(table)
-          .select("*")
-          .eq("owner_user_id", uid)
-          .range(from, to);
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await builder().range(from, from + PAGE - 1);
         if (error) throw error;
-        const chunk = (data ?? []) as T[];
+        const chunk = data ?? [];
         rows.push(...chunk);
-        if (chunk.length < pageSize) break;
+        if (chunk.length < PAGE) break;
       }
       return rows;
     };
 
     const [profileRes, catData, custData, docsData, expData, catCatData] = await Promise.all([
       supabase.from("company_profile").select("*").eq("owner_user_id", uid).maybeSingle(),
-      fetchAll<Record<string, unknown>>("catalog_items"),
-      fetchAll<Record<string, unknown>>("customers"),
-      fetchAll<Record<string, unknown>>("docs"),
-      fetchAll<Record<string, unknown>>("expenses"),
-      fetchAll<Record<string, unknown>>("expense_categories"),
+      fetchAll((): ReturnType<typeof supabase.from<"catalog_items">> extends never ? never : ReturnType<typeof supabase.from> =>
+        supabase.from("catalog_items").select("*").eq("owner_user_id", uid) as never),
+      fetchAll(() => supabase.from("customers").select("*").eq("owner_user_id", uid) as never),
+      fetchAll(() => supabase.from("docs").select("*").eq("owner_user_id", uid) as never),
+      fetchAll(() => supabase.from("expenses").select("*").eq("owner_user_id", uid) as never),
+      fetchAll(() => supabase.from("expense_categories").select("*").eq("owner_user_id", uid) as never),
     ]);
     if (profileRes.error) throw profileRes.error;
-    const catRes = { data: catData } as { data: Array<Record<string, unknown>> };
-    const custRes = { data: custData } as { data: Array<Record<string, unknown>> };
-    const docsRes = { data: docsData } as { data: Array<Record<string, unknown>> };
-    const expRes = { data: expData } as { data: Array<Record<string, unknown>> };
-    const catCatRes = { data: catCatData } as { data: Array<Record<string, unknown>> };
+    const catRes = { data: catData as Awaited<ReturnType<typeof supabase.from<"catalog_items">>["select"]>["data"] } as { data: Array<{ id: string; name: string; price: number | string; unit: string }> };
+    const custRes = { data: custData } as { data: Array<{ id: string; name: string; phone: string; email: string; address: string | null }> };
+    const docsRes = { data: docsData } as { data: Array<Record<string, unknown> & { id: string; number: string; type: string; status: string; created_at: string; archived: boolean; customer: unknown; items: unknown; deposit_pct: number | string; deposit_paid: boolean }> };
+    const expRes = { data: expData } as { data: Array<{ id: string; created_at: string; date: string; category: string; vendor: string; description: string | null; amount: number | string; vat_amount: number | string | null; payment_method: string | null; notes: string | null; receipt_image: string | null; linked_doc_id: string | null }> };
+    const catCatRes = { data: catCatData } as { data: Array<{ name: string }> };
+
 
 
     const prev = useStore.getState();
