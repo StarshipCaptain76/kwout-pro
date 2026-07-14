@@ -189,18 +189,18 @@ export const generatePayslipDraft = createServerFn({ method: "POST" })
 
     // Commission: sum of paid docs assigned to this staff in the period.
     if (payType === "commission" || (payType !== "manual" && commissionPct > 0)) {
-      const { data: docs } = await supabase
-        .from("docs")
-        .select("subtotal, paid_at, assigned_to")
-        .eq("owner_user_id", userId)
-        .eq("assigned_to", staffUserId)
-        .eq("status", "paid")
-        .gte("paid_at", data.periodStart)
-        .lte("paid_at", data.periodEnd + "T23:59:59");
-      const revenue = (docs ?? []).reduce(
-        (s, d) => s + Number((d as { subtotal?: number }).subtotal ?? 0),
-        0,
+      const docs = await fetchAllRows<{ subtotal: number | null }>(() =>
+        supabase
+          .from("docs")
+          .select("subtotal, paid_at, assigned_to")
+          .eq("owner_user_id", userId)
+          .eq("assigned_to", staffUserId)
+          .eq("status", "paid")
+          .gte("paid_at", data.periodStart)
+          .lte("paid_at", data.periodEnd + "T23:59:59"),
       );
+      const revenue = docs.reduce((s, d) => s + Number(d.subtotal ?? 0), 0);
+
       commissionAmount = Math.round(revenue * (commissionPct / 100) * 100) / 100;
       if (payType === "commission") gross = commissionAmount;
       else gross += commissionAmount;
