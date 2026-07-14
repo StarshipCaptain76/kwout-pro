@@ -300,9 +300,16 @@ function DocPage() {
             </div>
           </Card>
 
+          {(billing.terms ?? "").trim() && (
+            <Card className="p-4">
+              <Label>Terms &amp; conditions</Label>
+              <div className="text-sm whitespace-pre-wrap text-muted-foreground mt-1">{billing.terms}</div>
+            </Card>
+          )}
+
           <Card className="p-4">
             <Label>Notes</Label>
-            <Textarea value={doc.notes ?? ""} onChange={(e) => update({ notes: e.target.value })} placeholder="Terms, thanks, etc." />
+            <Textarea value={doc.notes ?? ""} onChange={(e) => update({ notes: e.target.value })} placeholder="Thanks, delivery info, etc." />
           </Card>
 
           {(company.enabledModules ?? [])
