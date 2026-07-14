@@ -472,6 +472,21 @@ export async function refreshStaff() {
   }
 }
 
+export async function switchWorkspace(workspaceOwnerId: string) {
+  if (!state.userId) return;
+  await setActiveWorkspace({ data: { workspaceOwnerId } });
+  // Wipe in-memory data from the old workspace before hydrating the new one,
+  // otherwise the store briefly shows a mix of both workspaces' rows.
+  suppressPush = true;
+  try {
+    useStore.getState().resetToDefaults();
+  } finally {
+    suppressPush = false;
+  }
+  state.workspaceOwnerId = null;
+  await resolveAndLoad();
+}
+
 let started = false;
 export async function initSync() {
   if (started || typeof window === "undefined") return;
