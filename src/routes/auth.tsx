@@ -128,6 +128,7 @@ function AuthPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setSignUpProblem(null);
     try {
       await sendSignup({
         data: {
@@ -139,7 +140,19 @@ function AuthPage() {
       setPendingVerification({ email });
       setResendCooldown(30);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign up failed");
+      const msg = err instanceof Error ? err.message : "Sign up failed";
+      const lower = msg.toLowerCase();
+      if (
+        lower.includes("weak") ||
+        lower.includes("easy to guess") ||
+        lower.includes("pwned") ||
+        lower.includes("compromised") ||
+        lower.includes("breach")
+      ) {
+        setSignUpProblem({ kind: "weak-password" });
+      } else {
+        setSignUpProblem({ kind: "generic", message: msg });
+      }
     } finally {
       setBusy(false);
     }
