@@ -50,7 +50,8 @@ export const Route = createFileRoute("/expenses")({
 });
 
 function ExpensesPage() {
-  const { expenses, billing } = useStore();
+  const { expenses, billing, expenseCategories } = useStore();
+
   const canViewAll = useCan("expenses.viewAll");
   const canAdd = useCan("expenses.addOwn");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
