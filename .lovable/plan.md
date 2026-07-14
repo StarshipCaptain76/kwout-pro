@@ -1,32 +1,31 @@
 ## Goal
 
-Ensure every list-style Supabase read fetches ALL rows, not just the PostgREST default first 1000. The expenses sync path was already fixed; several server-side aggregation queries still cap at 1000 and silently under-count.
+Treat `dawie@polka.co.za`, `julius@polka.co.za`, and `nadia.jvr1668@gmail.com` as legacy free-unlimited accounts in the `/admin` overview. They should never appear as "trial", "trial_expired", "paying", "past_due", or "cancelled" — they get their own "legacy_free" bucket and are excluded from MRR and trial-conversion math.
 
-## Queries to fix
+## Changes
 
-**`src/lib/admin.functions.ts` (platform admin dashboard)** — aggregates across all users, easily exceeds 1000 rows:
-- `subscriptions` (line 99) — one row per user
-- `docs` (line 154) — quotes + invoices across the whole platform (highest risk)
-- `expenses` (line 197) — all expenses across the platform
-- `workspaces` (line 207)
-- `company_profile` (line 212)
+**`src/lib/admin.functions.ts`** (only file touched):
 
-**`src/lib/payslips.functions.ts`**:
-- `listPayslips` (line 300) — grows every pay cycle
-- Commission docs read (line 190) — filtered by staff + paid + date range, but a long-tenured staff member can still exceed 1000 paid docs
+1. Add a constant set:
+   ```ts
+   const LEGACY_FREE_EMAILS = new Set([
+     "dawie@polka.co.za",
+     "julius@polka.co.za",
+     "nadia.jvr1668@gmail.com",
+   ]);
+   ```
+2. Build a `legacyUserIds: Set<string>` from `allUsers` by matching lowercased email.
+3. In the subscription-tally loop, `continue` early for any `s.user_id` in `legacyUserIds` and increment a `legacyFree` counter instead.
+4. Adjust `noSub` so legacy users without a subscription row are also counted as legacy, not as `no_sub`:
+   `noSub = max(0, allUsers.length - subs.length - (legacyUsersWithoutSubRow))`.
+5. Exclude legacy users from `mrr` (already handled since they're skipped from `payingUsers`) and from `trialConversionPct` base.
+6. Add `{ status: "legacy_free", count: legacyFree }` to `subscriptionBreakdown` (filtered out if 0).
+7. In `recentSignups`, override `subStatus` to `"legacy_free"` when the user's email is in the set.
 
-**Already fixed** — `src/lib/sync.ts` pages all six workspace tables (catalog_items, customers, docs, expenses, expense_categories, company_profile).
-
-**Bounded / safe** — `src/lib/staff.functions.ts` (per-workspace staff/roles), `src/lib/subscription.functions.ts` (single-user reads), all write/upsert/delete calls.
-
-## Approach
-
-1. Add a small shared helper `fetchAllRows(builder)` in a new `src/lib/pagination.server.ts` that loops `.range(from, from + 999)` until a short page is returned. Server-only, so it can live in a `.server.ts` file.
-2. Wrap each of the 7 queries above to use it. Keep column projections and filters identical — only the fetch loop changes.
-3. Typecheck via `tsgo --noEmit`.
+No UI changes needed — `/admin` renders whatever statuses come back from `subscriptionBreakdown` and `recentSignups`, so the new `legacy_free` label will render automatically.
 
 ## Non-goals
 
-- No schema changes, no new indexes, no UI changes.
-- No changes to `staff.functions.ts` or `subscription.functions.ts` (bounded).
-- No client-side changes (client store already receives fully-paged data from `sync.ts`).
+- No schema change, no `subscriptions` row edits, no billing logic changes.
+- No changes to `subscription.functions.ts` — those users' own `/settings` view is out of scope for this request.
+- Access rules (who can view `/admin`) unchanged.
