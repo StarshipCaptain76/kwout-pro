@@ -149,6 +149,7 @@ export type Database = {
           paid_at: string | null
           payment_method: string | null
           scheduled_date: string | null
+          scheduled_end_date: string | null
           status: string
           to_address: string | null
           to_coords: Json | null
@@ -175,6 +176,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string | null
           scheduled_date?: string | null
+          scheduled_end_date?: string | null
           status?: string
           to_address?: string | null
           to_coords?: Json | null
@@ -201,6 +203,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string | null
           scheduled_date?: string | null
+          scheduled_end_date?: string | null
           status?: string
           to_address?: string | null
           to_coords?: Json | null

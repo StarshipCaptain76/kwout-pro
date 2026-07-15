@@ -160,6 +160,7 @@ export function pushDoc(d: Doc) {
       status: d.status,
       created_at: d.createdAt,
       scheduled_date: d.scheduledDate ?? null,
+      scheduled_end_date: d.scheduledEndDate ?? null,
       day_order: d.dayOrder ?? null,
       archived: !!d.archived,
       customer: d.customer as unknown as never,
@@ -272,9 +273,29 @@ export function pushMany(docs: Doc[], expenses: Expense[], catalog: CatalogItem[
 
 // ============ initial load ============
 
+async function waitForRehydrate() {
+  const p = useStore.persist;
+  if (!p) return;
+  if (p.hasHydrated?.()) return;
+  await new Promise<void>((resolve) => {
+    const unsub = p.onFinishHydration?.(() => {
+      unsub?.();
+      resolve();
+    });
+    // Fallback in case persist has no onFinishHydration wired.
+    if (!unsub) resolve();
+  });
+}
+
 async function loadAll() {
   const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
+
+  // Ensure persist has finished rehydrating from localStorage BEFORE we
+  // setState with remote data — otherwise a late rehydrate silently
+  // overwrites the fresh cloud snapshot (visible as "expenses saved but
+  // disappear on next load").
+  await waitForRehydrate();
 
   state.loading = true;
   state.status = "loading";
@@ -340,6 +361,7 @@ async function loadAll() {
       status: r.status as Doc["status"],
       createdAt: r.created_at,
       scheduledDate: r.scheduled_date ?? undefined,
+      scheduledEndDate: r.scheduled_end_date ?? undefined,
       dayOrder: r.day_order ?? undefined,
       archived: r.archived,
       customer: r.customer as unknown as Customer,

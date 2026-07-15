@@ -94,6 +94,7 @@ export interface Doc {
   status: DocStatus;
   createdAt: string;
   scheduledDate?: string;
+  scheduledEndDate?: string;
   dayOrder?: number;
   archived?: boolean;
   customer: Customer;
@@ -439,10 +440,16 @@ export const useStore = create<State>()(
         const s = get();
         const existingExp = new Set(s.expenses.map((e) => e.id));
         const existingDoc = new Set(s.docs.map((d) => d.id));
-        const newExp = p.expenses.filter((e) => !existingExp.has(e.id));
+        // Categories mutate ONLY on explicit user action — imports must never
+        // silently create new categories. Map unknown categories to "Other".
+        const knownCats = new Set(s.expenseCategories.map((c) => c.toLowerCase()));
+        const normalisedExp = p.expenses
+          .filter((e) => !existingExp.has(e.id))
+          .map((e) =>
+            e.category && knownCats.has(e.category.toLowerCase()) ? e : { ...e, category: "Other" },
+          );
+        const newExp = normalisedExp;
         const newDocs = p.docs.filter((d) => !existingDoc.has(d.id));
-        const catNames = new Set(s.expenseCategories);
-        for (const c of p.newExpenseCategories) catNames.add(c);
         const catalogNames = new Set(s.catalog.map((c) => c.name.toLowerCase()));
         const addedCatalog = p.newCatalogItems.filter(
           (c) => !catalogNames.has(c.name.toLowerCase()),
@@ -450,7 +457,6 @@ export const useStore = create<State>()(
         set({
           expenses: [...newExp, ...s.expenses],
           docs: [...newDocs, ...s.docs],
-          expenseCategories: Array.from(catNames),
           catalog: [...s.catalog, ...addedCatalog],
           billing: {
             ...s.billing,
@@ -459,7 +465,6 @@ export const useStore = create<State>()(
         });
         newExp.forEach(pushExpense);
         newDocs.forEach(pushDoc);
-        p.newExpenseCategories.forEach(pushExpenseCategory);
         addedCatalog.forEach(pushCatalogItem);
         pushCompanyProfile();
         return { expenses: newExp.length, docs: newDocs.length };
