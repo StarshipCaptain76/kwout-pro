@@ -273,9 +273,29 @@ export function pushMany(docs: Doc[], expenses: Expense[], catalog: CatalogItem[
 
 // ============ initial load ============
 
+async function waitForRehydrate() {
+  const p = useStore.persist;
+  if (!p) return;
+  if (p.hasHydrated?.()) return;
+  await new Promise<void>((resolve) => {
+    const unsub = p.onFinishHydration?.(() => {
+      unsub?.();
+      resolve();
+    });
+    // Fallback in case persist has no onFinishHydration wired.
+    if (!unsub) resolve();
+  });
+}
+
 async function loadAll() {
   const uid = state.workspaceOwnerId ?? state.userId;
   if (!uid) return;
+
+  // Ensure persist has finished rehydrating from localStorage BEFORE we
+  // setState with remote data — otherwise a late rehydrate silently
+  // overwrites the fresh cloud snapshot (visible as "expenses saved but
+  // disappear on next load").
+  await waitForRehydrate();
 
   state.loading = true;
   state.status = "loading";
