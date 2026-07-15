@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 const kwoutLogo = { url: "/kwout-logo.png" };
-const CONTACT_EMAIL = "support@kwout.co.za";
+const CONTACT_EMAIL = "hello@kwout.co.za";
 const BUSINESS = {
   name: "KWOUT",
   address: "38 Geelhout Avenue, Still Bay, WC, South Africa, 6674",
