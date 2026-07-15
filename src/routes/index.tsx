@@ -223,7 +223,7 @@ function Landing() {
               className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#3FA34D]"
             >
               <Mail className="h-3.5 w-3.5" />
-              hello@kwout.co.za
+              hello @ kwout.co.za
             </a>
             <button
               onClick={() => openWhatsApp("0664027116", "Hi KWOUT, I have a question about...")}
