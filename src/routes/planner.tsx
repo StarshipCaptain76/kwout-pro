@@ -500,45 +500,103 @@ function AgendaDay({ date, iso, docs, currency, vat }: { date: Date; iso: string
         {docs.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-2">No jobs</p>
         ) : (
-          docs.map((d) => <AgendaJob key={d.id} doc={d} currency={currency} vat={vat} />)
+          docs.map((d) => <AgendaJob key={d.id} doc={d} iso={iso} currency={currency} vat={vat} />)
         )}
       </div>
     </div>
   );
 }
 
-function AgendaJob({ doc, currency, vat }: { doc: Doc; currency: string; vat: number }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
-  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
+// ---------- shared 3-line layout ----------
+type Variant = "agenda" | "week" | "month";
+
+function JobCardLayout({
+  doc, iso, currency, vat, variant, dragProps, dragging,
+}: {
+  doc: Doc;
+  iso?: string;
+  currency: string;
+  vat: number;
+  variant: Variant;
+  dragProps?: Record<string, unknown>;
+  dragging?: boolean;
+}) {
   const t = docTotals(doc, vat);
-  const open = usePlannerActions();
-  const lp = useLongPress(() => open(doc));
+  const cat = jobCategory(doc);
+  const span = iso ? daySpanFor(doc, iso) : null;
+  const isContinuation = !!span && span.idx > 1;
+  const address = doc.fromAddress || doc.toAddress || (doc.customer.address ?? "no address");
+  const small = variant === "month";
+
   return (
-    <div ref={setNodeRef} style={style} className={cn(
-      "flex items-stretch rounded-lg bg-background border overflow-hidden",
-      isDragging && "opacity-50",
-    )} {...lp}>
-      <button {...listeners} {...attributes} className="px-2 flex items-center text-muted-foreground touch-none cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <Link to="/doc/$id" params={{ id: doc.id }} className="flex-1 flex items-center justify-between py-2 pr-3 gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm truncate">{doc.customer.name || "—"}</div>
-          <div className="text-[11px] text-muted-foreground truncate">{doc.number} · {doc.fromAddress || "no address"}</div>
-          <div className="text-[11px] font-medium truncate">{jobSummary(doc)}</div>
+    <div
+      className={cn(
+        "rounded border overflow-hidden",
+        CATEGORY_STYLES[cat],
+        isContinuation && "border-l-2 border-dashed opacity-90",
+        dragging && "opacity-50",
+        small ? "px-1 py-0.5 text-[10px]" : "px-2 py-1.5 text-xs",
+      )}
+      {...(dragProps ?? {})}
+    >
+      <Link to="/doc/$id" params={{ id: doc.id }} className="block min-w-0">
+        {/* Line 1 */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className={cn("font-semibold truncate min-w-0 flex-1", small ? "text-[10px]" : "text-sm")}>
+            {doc.customer.name || "—"}
+          </span>
+          {span && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 rounded bg-black/10 dark:bg-white/10 px-1 text-[9px] font-medium">
+              <Link2 className="h-2.5 w-2.5" /> Day {span.idx}/{span.n}
+            </span>
+          )}
+          <span className="shrink-0"><PaymentIndicator doc={doc} /></span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="text-sm font-mono font-semibold">{fmtMoney(t.total, currency)}</div>
-          <PaymentIndicator doc={doc} />
+        {/* Line 2 */}
+        <div className={cn("truncate opacity-80", small ? "text-[9px]" : "text-[11px]")}>
+          {doc.number} · {address}
         </div>
+        {/* Line 3 */}
+        <div className="flex items-center justify-between gap-1 min-w-0">
+          <span className={cn("uppercase font-medium truncate min-w-0 flex-1 tracking-wide", small ? "text-[9px]" : "text-[10px]")}>
+            {cat}
+          </span>
+          {!small && (
+            <span className="shrink-0 font-mono font-semibold text-[11px]">{fmtMoney(t.total, currency)}</span>
+          )}
+        </div>
+        {/* Notes for "other" jobs (skip on tiny month cells) */}
+        {cat === "other" && !small && doc.notes && (
+          <div
+            className="mt-1 text-[10px] opacity-75 whitespace-pre-line"
+            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          >
+            {doc.notes}
+          </div>
+        )}
       </Link>
     </div>
   );
 }
 
+function AgendaJob({ doc, iso, currency, vat }: { doc: Doc; iso: string; currency: string; vat: number }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
+  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
+  const open = usePlannerActions();
+  const lp = useLongPress(() => open(doc));
+  return (
+    <div ref={setNodeRef} style={style} className={cn("flex items-stretch rounded-lg overflow-hidden", isDragging && "opacity-50")} {...lp}>
+      <button {...listeners} {...attributes} className="px-2 flex items-center text-muted-foreground touch-none cursor-grab active:cursor-grabbing bg-muted/40">
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <JobCardLayout doc={doc} iso={iso} currency={currency} vat={vat} variant="agenda" />
+      </div>
+    </div>
+  );
+}
 
 function DayCol({ date, iso, docs, currency, vat }: { date: Date; iso: string; docs: Doc[]; currency: string; vat: number }) {
-
   const { setNodeRef, isOver } = useDroppable({ id: iso });
   const today = isToday(date);
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
@@ -552,7 +610,6 @@ function DayCol({ date, iso, docs, currency, vat }: { date: Date; iso: string; d
         isWeekend && !today && "bg-muted/30",
       )}
     >
-      {/* Header — horizontal on mobile, stacked on desktop */}
       <div
         className={cn(
           "flex items-baseline gap-2 px-3 py-2 border-b bg-muted/40 md:flex-col md:items-start md:gap-0 md:bg-transparent md:border-b-0 md:pb-1",
@@ -566,12 +623,11 @@ function DayCol({ date, iso, docs, currency, vat }: { date: Date; iso: string; d
           {docs.length === 0 ? "no jobs" : `${docs.length} job${docs.length === 1 ? "" : "s"}`}
         </span>
       </div>
-
       <div className="p-2 space-y-1.5 min-h-[3rem]">
         {docs.length === 0 ? (
           <p className="text-[11px] text-muted-foreground text-center py-1.5 md:py-3">—</p>
         ) : (
-          docs.map((d) => <JobCard key={d.id} doc={d} currency={currency} vat={vat} />)
+          docs.map((d) => <JobCard key={d.id} doc={d} iso={iso} currency={currency} vat={vat} />)
         )}
       </div>
     </div>
@@ -590,53 +646,50 @@ function MonthCell({ date, iso, inMonth, docs }: { date: Date; iso: string; inMo
     )}>
       <div className={cn("font-display text-sm sm:text-lg leading-none mb-1", today && "text-primary")}>{format(date, "d")}</div>
       <div className="space-y-0.5">
-        {docs.slice(0, 3).map((d) => <MiniJob key={d.id} doc={d} />)}
+        {docs.slice(0, 3).map((d) => <MiniJob key={d.id} doc={d} iso={iso} />)}
         {docs.length > 3 && <div className="text-[9px] text-muted-foreground">+{docs.length - 3}</div>}
       </div>
     </div>
   );
 }
 
-function MiniJob({ doc }: { doc: Doc }) {
+function MiniJob({ doc, iso }: { doc: Doc; iso: string }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const open = usePlannerActions();
   const lp = useLongPress(() => open(doc));
   return (
-    <Link to="/doc/$id" params={{ id: doc.id }}>
-      <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...lp}
-        className={cn("rounded px-1 py-0.5 truncate cursor-grab text-[10px] flex items-center gap-1 bg-secondary/60", isDragging && "opacity-50")}
-        title={`${doc.customer.name || "—"} · ${doc.number} · ${jobSummary(doc)}`}>
-        <PaymentIndicator doc={doc} />
-        {doc.customer.name || doc.number}
-      </div>
-    </Link>
-  );
-
-}
-
-function JobCard({ doc, currency, vat }: { doc: Doc; currency: string; vat: number }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
-  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
-  const t = docTotals(doc, vat);
-  const open = usePlannerActions();
-  const lp = useLongPress(() => open(doc));
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...lp}
-      className={cn("rounded p-2 text-xs cursor-grab border bg-background", isDragging && "opacity-50")}>
-      <div className="font-semibold truncate">{doc.customer.name || "—"}</div>
-      <div className="opacity-80 truncate">{doc.fromAddress || "no address"}</div>
-      <div className="opacity-80 truncate">{jobSummary(doc)}</div>
-      <div className="flex items-center justify-between gap-1">
-        <div className="opacity-80">{fmtMoney(t.total, currency)}</div>
-        <PaymentIndicator doc={doc} />
-      </div>
-      <Link to="/doc/$id" params={{ id: doc.id }} className="text-primary underline text-[10px]">open</Link>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      {...lp}
+      className={cn("cursor-grab", isDragging && "opacity-50")}
+    >
+      <JobCardLayout doc={doc} iso={iso} currency="" vat={0} variant="month" />
     </div>
   );
 }
 
-
+function JobCard({ doc, iso, currency, vat }: { doc: Doc; iso?: string; currency: string; vat: number }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: doc.id });
+  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
+  const open = usePlannerActions();
+  const lp = useLongPress(() => open(doc));
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      {...lp}
+      className={cn("cursor-grab", isDragging && "opacity-50")}
+    >
+      <JobCardLayout doc={doc} iso={iso} currency={currency} vat={vat} variant="week" />
+    </div>
+  );
+}
 
 function DropZone({ id, children, className }: { id: string; children: React.ReactNode; className?: string }) {
   const { setNodeRef, isOver } = useDroppable({ id });
