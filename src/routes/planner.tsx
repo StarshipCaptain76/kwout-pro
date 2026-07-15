@@ -140,12 +140,17 @@ function PlannerPage() {
   }
 
 
-  const jobs = useMemo(() => docs.filter((d) => d.status === "accepted" || d.status === "paid"), [docs]);
+  // Show any non-cancelled, non-archived doc — includes fresh drafts / sent quotes.
+  const jobs = useMemo(
+    () => docs.filter((d) => !d.archived && d.status !== "cancelled"),
+    [docs],
+  );
   const byDay = (iso: string) =>
-    jobs.filter((d) => plannerDate(d) === iso).sort((a, b) => (a.dayOrder ?? 0) - (b.dayOrder ?? 0));
-  // Paid docs without a scheduled date are historical / closed jobs — don't
-  // surface them as "unscheduled". Only accepted jobs still need scheduling.
-  const unscheduled = jobs.filter((d) => !d.scheduledDate && d.status === "accepted");
+    jobs.filter((d) => docOccursOn(d, iso)).sort((a, b) => (a.dayOrder ?? 0) - (b.dayOrder ?? 0));
+  // Unscheduled = still needs a date. Exclude paid (historical) and archived.
+  const unscheduled = jobs.filter(
+    (d) => !d.scheduledDate && d.status !== "paid" && !d.archived,
+  );
 
   const onDragEnd = (e: DragEndEvent) => {
     if (!canEdit) return;
@@ -154,8 +159,25 @@ function PlannerPage() {
     if (!overId) return;
     const doc = jobs.find((d) => d.id === id);
     if (!doc) return;
-    if (overId === "unscheduled") upsertDoc({ ...doc, scheduledDate: undefined });
-    else upsertDoc({ ...doc, scheduledDate: overId, dayOrder: byDay(overId).length });
+    if (overId === "unscheduled") {
+      upsertDoc({ ...doc, scheduledDate: undefined, scheduledEndDate: undefined });
+      return;
+    }
+    // Preserve multi-day span: shift end date by the same delta as start.
+    if (doc.scheduledDate && doc.scheduledEndDate && doc.scheduledEndDate > doc.scheduledDate) {
+      const delta = differenceInCalendarDays(parseISO(overId), parseISO(doc.scheduledDate));
+      const newEnd = format(addDays(parseISO(doc.scheduledEndDate), delta), "yyyy-MM-dd");
+      upsertDoc({ ...doc, scheduledDate: overId, scheduledEndDate: newEnd, dayOrder: byDay(overId).length });
+    } else {
+      upsertDoc({ ...doc, scheduledDate: overId, dayOrder: byDay(overId).length });
+    }
+  };
+
+  const archiveAllUnscheduled = () => {
+    if (!canEdit || unscheduled.length === 0) return;
+    if (!window.confirm(`Archive all ${unscheduled.length} unscheduled job${unscheduled.length === 1 ? "" : "s"}?`)) return;
+    unscheduled.forEach((d) => upsertDoc({ ...d, archived: true }));
+    toast.success(`Archived ${unscheduled.length} job${unscheduled.length === 1 ? "" : "s"}`);
   };
 
 
