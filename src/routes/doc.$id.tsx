@@ -400,6 +400,35 @@ function DocPage() {
           <Card className="p-4">
             <Label className="flex items-center gap-1 mb-1"><CalendarIcon className="h-3.5 w-3.5" /> Scheduled date</Label>
             <DatePicker value={doc.scheduledDate} onChange={(iso) => update({ scheduledDate: iso })} clearable />
+            <label className="flex items-center gap-2 mt-3 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={!!doc.scheduledEndDate}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    update({ scheduledEndDate: doc.scheduledDate ?? new Date().toISOString().slice(0, 10) });
+                  } else {
+                    update({ scheduledEndDate: undefined });
+                  }
+                }}
+              />
+              Multi-day job
+            </label>
+            {doc.scheduledEndDate && (
+              <div className="mt-2">
+                <Label className="text-xs mb-1 block">End date</Label>
+                <DatePicker
+                  value={doc.scheduledEndDate}
+                  onChange={(iso) => {
+                    if (!iso) return update({ scheduledEndDate: undefined });
+                    const start = doc.scheduledDate ?? iso;
+                    update({ scheduledEndDate: iso < start ? start : iso });
+                  }}
+                  clearable
+                />
+              </div>
+            )}
           </Card>
 
           <Card className="p-4">
