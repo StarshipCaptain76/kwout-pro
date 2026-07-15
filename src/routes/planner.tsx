@@ -44,21 +44,39 @@ export const Route = createFileRoute("/planner")({
 
 
 
-const SUMMARY_KEYWORDS = [
-  "rubble", "garden", "furniture", "sand", "grass", "tree", "rock", "brick", "soil", "concrete",
-  "tiles", "wood", "general", "appliances", "boxes", "rubbish", "waste", "removal", "labour", "packing",
+// ---------- job category resolver ----------
+type JobCategory =
+  | "rubble" | "garden" | "furniture" | "waste" | "sand" | "tree" | "labour" | "other";
+
+const CATEGORY_KEYWORDS: Array<[JobCategory, string[]]> = [
+  ["rubble", ["rubble", "brick", "concrete", "tiles"]],
+  ["garden", ["garden", "grass", "soil"]],
+  ["furniture", ["furniture", "appliances", "boxes"]],
+  ["waste", ["waste", "rubbish", "removal", "general"]],
+  ["sand", ["sand", "rock"]],
+  ["tree", ["tree", "wood"]],
+  ["labour", ["labour", "packing"]],
 ];
 
-function jobSummary(doc: Doc): string {
-  const found = new Set<string>();
-  doc.items.forEach((item) => {
-    const text = item.description.toLowerCase();
-    SUMMARY_KEYWORDS.forEach((kw) => {
-      if (text.includes(kw)) found.add(kw.charAt(0).toUpperCase() + kw.slice(1));
-    });
-  });
-  return Array.from(found).slice(0, 3).join(", ") || "Job";
+function jobCategory(doc: Doc): JobCategory {
+  const text = doc.items.map((i) => i.description).join(" ").toLowerCase();
+  for (const [key, kws] of CATEGORY_KEYWORDS) {
+    if (kws.some((k) => text.includes(k))) return key;
+  }
+  return "other";
 }
+
+// Soft tinted backgrounds — readable in light and dark.
+const CATEGORY_STYLES: Record<JobCategory, string> = {
+  rubble:    "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border-amber-200/70 dark:border-amber-800/60",
+  garden:    "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 border-emerald-200/70 dark:border-emerald-800/60",
+  furniture: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-100 border-indigo-200/70 dark:border-indigo-800/60",
+  waste:     "bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100 border-rose-200/70 dark:border-rose-800/60",
+  sand:      "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-100 border-yellow-200/70 dark:border-yellow-800/60",
+  tree:      "bg-lime-50 dark:bg-lime-950/40 text-lime-900 dark:text-lime-100 border-lime-200/70 dark:border-lime-800/60",
+  labour:    "bg-violet-50 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 border-violet-200/70 dark:border-violet-800/60",
+  other:     "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 border-sky-200/70 dark:border-sky-800/60",
+};
 
 function PaymentIndicator({ doc }: { doc: Doc }) {
   if (doc.status === "paid") return <span className="h-2 w-2 rounded-full bg-green-500" title="Paid" />;
@@ -70,7 +88,25 @@ const paidDate = (doc: Doc) => {
   if (doc.status !== "paid" || !doc.paidAt) return undefined;
   return format(new Date(doc.paidAt), "yyyy-MM-dd");
 };
-const plannerDate = (doc: Doc) => doc.scheduledDate || paidDate(doc);
+// A doc renders on `iso` if it falls within its [scheduledDate, scheduledEndDate]
+// span, or (for closed jobs without a scheduled date) on its paidAt day.
+function docOccursOn(doc: Doc, iso: string): boolean {
+  const start = doc.scheduledDate;
+  if (start) {
+    const end = doc.scheduledEndDate && doc.scheduledEndDate >= start ? doc.scheduledEndDate : start;
+    return iso >= start && iso <= end;
+  }
+  return paidDate(doc) === iso;
+}
+function daySpanFor(doc: Doc, iso: string): { idx: number; n: number } | null {
+  const start = doc.scheduledDate;
+  const end = doc.scheduledEndDate;
+  if (!start || !end || end <= start) return null;
+  const n = differenceInCalendarDays(parseISO(end), parseISO(start)) + 1;
+  if (n <= 1) return null;
+  const idx = differenceInCalendarDays(parseISO(iso), parseISO(start)) + 1;
+  return { idx, n };
+}
 
 type View = "agenda" | "week" | "month";
 
