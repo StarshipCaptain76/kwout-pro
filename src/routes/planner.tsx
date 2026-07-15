@@ -4,12 +4,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useStore, docTotals, fmtMoney, useCan, type Doc, type PayMethod } from "@/lib/store";
 import {
-  addDays, addMonths, endOfMonth, endOfWeek, format, isSameMonth, isToday, isTomorrow,
-  startOfMonth, startOfWeek,
+  addDays, addMonths, differenceInCalendarDays, endOfMonth, endOfWeek, format, isSameMonth,
+  isToday, isTomorrow, parseISO, startOfMonth, startOfWeek,
 } from "date-fns";
 import { useMemo, useState, useRef, useCallback } from "react";
 import { DndContext, useDraggable, useDroppable, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ChevronLeft, ChevronRight, ChevronDown, GripVertical, Check, X, CalendarDays, ExternalLink } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, ChevronDown, GripVertical, Check, X, CalendarDays, ExternalLink,
+  Link2, Archive,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DatePicker } from "@/components/app/DatePicker";
