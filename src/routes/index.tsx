@@ -3,7 +3,8 @@ import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStore, docTotals, fmtMoney, useCan, useIsOwner, type Doc } from "@/lib/store";
-import { ChevronRight, FileText, Truck, Check } from "lucide-react";
+import { ChevronRight, FileText, Truck, Check, Mail, MessageCircle } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { format, differenceInCalendarDays } from "date-fns";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -215,6 +216,22 @@ function Landing() {
           <div className="flex items-center gap-2">
             <img src={kwoutLogo.url} alt="" className="h-5 w-5 rounded object-contain opacity-80" />
             <span className="font-display tracking-wide text-sm text-[#3FA34D]">KWOUT</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <a
+              href="mailto:hello@kwout.co.za"
+              className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#3FA34D]"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              hello@kwout.co.za
+            </a>
+            <button
+              onClick={() => openWhatsApp("0664027116", "Hi KWOUT, I have a question about...")}
+              className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#3FA34D]"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              WA +27 66 402 7116
+            </button>
           </div>
           <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <Link to="/legal" hash="privacy" className="underline underline-offset-4 hover:text-[#3FA34D]">
