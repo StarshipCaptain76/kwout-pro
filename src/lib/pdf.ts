@@ -79,11 +79,10 @@ export async function generatePdf(
     const toLines = pdf.splitTextToSize(doc.toAddress || "—", colW - 4);
     const maxLines = Math.max(fromLines.length, toLines.length);
     const boxH = 8 + maxLines * 4 + 4;
-    // Soft accent fill (~8%)
-    pdf.setFillColor(ACCENT[0], ACCENT[1], ACCENT[2]);
-    pdf.setGState(new (pdf as unknown as { GState: new (o: { opacity: number }) => unknown }).GState({ opacity: 0.08 }));
+    // Soft accent fill (~8% mix on white) — avoids relying on GState.
+    const mix = (c: number) => Math.round(255 - (255 - c) * 0.08);
+    pdf.setFillColor(mix(ACCENT[0]), mix(ACCENT[1]), mix(ACCENT[2]));
     pdf.rect(boxX, y, boxW, boxH, "F");
-    pdf.setGState(new (pdf as unknown as { GState: new (o: { opacity: number }) => unknown }).GState({ opacity: 1 }));
     pdf.setDrawColor(ACCENT[0], ACCENT[1], ACCENT[2]);
     pdf.setLineWidth(0.3);
     pdf.rect(boxX, y, boxW, boxH);
