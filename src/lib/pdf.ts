@@ -68,6 +68,42 @@ export async function generatePdf(
   custLines.forEach((l, i) => pdf.text(l, W / 2, y + 5 + i * 4));
 
   y = 78;
+
+  // FROM / TO route block (optional — only when addresses are set).
+  if (doc.fromAddress || doc.toAddress) {
+    const ACCENT: [number, number, number] = hexToRgb(theme.accent);
+    const boxX = M;
+    const boxW = W - 2 * M;
+    const colW = (boxW - 6) / 2;
+    const fromLines = pdf.splitTextToSize(doc.fromAddress || "—", colW - 4);
+    const toLines = pdf.splitTextToSize(doc.toAddress || "—", colW - 4);
+    const maxLines = Math.max(fromLines.length, toLines.length);
+    const boxH = 8 + maxLines * 4 + 4;
+    // Soft accent fill (~8%)
+    pdf.setFillColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+    pdf.setGState(new (pdf as unknown as { GState: new (o: { opacity: number }) => unknown }).GState({ opacity: 0.08 }));
+    pdf.rect(boxX, y, boxW, boxH, "F");
+    pdf.setGState(new (pdf as unknown as { GState: new (o: { opacity: number }) => unknown }).GState({ opacity: 1 }));
+    pdf.setDrawColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+    pdf.setLineWidth(0.3);
+    pdf.rect(boxX, y, boxW, boxH);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+    pdf.text("FROM", boxX + 3, y + 5);
+    pdf.text("TO", boxX + 3 + colW + 3, y + 5);
+    if (doc.distanceKm) {
+      pdf.text(`${doc.distanceKm} km`, boxX + boxW - 3, y + 5, { align: "right" });
+    }
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(fromLines, boxX + 3, y + 10);
+    pdf.text(toLines, boxX + 3 + colW + 3, y + 10);
+    y += boxH + 4;
+  }
+
+
   pdf.setFillColor(20, 20, 20);
   pdf.rect(M, y, W - 2 * M, 8, "F");
   pdf.setTextColor(255, 255, 255);
