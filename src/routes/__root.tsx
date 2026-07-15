@@ -97,8 +97,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "KWOUT — Run your business. Not your paperwork." },
       { name: "twitter:description", content: "KWOUT is the simple way for entrepreneurs to send quotes, invoices, statements and payslips. 30 DAYS FREE. Everything included." },
       { name: "google-site-verification", content: "VpenMbi07tDrXktRyV_hwv0Tye7vyWpaUDEoVdSUKbg" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1784036558407-googlebackkwout.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1784036558407-googlebackkwout.webp" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1784099875540-googlebackkwout.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IpKIwMzVfvhqp9ggxhsuAlf1Cgm2/social-images/social-1784099875540-googlebackkwout.webp" },
     ],
     links: [
       {
