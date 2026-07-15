@@ -284,17 +284,28 @@ function PlannerPage() {
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         {unscheduled.length > 0 && (
           <div className="mb-3">
-            <button
-              onClick={() => setShowUnsched((v) => !v)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg border bg-amber-500/10 border-amber-500/30 text-sm font-medium"
-            >
-              <span>{unscheduled.length} unscheduled job{unscheduled.length === 1 ? "" : "s"}</span>
-              <ChevronDown className={cn("h-4 w-4 transition-transform", showUnsched && "rotate-180")} />
-            </button>
+            <div className="w-full flex items-stretch rounded-lg border bg-amber-500/10 border-amber-500/30 overflow-hidden">
+              <button
+                onClick={() => setShowUnsched((v) => !v)}
+                className="flex-1 flex items-center justify-between px-3 py-2 text-sm font-medium"
+              >
+                <span>{unscheduled.length} unscheduled job{unscheduled.length === 1 ? "" : "s"}</span>
+                <ChevronDown className={cn("h-4 w-4 transition-transform", showUnsched && "rotate-180")} />
+              </button>
+              {canEdit && (
+                <button
+                  onClick={archiveAllUnscheduled}
+                  className="px-3 flex items-center gap-1.5 text-xs font-medium border-l border-amber-500/30 hover:bg-amber-500/20"
+                  title="Archive all unscheduled jobs"
+                >
+                  <Archive className="h-3.5 w-3.5" /> Archive all
+                </button>
+              )}
+            </div>
             {showUnsched && (
               <DropZone id="unscheduled" className="mt-2">
                 <div className="grid gap-2">
-                  {unscheduled.map((d) => <JobCard key={d.id} doc={d} currency={billing.currency} vat={billing.vatPct} />)}
+                  {unscheduled.map((d) => <JobCard key={d.id} doc={d} iso={undefined} currency={billing.currency} vat={billing.vatPct} />)}
                 </div>
               </DropZone>
             )}
