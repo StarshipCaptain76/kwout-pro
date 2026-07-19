@@ -251,7 +251,7 @@ function DocPage() {
                   onPick={(c) => addItem({ description: c.name, price: c.price, unit: c.unit, qty: 1 })}
                 />
                 <Button size="sm" variant="outline" onClick={() => addKm()}><Truck className="h-4 w-4 mr-1" /> KM</Button>
-                <Button size="sm" variant="outline" onClick={() => addItem({})}><Plus className="h-4 w-4" /></Button>
+                <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Add item</Button>
               </div>
             </div>
             <div className="space-y-2">
