@@ -490,6 +490,26 @@ function DocPage() {
           </Card>
         </div>
       </div>
+      <AddItemDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        currency={billing.currency}
+        defaultUnit={billing.primaryUnit ?? "each"}
+        units={Array.from(new Set([...(BUILTIN_UNITS as readonly string[]), ...(billing.customUnits ?? [])]))}
+        onSubmit={(it, { saveToCatalog }) => {
+          const desc = it.description ? `${it.name} — ${it.description}` : it.name;
+          addItem({ description: desc, qty: it.qty, price: it.price, unit: it.unit });
+          const dup = catalog.some((c) => c.name.trim().toLowerCase() === it.name.toLowerCase());
+          if (saveToCatalog && !dup) {
+            upsertCatalog({ id: newId(), name: it.name, price: it.price, unit: it.unit });
+            toast.success("Item added to quote and saved to catalog");
+          } else if (saveToCatalog && dup) {
+            toast.success("Item added to quote (already in catalog)");
+          } else {
+            toast.success("Item added to quote");
+          }
+        }}
+      />
     </Shell>
   );
 }
