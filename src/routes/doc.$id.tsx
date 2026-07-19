@@ -52,7 +52,8 @@ export const Route = createFileRoute("/doc/$id")({
 function DocPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
-  const { docs, company, banking, billing, catalog, customers, staff, currentStaff, upsertDoc, deleteDoc, nextDocNumber } = useStore();
+  const { docs, company, banking, billing, catalog, customers, staff, currentStaff, upsertDoc, deleteDoc, upsertCatalog, nextDocNumber } = useStore();
+  const [addOpen, setAddOpen] = useState(false);
   const enabledModules = new Set<ModuleKey>(company.enabledModules ?? []);
   const showLocation = enabledModules.has("location") || enabledModules.has("waste");
   const doc = docs.find((d) => d.id === id);
