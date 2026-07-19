@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useStore, newId, docTotals, fmtMoney, DEFAULT_BILLING_TERMS, type LineItem, type PayMethod } from "@/lib/store";
+import { useStore, newId, docTotals, fmtMoney, DEFAULT_BILLING_TERMS, BUILTIN_UNITS, type LineItem, type PayMethod } from "@/lib/store";
+import { AddItemDialog } from "@/components/app/AddItemDialog";
 import { downloadPdf } from "@/lib/pdf";
 import { Trash2, Plus, MessageCircle, Mail, Download, Check, ArrowLeft, Truck, Calendar as CalendarIcon, Route as RouteIcon, Recycle } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -51,7 +52,8 @@ export const Route = createFileRoute("/doc/$id")({
 function DocPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
-  const { docs, company, banking, billing, catalog, customers, staff, currentStaff, upsertDoc, deleteDoc, nextDocNumber } = useStore();
+  const { docs, company, banking, billing, catalog, customers, staff, currentStaff, upsertDoc, deleteDoc, upsertCatalog, nextDocNumber } = useStore();
+  const [addOpen, setAddOpen] = useState(false);
   const enabledModules = new Set<ModuleKey>(company.enabledModules ?? []);
   const showLocation = enabledModules.has("location") || enabledModules.has("waste");
   const doc = docs.find((d) => d.id === id);
@@ -249,7 +251,7 @@ function DocPage() {
                   onPick={(c) => addItem({ description: c.name, price: c.price, unit: c.unit, qty: 1 })}
                 />
                 <Button size="sm" variant="outline" onClick={() => addKm()}><Truck className="h-4 w-4 mr-1" /> KM</Button>
-                <Button size="sm" variant="outline" onClick={() => addItem({})}><Plus className="h-4 w-4" /></Button>
+                <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Add item</Button>
               </div>
             </div>
             <div className="space-y-2">
@@ -488,6 +490,26 @@ function DocPage() {
           </Card>
         </div>
       </div>
+      <AddItemDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        currency={billing.currency}
+        defaultUnit={billing.primaryUnit ?? "each"}
+        units={Array.from(new Set([...(BUILTIN_UNITS as readonly string[]), ...(billing.customUnits ?? [])]))}
+        onSubmit={(it, { saveToCatalog }) => {
+          const desc = it.description ? `${it.name} — ${it.description}` : it.name;
+          addItem({ description: desc, qty: it.qty, price: it.price, unit: it.unit });
+          const dup = catalog.some((c) => c.name.trim().toLowerCase() === it.name.toLowerCase());
+          if (saveToCatalog && !dup) {
+            upsertCatalog({ id: newId(), name: it.name, price: it.price, unit: it.unit });
+            toast.success("Item added to quote and saved to catalog");
+          } else if (saveToCatalog && dup) {
+            toast.success("Item added to quote (already in catalog)");
+          } else {
+            toast.success("Item added to quote");
+          }
+        }}
+      />
     </Shell>
   );
 }
