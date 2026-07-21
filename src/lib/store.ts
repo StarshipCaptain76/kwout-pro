@@ -32,7 +32,11 @@ export type Unit = string; // built-ins: "each" | "hour" | "km" | "job", plus us
 export const BUILTIN_UNITS = ["each", "hour", "km", "job"] as const;
 export type PayMethod = "cash" | "eft" | "card";
 export type DocType = "quote" | "invoice";
-export type DocStatus = "draft" | "sent" | "accepted" | "paid" | "cancelled";
+export type DocStatus = "draft" | "sent" | "accepted" | "declined" | "paid" | "cancelled";
+/** Derived invoice status used for status frames and /docs filtering. */
+export type InvoiceView = "draft" | "unpaid" | "overdue" | "paid";
+/** Derived quote status used for status frames and /docs filtering. */
+export type QuoteView = "draft" | "awaiting" | "accepted" | "declined";
 export type Density = "compact" | "normal" | "comfortable";
 
 export interface Expense {
