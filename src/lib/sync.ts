@@ -414,6 +414,8 @@ async function loadAll() {
     const rowMods = (profileRow as { enabled_modules?: string[] | null } | null)?.enabled_modules;
     if (rowBt) company.businessType = rowBt as Company["businessType"];
     if (rowMods) company.enabledModules = rowMods as Company["enabledModules"];
+    const rowPkg = (profileRow as { accounting_package?: string | null } | null)?.accounting_package;
+    if (rowPkg) company.accountingPackage = rowPkg as Company["accountingPackage"];
     const banking = (profileRow?.banking as Banking | null) && Object.keys(profileRow!.banking as object).length
       ? (profileRow!.banking as unknown as Banking)
       : prev.banking;
