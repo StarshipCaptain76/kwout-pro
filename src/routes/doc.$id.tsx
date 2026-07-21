@@ -469,9 +469,35 @@ function DocPage() {
 
           <Card className="p-4 space-y-2">
             <h3 className="font-semibold text-sm">Actions</h3>
-            {doc.type === "quote" && (
+            {doc.type === "quote" && doc.status !== "declined" && (
               <Button variant="secondary" className="w-full" onClick={convert}>
                 <Check className="h-4 w-4 mr-2" /> Accept → Invoice
+              </Button>
+            )}
+            {doc.type === "quote" && doc.status !== "declined" && doc.status !== "accepted" && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  update({ status: "declined" });
+                  void flushSync();
+                  toast.success("Quote marked declined");
+                }}
+              >
+                Mark declined
+              </Button>
+            )}
+            {doc.type === "quote" && doc.status === "declined" && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  update({ status: "sent" });
+                  void flushSync();
+                  toast.success("Quote reopened");
+                }}
+              >
+                Reopen quote
               </Button>
             )}
             {doc.type === "invoice" && doc.status !== "paid" && (
