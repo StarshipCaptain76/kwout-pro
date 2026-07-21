@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStore, docTotals, fmtMoney, useCan, useIsOwner, invoiceView, quoteView, type Doc } from "@/lib/store";
 import { StatusFrame, type StatusRow } from "@/components/app/StatusFrame";
+import { OnboardingChecklist } from "@/components/app/OnboardingChecklist";
 import { ChevronRight, FileText, Truck, Check, Mail, MessageCircle } from "lucide-react";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { format, differenceInCalendarDays } from "date-fns";
