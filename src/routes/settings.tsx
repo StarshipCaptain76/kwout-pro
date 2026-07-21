@@ -288,6 +288,15 @@ function SettingsPage() {
                 <div><Label>Invoice prefix</Label><Input className="h-11" value={s.billing.invoicePrefix} onChange={(e) => s.setBilling({ ...s.billing, invoicePrefix: e.target.value })} /></div>
                 <TumblerField label="Next quote #" v={s.billing.nextQuoteNo} on={(v) => s.setBilling({ ...s.billing, nextQuoteNo: v })} step={1} />
                 <TumblerField label="Next invoice #" v={s.billing.nextInvoiceNo} on={(v) => s.setBilling({ ...s.billing, nextInvoiceNo: v })} step={1} />
+                <TumblerField
+                  label="Invoice overdue after (days)"
+                  v={s.billing.invoiceDueDays ?? 30}
+                  on={(v) => s.setBilling({ ...s.billing, invoiceDueDays: Math.max(1, v) })}
+                  step={1}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">
+                Unpaid invoices older than this appear in the OVERDUE row on your dashboard.
               </div>
               <div>
                 <Label>Terms &amp; conditions</Label>
