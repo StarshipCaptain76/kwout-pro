@@ -178,11 +178,15 @@ function PlannerPage() {
     }
   };
 
+  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
   const archiveAllUnscheduled = () => {
     if (!canEdit || unscheduled.length === 0) return;
-    if (!window.confirm(`Archive all ${unscheduled.length} unscheduled job${unscheduled.length === 1 ? "" : "s"}?`)) return;
+    setConfirmArchiveOpen(true);
+  };
+  const confirmArchiveAll = () => {
     unscheduled.forEach((d) => upsertDoc({ ...d, archived: true }));
     toast.success(`Archived ${unscheduled.length} job${unscheduled.length === 1 ? "" : "s"}`);
+    setConfirmArchiveOpen(false);
   };
 
 
