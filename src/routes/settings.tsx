@@ -25,8 +25,14 @@ import { useQuery } from "@tanstack/react-query";
 import { getMySubscription, createPayfastCheckout, cancelMySubscription } from "@/lib/subscription.functions";
 import { AccountingExportCard } from "@/components/app/AccountingExportCard";
 
+const TAB_VALUES = ["subscription", "company", "banking", "staff", "catalog", "modules", "expenses", "billing", "appearance"] as const;
+type TabValue = (typeof TAB_VALUES)[number];
+
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: TAB_VALUES.includes(search.tab as TabValue) ? (search.tab as TabValue) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Settings — KWOUT" },
