@@ -126,7 +126,25 @@ function ExpensesPage() {
   return (
     <Shell>
       <h1 className="sr-only">Expenses</h1>
-      <div className="flex items-center justify-end mb-3">
+      <div className="flex items-center justify-end gap-2 mb-3">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const pkg = (s.company.accountingPackage ?? "csv") as AccountingPackage;
+            const monthStr = format(month, "yyyy-MM");
+            const from = `${monthStr}-01`;
+            const to = format(endOfMonth(month), "yyyy-MM-dd");
+            const files = buildExportFiles({
+              docs: s.docs, expenses: s.expenses, customers: s.customers, billing: s.billing,
+              from, to, sets: ["expenses"], pkg,
+            });
+            downloadFiles(files);
+            toast.success("Expenses exported");
+          }}
+        >
+          <Download className="h-4 w-4 mr-1" /> Export
+        </Button>
         {canAdd && (
           <Button size="sm" onClick={newExpense} className="hidden sm:inline-flex">
             <Plus className="h-4 w-4 mr-1" /> Add
