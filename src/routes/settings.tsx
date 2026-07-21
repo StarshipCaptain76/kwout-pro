@@ -299,6 +299,7 @@ function SettingsPage() {
               </div>
               <Button onClick={() => toast.success("Saved")} className="w-fit">Save</Button>
             </Card>
+            <AccountingExportCard />
           </div>
         </TabsContent>
 
