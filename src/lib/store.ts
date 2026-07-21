@@ -327,6 +327,8 @@ export const useStore = create<State>()(
       currentUserId: null,
       currentStaff: null,
       currentWorkspaceOwnerId: null,
+      onboardingDismissed: false,
+      setOnboardingDismissed: (v) => set({ onboardingDismissed: v }),
       setStaffList: (s) => set({ staff: s }),
       setCurrentUser: (userId, currentStaff) => set({ currentUserId: userId, currentStaff }),
       setCurrentWorkspaceOwnerId: (id) => set({ currentWorkspaceOwnerId: id }),
