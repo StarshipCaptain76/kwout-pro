@@ -57,7 +57,7 @@ function DocsListPage() {
   }, [staff]);
 
   const title = status
-    ? `${STATUS_LABEL[status]} ${type ?? (["awaiting", "accepted", "declined"].includes(status) ? "quotes" : "invoices")}`
+    ? `${STATUS_LABEL[status as StatusFilter]} ${type ?? (["awaiting", "accepted", "declined"].includes(status) ? "quotes" : "invoices")}`
     : type === "quote"
       ? "Quotes"
       : type === "invoice"
