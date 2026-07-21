@@ -83,7 +83,9 @@ function SettingsPage() {
     { value: "appearance", label: "Appearance", allowed: canAppearance },
   ];
   const TABS = ALL_TABS.filter((t) => t.allowed);
-  const [tab, setTab] = useState<string>(() => TABS[0]?.value ?? "subscription");
+  const urlTab = useSearch({ from: "/settings" }).tab;
+  const initialTab = urlTab && TABS.some((t) => t.value === urlTab) ? urlTab : (TABS[0]?.value ?? "subscription");
+  const [tab, setTab] = useState<string>(initialTab);
   // Keep tab valid if permissions change.
   if (TABS.length > 0 && !TABS.some((t) => t.value === tab)) {
     setTab(TABS[0].value);
