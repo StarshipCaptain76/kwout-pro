@@ -32,7 +32,11 @@ export type Unit = string; // built-ins: "each" | "hour" | "km" | "job", plus us
 export const BUILTIN_UNITS = ["each", "hour", "km", "job"] as const;
 export type PayMethod = "cash" | "eft" | "card";
 export type DocType = "quote" | "invoice";
-export type DocStatus = "draft" | "sent" | "accepted" | "paid" | "cancelled";
+export type DocStatus = "draft" | "sent" | "accepted" | "declined" | "paid" | "cancelled";
+/** Derived invoice status used for status frames and /docs filtering. */
+export type InvoiceView = "draft" | "unpaid" | "overdue" | "paid";
+/** Derived quote status used for status frames and /docs filtering. */
+export type QuoteView = "draft" | "awaiting" | "accepted" | "declined";
 export type Density = "compact" | "normal" | "comfortable";
 
 export interface Expense {
@@ -171,6 +175,8 @@ export interface BillingSettings {
   terms?: string;
   primaryUnit?: Unit;
   customUnits?: string[];
+  /** Days after createdAt before an unpaid invoice is considered overdue. Default 30. */
+  invoiceDueDays?: number;
 }
 
 interface State {
@@ -600,6 +606,29 @@ export function computeVat(amountInclusive: number, vatPct: number) {
 
 export function fmtMoney(n: number, cur = "$") {
   return `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Derive display status for an invoice, applying the overdue rule. */
+export function invoiceView(d: Doc, dueDays: number = 30, now: Date = new Date()): InvoiceView {
+  if (d.type !== "invoice") return "draft";
+  if (d.status === "paid") return "paid";
+  if (d.status === "draft") return "draft";
+  // sent / accepted / (legacy declined never applies to invoices) → unpaid or overdue
+  const created = d.createdAt ? new Date(d.createdAt) : null;
+  if (created && dueDays > 0) {
+    const ageDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+    if (ageDays > dueDays) return "overdue";
+  }
+  return "unpaid";
+}
+
+/** Derive display status for a quote. */
+export function quoteView(d: Doc): QuoteView {
+  if (d.type !== "quote") return "draft";
+  if (d.status === "draft") return "draft";
+  if (d.status === "accepted") return "accepted";
+  if (d.status === "declined") return "declined";
+  return "awaiting"; // sent
 }
 
 import { can as canRaw, type Action } from "./permissions";

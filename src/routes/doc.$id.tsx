@@ -157,7 +157,7 @@ function DocPage() {
       <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" aria-label="Back to dashboard" onClick={() => nav({ to: "/" })}><ArrowLeft className="h-4 w-4" /></Button>
         <h1 className="font-display text-4xl tracking-wide">{doc.type === "quote" ? "QUOTE" : "INVOICE"} {doc.number}</h1>
-        <span className={`text-xs uppercase font-bold px-2 py-1 rounded ${doc.status === "paid" ? "bg-green-600 text-white" : "bg-muted"}`}>{doc.status}</span>
+        <span className={`text-xs uppercase font-bold px-2 py-1 rounded ${doc.status === "paid" ? "bg-green-600 text-white" : doc.status === "declined" ? "bg-red-500 text-white" : "bg-muted"}`}>{doc.status}</span>
         <Button variant="ghost" size="icon" aria-label="Delete document" className="ml-auto" onClick={() => { deleteDoc(doc.id); nav({ to: "/" }); }}><Trash2 className="h-4 w-4" /></Button>
       </div>
 
@@ -469,9 +469,35 @@ function DocPage() {
 
           <Card className="p-4 space-y-2">
             <h3 className="font-semibold text-sm">Actions</h3>
-            {doc.type === "quote" && (
+            {doc.type === "quote" && doc.status !== "declined" && (
               <Button variant="secondary" className="w-full" onClick={convert}>
                 <Check className="h-4 w-4 mr-2" /> Accept → Invoice
+              </Button>
+            )}
+            {doc.type === "quote" && doc.status !== "declined" && doc.status !== "accepted" && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  update({ status: "declined" });
+                  void flushSync();
+                  toast.success("Quote marked declined");
+                }}
+              >
+                Mark declined
+              </Button>
+            )}
+            {doc.type === "quote" && doc.status === "declined" && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  update({ status: "sent" });
+                  void flushSync();
+                  toast.success("Quote reopened");
+                }}
+              >
+                Reopen quote
               </Button>
             )}
             {doc.type === "invoice" && doc.status !== "paid" && (
