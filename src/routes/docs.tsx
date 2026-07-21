@@ -2,13 +2,24 @@ import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-r
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useStore, docTotals, fmtMoney, type Doc } from "@/lib/store";
+import { useStore, docTotals, fmtMoney, invoiceView, quoteView, type Doc } from "@/lib/store";
 import { ChevronRight, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
 type Assignee = "all" | "mine" | "unassigned";
+type StatusFilter = "draft" | "unpaid" | "overdue" | "paid" | "awaiting" | "accepted" | "declined";
+const STATUS_VALUES: StatusFilter[] = ["draft", "unpaid", "overdue", "paid", "awaiting", "accepted", "declined"];
+const STATUS_LABEL: Record<StatusFilter, string> = {
+  draft: "Draft",
+  unpaid: "Unpaid",
+  overdue: "Overdue",
+  paid: "Paid",
+  awaiting: "Awaiting acceptance",
+  accepted: "Accepted",
+  declined: "Declined",
+};
 
 export const Route = createFileRoute("/docs")({
   component: DocsListPage,
@@ -24,7 +35,7 @@ export const Route = createFileRoute("/docs")({
   }),
   validateSearch: (search: Record<string, unknown>) => ({
     type: search.type === "quote" || search.type === "invoice" ? search.type : undefined,
-    status: search.status === "unpaid" ? search.status : undefined,
+    status: STATUS_VALUES.includes(search.status as StatusFilter) ? (search.status as StatusFilter) : undefined,
     who: (search.who === "mine" || search.who === "unassigned" ? search.who : "all") as Assignee,
   }),
 });
@@ -37,6 +48,7 @@ function DocsListPage() {
   const isFieldStaff = currentStaff?.role === "staff";
   const effectiveWho: Assignee = isFieldStaff ? "mine" : who;
   const myId = currentStaff?.userId ?? currentUserId ?? "";
+  const dueDays = billing.invoiceDueDays ?? 30;
 
   const staffMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -44,17 +56,27 @@ function DocsListPage() {
     return m;
   }, [staff]);
 
-  let title: string;
-  if (status === "unpaid") title = "Outstanding invoices";
-  else if (type === "quote") title = "Quotes";
-  else if (type === "invoice") title = "Invoices";
-  else title = "Quotes & Invoices";
+  const title = status
+    ? `${STATUS_LABEL[status]} ${type ?? (["awaiting", "accepted", "declined"].includes(status) ? "quotes" : "invoices")}`
+    : type === "quote"
+      ? "Quotes"
+      : type === "invoice"
+        ? "Invoices"
+        : "Quotes & Invoices";
 
   const filtered = docs
     .filter((d) => {
       if (type && d.type !== type) return false;
-      if (status === "unpaid" && !(d.type === "invoice" && d.status !== "paid")) return false;
       if (!(d.type === "quote" || d.type === "invoice")) return false;
+      if (status) {
+        if (d.type === "invoice") {
+          if (!["draft", "unpaid", "overdue", "paid"].includes(status)) return false;
+          if (invoiceView(d, dueDays) !== status) return false;
+        } else {
+          if (!["draft", "awaiting", "accepted", "declined"].includes(status)) return false;
+          if (quoteView(d) !== status) return false;
+        }
+      }
       if (effectiveWho === "mine" && d.assignedTo !== myId) return false;
       if (effectiveWho === "unassigned" && d.assignedTo) return false;
       return true;
