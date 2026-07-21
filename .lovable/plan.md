@@ -1,33 +1,50 @@
-## Goal
-Replace the current bare "+" (which inserts an empty inline row) with a polished **Add item** modal. On save it inserts the item into the current quote/invoice **and** saves it to the master Catalog, with a confirmation toast. The "+ Catalog" picker stays for browsing existing catalog items.
+# Expand Industries & Modules
 
-## UX
-- Line items header keeps two buttons:
-  - **+ Catalog** (existing) — browse/select from saved catalog.
-  - **+ Add item** (was the bare "+") — opens the new modal.
-- Modal (shadcn `Dialog`, styled to match the current green theme):
-  - Fields:
-    - Name / Service (required, autofocus)
-    - Description (optional, textarea)
-    - Quantity (number, default 1)
-    - Unit price / Rate (number, prefixed with currency)
-    - Unit (Select bound to `BUILTIN_UNITS` + `billing.customUnits`, default = `billing.primaryUnit`)
-    - "Also save to Catalog" checkbox, checked by default
-  - Buttons: Cancel · **Add to quote**
-  - Validation: name required, qty ≥ 0, price ≥ 0. Inline error under the offending field.
-- On save:
-  - Append a new `LineItem` to `doc.items` (description = name; if description text was entered, append as a second line joined with " — ").
-  - If "Also save to Catalog" is on AND no existing catalog item has the same case-insensitive name, call `upsertCatalog({ id: newId(), name, price, unit })`.
-  - Toast:
-    - Both actions → `"Item added to quote and saved to catalog"`
-    - Item only → `"Item added to quote"`
-    - Duplicate skipped → `"Item added to quote (already in catalog)"`
-- Empty-inline-row fallback: the tiny inline "add empty row" affordance is removed; all new items flow through the modal or the catalog picker.
+Grow the business-type catalog from ~17 flat entries to the grouped list in the spec, and update the Settings UI to select business type by industry category.
 
-## Files
-- `src/routes/doc.$id.tsx` — swap the bare `+` button for one that opens the new modal; wire save handler using existing `addItem` + `upsertCatalog` from the store; sonner `toast`.
-- `src/components/app/AddItemDialog.tsx` (new) — the dialog form, using `Dialog`, `Input`, `Textarea`, `Select`, `Checkbox`, `Button` from `@/components/ui/*`. Props: `open`, `onOpenChange`, `currency`, `defaultUnit`, `units: string[]`, `onSubmit(item, { saveToCatalog })`.
+## Scope
+
+### 1. `src/lib/modules.ts`
+
+- Add an `IndustryCategory` type with the 8 groups:
+  - Electrical & Mechanical Services
+  - Plumbing & Related
+  - Construction & Renovation
+  - Finishing & Exterior
+  - Cleaning & Waste
+  - Security & Specialist
+  - Professional Services
+  - Logistics & Other
+- Extend `BusinessType` union with the new keys:
+  `electrical_av`, `hvac`, `appliance_services`, `fire_services`, `plumbing_gas`,
+  `property_maintenance`, `residential_renovations`, `new_residential_builds`,
+  `commercial_construction`, `industrial_construction`, `carpentry`, `roofing`,
+  `flooring`, `glazing`, `concreting`, `earthworks`, `fencing_decking`,
+  `engineering`, `painting`, `landscaping_lawns`, `cleaning`,
+  `security_services`, `bookkeeping`, `it_services`.
+- Add a `category` field to `BusinessTypeDef` and populate it for every existing + new entry so all types belong to exactly one group.
+- Re-order `BUSINESS_TYPES` to match the spec's grouping/order.
+- Add a `INDUSTRY_CATEGORIES` list (ordered) and a `businessTypesByCategory()` helper.
+- Preserve all existing keys (`plumber`, `electrician`, `mechanic`, etc.) so historical `company_profile.business_type` values keep working.
+- Field/module definitions in `MODULES` remain unchanged (spec adds no new module fields).
+
+### 2. Settings UI — `src/routes/settings.tsx` (Company tab)
+
+- Replace the flat business-type `<Select>` with a grouped select using shadcn `SelectGroup` + `SelectLabel`, one group per industry category, in the spec's order.
+- Selecting a type still calls `defaultModulesFor(...)` and refreshes `enabled_modules` as it does today.
+- No changes to Modules tab, permissions, PDF, or doc editor — those already read dynamically from `MODULES`/`BUSINESS_TYPES`.
+
+### 3. Docs
+
+- Update `docs/industries-and-modules.md` if any category naming or defaults drift from the spec during implementation (structure already matches).
 
 ## Out of scope
-- No catalog "category/tag" field is added — the existing `CatalogItem` shape has no category. (Happy to add one in a follow-up if wanted; would need a store + Supabase migration.)
-- KM/Distance button unchanged.
+
+- No database migration (business_type is free-form text; enabled_modules is a string array — new keys just work).
+- No new module fields, no PDF changes, no permissions changes.
+- No renaming/removal of existing business types (kept for backward compatibility alongside their new grouped counterparts).
+
+## Technical notes
+
+- Some spec entries are near-duplicates of existing ones (e.g. "Plumbing & Gas" vs "Plumber", "Painting" vs "Painter / Wall Finishing"). Both are kept as distinct selectable types per the spec table; owners choose whichever label fits.
+- The default-modules table in the spec is copied verbatim into `BUSINESS_TYPES`.
