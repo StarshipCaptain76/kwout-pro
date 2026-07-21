@@ -1,58 +1,33 @@
-## Goal
-Replace the plain "Quotes (month)" / "Invoices (month)" tiles on `/home` with two side-by-side status frames matching the reference:
+## Getting Started checklist on /home
 
-- **INVOICES:** Draft · Unpaid · Overdue · Paid
-- **QUOTES:** Draft · Awaiting acceptance · Accepted · Declined
+Add a Tradify-style onboarding card at the top of the owner dashboard. Each row links to the place the task is completed. When all tasks are done (or the owner dismisses it), the card disappears for good.
 
-Each row shows the label and a colored count pill; tapping a row navigates to `/docs` pre-filtered to that status.
+### Visibility
+- Owners only (`useIsOwner()`). Staff never see it.
+- Auto-hides when every task is complete, when the owner clicks "Dismiss", or once ≥14 days after signup (whichever comes first, to avoid clutter for legacy accounts).
+- Persist dismissal in the Zustand store (`onboardingDismissed: boolean`), synced through the existing preferences path so it survives device switches.
 
-## Data / status changes
+### Tasks (7, matching KWOUT's setup)
+Each row shows: icon, label, and a check ✓ (done) or → (open). Clicking navigates to the target route; the card highlights the section using a `?focus=…` search param where useful.
 
-**Add one new stored status:** `"declined"` for quotes.
-- Extend `DocStatus` in `src/lib/store.ts` to `"draft" | "sent" | "accepted" | "declined" | "paid" | "cancelled"`.
+1. **Account created** — always ✓ (baseline).
+2. **Choose your business type** — done when `company.businessType` is set and not `"other"`. Link: `/settings?tab=company`.
+3. **Add company details** — done when `company.name` and either `company.email` or `company.phone` are set. Link: `/settings?tab=company`.
+4. **Set up billing** — done when `billing.currency` is set AND at least one of: `ratePerKm > 0`, `baseCallout > 0`, or a catalog item exists. Link: `/settings?tab=billing`.
+5. **Add banking details** — done when `banking.accountNumber` is set (needed for invoice PDFs). Link: `/settings?tab=banking`.
+6. **Add your first customer** — done when `customers.length > 0`. Link: `/customers` (new customer button already there).
+7. **Create your first quote or invoice** — done when `docs.length > 0`. Link: uses the existing "New quote" flow (same handler as the FAB).
 
-**Derived (not stored) statuses:**
-- **Awaiting acceptance** = quote with status `sent`.
-- **Unpaid** = invoice with status in {`draft`,`sent`,`accepted`} and not overdue.
-- **Overdue** = invoice not paid AND `createdAt` older than `invoiceDueDays` (see settings). Derived on the fly via a helper `getInvoiceStatus(doc, dueDays)` in `src/lib/store.ts`.
+Progress ring shows `X / 7` like the reference image.
 
-**New setting:** `invoiceDueDays` (default 30) on `BillingSettings`. Editable in **Settings → Billing** ("Invoice payment terms (days)"). Persisted to `company_profile.billing` JSONB — no migration needed (JSONB column already exists).
+### Files to change
+- `src/lib/store.ts` — add `onboardingDismissed: boolean` to persisted state (schema version bump + migration default `false`); add `setOnboardingDismissed(v)`.
+- `src/components/app/OnboardingChecklist.tsx` (new) — the card, progress ring, task rows, dismiss button.
+- `src/routes/index.tsx` — render `<OnboardingChecklist />` above the status frames for owners; replaces the current standalone "Tailor KWOUT to your business" card (which becomes task #2 inside the checklist).
+- `src/routes/settings.tsx` — accept an optional `?tab=` search param so deep links open the right tab (Company / Billing / Banking). Small addition using `validateSearch` + `defaultValue` on the existing `<Tabs>`.
 
-## Home page frames
-
-New component `src/components/app/StatusFrame.tsx` renders a titled card with rows: label + colored count pill. Colors per reference:
-- Draft: amber
-- Unpaid / Awaiting acceptance: blue
-- Overdue / Declined: red
-- Paid / Accepted: green
-
-Rows are clickable → navigate to `/docs` with the appropriate search params.
-
-Placement in `src/routes/index.tsx`: replace the two `Stat` tiles for "Quotes (month)" / "Invoices (month)" with a 2-column responsive grid of the two frames. Keep the owner-only "Outstanding" and "Paid (month)" tiles above them unchanged.
-
-Counts are computed across all non-archived, non-cancelled docs (not just this month), matching the reference's plain totals.
-
-## /docs filter support
-
-Extend `/docs` route search schema and filter logic in `src/routes/docs.tsx` to accept:
-- `status`: `draft | awaiting | accepted | declined | unpaid | overdue | paid`
-- `type`: `quote | invoice` (existing)
-
-Filter mapping uses the same `getInvoiceStatus` helper so "overdue" and "unpaid" are consistent between home and docs.
-
-## Handling "Declined"
-
-Add a "Mark declined" action on the quote view (`/doc/$id`) alongside the existing "Mark accepted" action, plus "Reopen" to move back to `sent`. No new UI beyond a small dropdown/button — implementation kept minimal.
-
-## Files touched
-- `src/lib/store.ts` — extend `DocStatus`, add `invoiceDueDays` to billing, add `getInvoiceStatus` helper.
-- `src/lib/sync.ts` — pass `invoiceDueDays` through the billing JSONB (already generic JSONB, likely no change; verify during implementation).
-- `src/routes/settings.tsx` — add "Payment terms (days)" input in the Billing tab.
-- `src/routes/index.tsx` — swap monthly tiles for the two status frames.
-- `src/routes/docs.tsx` — accept new status filters, apply via helper.
-- `src/routes/doc.$id.tsx` — add "Mark declined" / "Reopen" buttons for quotes.
-- `src/components/app/StatusFrame.tsx` — new.
-
-## Out of scope
-- "Sent to accounting" row (excluded per your instruction).
-- No DB migration (statuses stored as text; JSONB billing already flexible).
+### Behavior details
+- Completed rows are muted grey with a green check; open rows have full contrast and a chevron.
+- Clicking a completed row still navigates (owners can revisit).
+- "Dismiss" is a small text link at the bottom-right of the card with a confirm toast.
+- No card = card unmounts entirely (no empty state).

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,14 @@ import { useQuery } from "@tanstack/react-query";
 import { getMySubscription, createPayfastCheckout, cancelMySubscription } from "@/lib/subscription.functions";
 import { AccountingExportCard } from "@/components/app/AccountingExportCard";
 
+const TAB_VALUES = ["subscription", "company", "banking", "staff", "catalog", "modules", "expenses", "billing", "appearance"] as const;
+type TabValue = (typeof TAB_VALUES)[number];
+
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: TAB_VALUES.includes(search.tab as TabValue) ? (search.tab as TabValue) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Settings — KWOUT" },
@@ -77,7 +83,9 @@ function SettingsPage() {
     { value: "appearance", label: "Appearance", allowed: canAppearance },
   ];
   const TABS = ALL_TABS.filter((t) => t.allowed);
-  const [tab, setTab] = useState<string>(() => TABS[0]?.value ?? "subscription");
+  const urlTab = useSearch({ from: "/settings" }).tab;
+  const initialTab = urlTab && TABS.some((t) => t.value === urlTab) ? urlTab : (TABS[0]?.value ?? "subscription");
+  const [tab, setTab] = useState<string>(initialTab);
   // Keep tab valid if permissions change.
   if (TABS.length > 0 && !TABS.some((t) => t.value === tab)) {
     setTab(TABS[0].value);

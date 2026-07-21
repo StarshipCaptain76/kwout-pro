@@ -193,6 +193,8 @@ interface State {
   currentUserId: string | null;
   currentStaff: StaffMember | null;
   currentWorkspaceOwnerId: string | null;
+  onboardingDismissed: boolean;
+  setOnboardingDismissed: (v: boolean) => void;
   setStaffList: (s: StaffMember[]) => void;
   setCurrentUser: (userId: string | null, currentStaff: StaffMember | null) => void;
   setCurrentWorkspaceOwnerId: (id: string | null) => void;
@@ -325,6 +327,8 @@ export const useStore = create<State>()(
       currentUserId: null,
       currentStaff: null,
       currentWorkspaceOwnerId: null,
+      onboardingDismissed: false,
+      setOnboardingDismissed: (v) => set({ onboardingDismissed: v }),
       setStaffList: (s) => set({ staff: s }),
       setCurrentUser: (userId, currentStaff) => set({ currentUserId: userId, currentStaff }),
       setCurrentWorkspaceOwnerId: (id) => set({ currentWorkspaceOwnerId: id }),
@@ -545,7 +549,7 @@ export const useStore = create<State>()(
     {
       name: "app-store", // ignored; perUserStorage handles the real key
       storage: createJSONStorage(() => perUserStorage),
-      version: 6,
+      version: 7,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
         const { staff: _s, currentUserId: _u, currentStaff: _c, currentWorkspaceOwnerId: _w, ...rest } = s;
@@ -573,6 +577,9 @@ export const useStore = create<State>()(
         }
         if (version < 6) {
           if (s.billing && s.billing.terms === undefined) s.billing.terms = DEFAULT_BILLING_TERMS;
+        }
+        if (version < 7) {
+          if (s.onboardingDismissed === undefined) s.onboardingDismissed = false;
         }
         return s;
       },
