@@ -14,7 +14,8 @@ import { parseReceipt } from "@/lib/expenses.functions";
 import { DatePicker } from "@/components/app/DatePicker";
 import { InlineTumbler } from "@/components/app/InlineTumbler";
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Sparkles, X, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Sparkles, X, Loader2, Download } from "lucide-react";
+import { buildExportFiles, downloadFiles, type AccountingPackage } from "@/lib/exports/accounting";
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -50,7 +51,8 @@ export const Route = createFileRoute("/expenses")({
 });
 
 function ExpensesPage() {
-  const { expenses, billing, expenseCategories } = useStore();
+  const s = useStore();
+  const { expenses, billing, expenseCategories } = s;
 
   const canViewAll = useCan("expenses.viewAll");
   const canAdd = useCan("expenses.addOwn");
@@ -124,7 +126,25 @@ function ExpensesPage() {
   return (
     <Shell>
       <h1 className="sr-only">Expenses</h1>
-      <div className="flex items-center justify-end mb-3">
+      <div className="flex items-center justify-end gap-2 mb-3">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const pkg = (s.company.accountingPackage ?? "csv") as AccountingPackage;
+            const monthStr = format(month, "yyyy-MM");
+            const from = `${monthStr}-01`;
+            const to = format(endOfMonth(month), "yyyy-MM-dd");
+            const files = buildExportFiles({
+              docs: s.docs, expenses: s.expenses, customers: s.customers, billing: s.billing,
+              from, to, sets: ["expenses"], pkg,
+            });
+            downloadFiles(files);
+            toast.success("Expenses exported");
+          }}
+        >
+          <Download className="h-4 w-4 mr-1" /> Export
+        </Button>
         {canAdd && (
           <Button size="sm" onClick={newExpense} className="hidden sm:inline-flex">
             <Plus className="h-4 w-4 mr-1" /> Add

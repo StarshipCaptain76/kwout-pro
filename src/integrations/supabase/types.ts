@@ -46,6 +46,7 @@ export type Database = {
       }
       company_profile: {
         Row: {
+          accounting_package: string
           banking: Json
           billing: Json
           business_type: string | null
@@ -62,6 +63,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accounting_package?: string
           banking?: Json
           billing?: Json
           business_type?: string | null
@@ -78,6 +80,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accounting_package?: string
           banking?: Json
           billing?: Json
           business_type?: string | null

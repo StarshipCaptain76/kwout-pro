@@ -143,6 +143,8 @@ export interface Company {
     address: string;
     coords?: { lat: number; lng: number } | null;
   };
+  /** Preferred accounting-package format for data exports. */
+  accountingPackage?: import("./exports/accounting").AccountingPackage;
 }
 
 export interface Banking {

@@ -1,0 +1,1 @@
+ALTER TABLE public.company_profile ADD COLUMN IF NOT EXISTS accounting_package text NOT NULL DEFAULT 'csv';

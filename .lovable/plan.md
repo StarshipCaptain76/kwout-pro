@@ -1,50 +1,51 @@
-# Expand Industries & Modules
+# Accounting Data Export
 
-Grow the business-type catalog from ~17 flat entries to the grouped list in the spec, and update the Settings UI to select business type by industry category.
+Give owners the ability to export invoices, payments, and expenses to formats their accountant can import into QuickBooks, Sage, or plain Excel.
 
-## Scope
+## 1. Owner setting
 
-### 1. `src/lib/modules.ts`
+In **Settings → Billing** (or a new "Accounting" card):
+- **Preferred accounting package** dropdown: `CSV (Excel)` [default], `QuickBooks Online (IIF/CSV)`, `Sage (CSV)`, `All formats`.
+- Persist on `company_profile.accounting_package` (new column, text, default `csv`).
+- Only owners see and change this (staff hidden per existing permissions).
 
-- Add an `IndustryCategory` type with the 8 groups:
-  - Electrical & Mechanical Services
-  - Plumbing & Related
-  - Construction & Renovation
-  - Finishing & Exterior
-  - Cleaning & Waste
-  - Security & Specialist
-  - Professional Services
-  - Logistics & Other
-- Extend `BusinessType` union with the new keys:
-  `electrical_av`, `hvac`, `appliance_services`, `fire_services`, `plumbing_gas`,
-  `property_maintenance`, `residential_renovations`, `new_residential_builds`,
-  `commercial_construction`, `industrial_construction`, `carpentry`, `roofing`,
-  `flooring`, `glazing`, `concreting`, `earthworks`, `fencing_decking`,
-  `engineering`, `painting`, `landscaping_lawns`, `cleaning`,
-  `security_services`, `bookkeeping`, `it_services`.
-- Add a `category` field to `BusinessTypeDef` and populate it for every existing + new entry so all types belong to exactly one group.
-- Re-order `BUSINESS_TYPES` to match the spec's grouping/order.
-- Add a `INDUSTRY_CATEGORIES` list (ordered) and a `businessTypesByCategory()` helper.
-- Preserve all existing keys (`plumber`, `electrician`, `mechanic`, etc.) so historical `company_profile.business_type` values keep working.
-- Field/module definitions in `MODULES` remain unchanged (spec adds no new module fields).
+## 2. Export UI
 
-### 2. Settings UI — `src/routes/settings.tsx` (Company tab)
+Add an **"Export accounting"** card on the Settings page (owner-only) with:
+- Date range picker (This month / Last month / YTD / Custom).
+- Data-set checkboxes: Invoices, Payments received, Expenses, Customers.
+- Format selector — defaults to the owner's preferred package, but always allows `CSV` fallback.
+- "Download" button generates one `.zip` (or single `.csv` when only one set is chosen).
 
-- Replace the flat business-type `<Select>` with a grouped select using shadcn `SelectGroup` + `SelectLabel`, one group per industry category, in the spec's order.
-- Selecting a type still calls `defaultModulesFor(...)` and refreshes `enabled_modules` as it does today.
-- No changes to Modules tab, permissions, PDF, or doc editor — those already read dynamically from `MODULES`/`BUSINESS_TYPES`.
+Also add a small **"Export"** button on the Expenses page that reuses the same generator for expenses only, honoring the preferred format.
 
-### 3. Docs
+## 3. Format spec
 
-- Update `docs/industries-and-modules.md` if any category naming or defaults drift from the spec during implementation (structure already matches).
+All generation client-side (no backend needed) using existing store data.
+
+- **CSV (default / Excel)** — one file per data set, plain headers (`Date, Number, Customer, Subtotal, Tax, Total, Status, ...`). Uses `;`-safe quoting and UTF-8 BOM so Excel opens ZAR characters correctly.
+- **QuickBooks Online** — CSV shapes matching QBO's import templates:
+  - Invoices: `InvoiceNo, Customer, InvoiceDate, DueDate, Item(Product/Service), ItemDescription, ItemQuantity, ItemRate, ItemAmount, ItemTaxCode, ItemTaxAmount`.
+  - Customers: `Name, Company, Email, Phone, BillingAddress...`.
+  - Expenses: `Date, Payee, Account, Amount, Memo`.
+- **Sage** — CSV matching Sage Accounting's import layout:
+  - Sales invoices: `Date, Reference, Customer, Description, Net, VAT, Total, Ledger`.
+  - Expenses/purchases: `Date, Reference, Supplier, Description, Net, VAT, Total, Ledger`.
+  - Customers: `Reference, Name, Email, Phone, Address 1..5, VAT number`.
+
+VAT rate comes from `company_profile.tax_rate`; blank when 0.
+
+## 4. Files to add / change
+
+- `supabase/migrations/*` — add `company_profile.accounting_package` text default `'csv'`.
+- `src/lib/store.ts` — extend `CompanyProfile` type + default.
+- `src/lib/sync.ts` — include new column in upsert/select.
+- `src/lib/exports/accounting.ts` (new) — pure functions that turn `Doc[] / Expense[] / Customer[]` into CSV strings per format, plus a `buildExportZip()` helper (uses existing `jszip` if present, else concatenates single-file download).
+- `src/components/app/AccountingExportCard.tsx` (new) — Settings UI.
+- `src/routes/settings.tsx` — mount the card in Billing tab and add the package selector.
+- `src/routes/expenses.tsx` — add "Export" button wired to the same generator.
 
 ## Out of scope
 
-- No database migration (business_type is free-form text; enabled_modules is a string array — new keys just work).
-- No new module fields, no PDF changes, no permissions changes.
-- No renaming/removal of existing business types (kept for backward compatibility alongside their new grouped counterparts).
-
-## Technical notes
-
-- Some spec entries are near-duplicates of existing ones (e.g. "Plumbing & Gas" vs "Plumber", "Painting" vs "Painter / Wall Finishing"). Both are kept as distinct selectable types per the spec table; owners choose whichever label fits.
-- The default-modules table in the spec is copied verbatim into `BUSINESS_TYPES`.
+- No live API push to QuickBooks/Sage (OAuth integrations). This is file export only, which covers 100% of the "give this to my accountant" use case.
+- Payslips export (already handled elsewhere) unless you want it bundled — say the word and I'll include it.

@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getMySubscription, createPayfastCheckout, cancelMySubscription } from "@/lib/subscription.functions";
+import { AccountingExportCard } from "@/components/app/AccountingExportCard";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -299,6 +300,7 @@ function SettingsPage() {
               </div>
               <Button onClick={() => toast.success("Saved")} className="w-fit">Save</Button>
             </Card>
+            <AccountingExportCard />
           </div>
         </TabsContent>
 
