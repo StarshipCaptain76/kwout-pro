@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
