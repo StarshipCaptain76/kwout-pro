@@ -109,7 +109,7 @@ function DocsListPage() {
       <Card className="p-3 sm:p-4">
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            No {status ? STATUS_LABEL[status].toLowerCase() : type ?? "quotes or invoices"} found.
+            No {status ? STATUS_LABEL[status as StatusFilter].toLowerCase() : type ?? "quotes or invoices"} found.
           </p>
         ) : (
           <ul className="divide-y">
