@@ -317,7 +317,23 @@ function PlannerPage() {
                   {unscheduled.map((d) => <JobCard key={d.id} doc={d} iso={undefined} currency={billing.currency} vat={billing.vatPct} />)}
                 </div>
               </DropZone>
-            )}
+        )}
+
+        <AlertDialog open={confirmArchiveOpen} onOpenChange={setConfirmArchiveOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Archive unscheduled jobs?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Archive all {unscheduled.length} unscheduled job{unscheduled.length === 1 ? "" : "s"}? They will be hidden from the planner.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmArchiveAll}>Archive</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
           </div>
         )}
 
