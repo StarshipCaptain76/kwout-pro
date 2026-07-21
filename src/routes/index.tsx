@@ -310,15 +310,7 @@ function Dashboard() {
   return (
     <Shell>
       <h1 className="sr-only">Business Dashboard</h1>
-      {needsBusinessType && (
-        <Card className="p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-3">
-          <div className="flex-1 min-w-[200px]">
-            <div className="font-semibold text-sm">Tailor KWOUT to your business</div>
-            <p className="text-xs text-muted-foreground">Pick your business type to switch on the invoice fields most useful for your industry.</p>
-          </div>
-          <Link to="/settings" className="text-sm font-medium underline underline-offset-4 hover:text-primary">Choose type →</Link>
-        </Card>
-      )}
+      {isOwner && <OnboardingChecklist />}
       {canSeeAll && isOwner && (
         <div className="grid sm:grid-cols-2 gap-3 mb-4">
           <StatusFrame
