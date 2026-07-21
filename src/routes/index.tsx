@@ -318,20 +318,78 @@ function Dashboard() {
           <Link to="/settings" className="text-sm font-medium underline underline-offset-4 hover:text-primary">Choose type →</Link>
         </Card>
       )}
-      {canSeeAll && (
+      {canSeeAll && isOwner && (
+        <div className="grid sm:grid-cols-2 gap-3 mb-4">
+          <StatusFrame
+            title="Invoices"
+            rows={[
+              {
+                key: "draft",
+                label: "Draft",
+                count: visible.filter((d) => d.type === "invoice" && invoiceView(d, billing.invoiceDueDays ?? 30) === "draft").length,
+                tone: "amber",
+                search: { type: "invoice", status: "draft" },
+              },
+              {
+                key: "unpaid",
+                label: "Unpaid",
+                count: visible.filter((d) => d.type === "invoice" && invoiceView(d, billing.invoiceDueDays ?? 30) === "unpaid").length,
+                tone: "blue",
+                search: { type: "invoice", status: "unpaid" },
+              },
+              {
+                key: "overdue",
+                label: "Overdue",
+                count: visible.filter((d) => d.type === "invoice" && invoiceView(d, billing.invoiceDueDays ?? 30) === "overdue").length,
+                tone: "red",
+                search: { type: "invoice", status: "overdue" },
+              },
+              {
+                key: "paid",
+                label: "Paid",
+                count: visible.filter((d) => d.type === "invoice" && invoiceView(d, billing.invoiceDueDays ?? 30) === "paid").length,
+                tone: "green",
+                search: { type: "invoice", status: "paid" },
+              },
+            ] satisfies StatusRow[]}
+          />
+          <StatusFrame
+            title="Quotes"
+            rows={[
+              {
+                key: "draft",
+                label: "Draft",
+                count: visible.filter((d) => d.type === "quote" && quoteView(d) === "draft").length,
+                tone: "amber",
+                search: { type: "quote", status: "draft" },
+              },
+              {
+                key: "awaiting",
+                label: "Awaiting acceptance",
+                count: visible.filter((d) => d.type === "quote" && quoteView(d) === "awaiting").length,
+                tone: "blue",
+                search: { type: "quote", status: "awaiting" },
+              },
+              {
+                key: "accepted",
+                label: "Accepted",
+                count: visible.filter((d) => d.type === "quote" && quoteView(d) === "accepted").length,
+                tone: "green",
+                search: { type: "quote", status: "accepted" },
+              },
+              {
+                key: "declined",
+                label: "Declined",
+                count: visible.filter((d) => d.type === "quote" && quoteView(d) === "declined").length,
+                tone: "red",
+                search: { type: "quote", status: "declined" },
+              },
+            ] satisfies StatusRow[]}
+          />
+        </div>
+      )}
+      {canSeeAll && !isOwner && (
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
-          {isOwner && (
-            <>
-              <Stat
-                label="Outstanding"
-                value={fmtMoney(stats.outstanding, billing.currency)}
-                accent
-                to="/docs"
-                search={{ status: "unpaid" }}
-              />
-              <Stat label="Paid (month)" value={fmtMoney(stats.paidThisMonth, billing.currency)} />
-            </>
-          )}
           <Stat label="Quotes (month)" value={String(stats.quotes)} to="/docs" search={{ type: "quote" }} />
           <Stat label="Invoices (month)" value={String(stats.invoices)} to="/docs" search={{ type: "invoice" }} />
         </div>
