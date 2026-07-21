@@ -318,6 +318,10 @@ function PlannerPage() {
         <div {...swipe} style={{ touchAction: "pan-y" }}>
         {view === "agenda" && (
           <div className="space-y-4">
+            <AgendaMap
+              jobs={jobs}
+              days={Array.from({ length: 7 }, (_, i) => addDays(new Date(), i))}
+            />
             {agendaDays.map((d) => {
               const iso = format(d, "yyyy-MM-dd");
               const dayJobs = byDay(iso);
