@@ -549,7 +549,7 @@ export const useStore = create<State>()(
     {
       name: "app-store", // ignored; perUserStorage handles the real key
       storage: createJSONStorage(() => perUserStorage),
-      version: 6,
+      version: 7,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
         const { staff: _s, currentUserId: _u, currentStaff: _c, currentWorkspaceOwnerId: _w, ...rest } = s;
