@@ -193,6 +193,8 @@ interface State {
   currentUserId: string | null;
   currentStaff: StaffMember | null;
   currentWorkspaceOwnerId: string | null;
+  onboardingDismissed: boolean;
+  setOnboardingDismissed: (v: boolean) => void;
   setStaffList: (s: StaffMember[]) => void;
   setCurrentUser: (userId: string | null, currentStaff: StaffMember | null) => void;
   setCurrentWorkspaceOwnerId: (id: string | null) => void;
