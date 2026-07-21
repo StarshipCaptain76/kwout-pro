@@ -608,6 +608,29 @@ export function fmtMoney(n: number, cur = "$") {
   return `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** Derive display status for an invoice, applying the overdue rule. */
+export function invoiceView(d: Doc, dueDays: number = 30, now: Date = new Date()): InvoiceView {
+  if (d.type !== "invoice") return "draft";
+  if (d.status === "paid") return "paid";
+  if (d.status === "draft") return "draft";
+  // sent / accepted / (legacy declined never applies to invoices) → unpaid or overdue
+  const created = d.createdAt ? new Date(d.createdAt) : null;
+  if (created && dueDays > 0) {
+    const ageDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+    if (ageDays > dueDays) return "overdue";
+  }
+  return "unpaid";
+}
+
+/** Derive display status for a quote. */
+export function quoteView(d: Doc): QuoteView {
+  if (d.type !== "quote") return "draft";
+  if (d.status === "draft") return "draft";
+  if (d.status === "accepted") return "accepted";
+  if (d.status === "declined") return "declined";
+  return "awaiting"; // sent
+}
+
 import { can as canRaw, type Action } from "./permissions";
 
 // Reactive: re-renders when currentStaff changes.
