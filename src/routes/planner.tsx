@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { DatePicker } from "@/components/app/DatePicker";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
@@ -174,11 +178,15 @@ function PlannerPage() {
     }
   };
 
+  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
   const archiveAllUnscheduled = () => {
     if (!canEdit || unscheduled.length === 0) return;
-    if (!window.confirm(`Archive all ${unscheduled.length} unscheduled job${unscheduled.length === 1 ? "" : "s"}?`)) return;
+    setConfirmArchiveOpen(true);
+  };
+  const confirmArchiveAll = () => {
     unscheduled.forEach((d) => upsertDoc({ ...d, archived: true }));
     toast.success(`Archived ${unscheduled.length} job${unscheduled.length === 1 ? "" : "s"}`);
+    setConfirmArchiveOpen(false);
   };
 
 
@@ -309,7 +317,23 @@ function PlannerPage() {
                   {unscheduled.map((d) => <JobCard key={d.id} doc={d} iso={undefined} currency={billing.currency} vat={billing.vatPct} />)}
                 </div>
               </DropZone>
-            )}
+        )}
+
+        <AlertDialog open={confirmArchiveOpen} onOpenChange={setConfirmArchiveOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Archive unscheduled jobs?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Archive all {unscheduled.length} unscheduled job{unscheduled.length === 1 ? "" : "s"}? They will be hidden from the planner.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmArchiveAll}>Archive</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
           </div>
         )}
 
