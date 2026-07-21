@@ -169,8 +169,15 @@ function SettingsPage() {
                 >
                   <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {BUSINESS_TYPES.map((b) => (
-                      <SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>
+                    {businessTypesByCategory().map(({ category, types }) => (
+                      types.length === 0 ? null : (
+                        <SelectGroup key={category.key}>
+                          <SelectLabel>{category.label}</SelectLabel>
+                          {types.map((b) => (
+                            <SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )
                     ))}
                   </SelectContent>
                 </Select>
