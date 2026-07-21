@@ -578,6 +578,9 @@ export const useStore = create<State>()(
         if (version < 6) {
           if (s.billing && s.billing.terms === undefined) s.billing.terms = DEFAULT_BILLING_TERMS;
         }
+        if (version < 7) {
+          if (s.onboardingDismissed === undefined) s.onboardingDismissed = false;
+        }
         return s;
       },
     },
