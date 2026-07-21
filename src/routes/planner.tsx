@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { flushSync } from "@/lib/sync";
 import { createContext, useContext } from "react";
+import { AgendaMap } from "@/components/app/AgendaMap";
 
 const JobActionsCtx = createContext<((d: Doc) => void) | null>(null);
 function usePlannerActions() {
