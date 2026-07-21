@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { flushSync } from "@/lib/sync";
 import { createContext, useContext } from "react";
+import { AgendaMap } from "@/components/app/AgendaMap";
 
 const JobActionsCtx = createContext<((d: Doc) => void) | null>(null);
 function usePlannerActions() {
@@ -317,6 +318,10 @@ function PlannerPage() {
         <div {...swipe} style={{ touchAction: "pan-y" }}>
         {view === "agenda" && (
           <div className="space-y-4">
+            <AgendaMap
+              jobs={jobs}
+              days={Array.from({ length: 7 }, (_, i) => addDays(new Date(), i))}
+            />
             {agendaDays.map((d) => {
               const iso = format(d, "yyyy-MM-dd");
               const dayJobs = byDay(iso);
