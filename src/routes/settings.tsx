@@ -297,7 +297,7 @@ function SettingsPage() {
               </div>
               <p className="text-xs text-muted-foreground -mt-2">
                 Unpaid invoices older than this appear in the OVERDUE row on your dashboard.
-              </div>
+              </p>
               <div>
                 <Label>Terms &amp; conditions</Label>
                 <textarea
