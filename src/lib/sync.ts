@@ -96,6 +96,7 @@ export function pushCompanyProfile() {
       density: s.density,
       business_type: s.company.businessType ?? null,
       enabled_modules: (s.company.enabledModules ?? []) as unknown as never,
+      accounting_package: s.company.accountingPackage ?? "csv",
     } as never);
     if (error) throw error;
   });
