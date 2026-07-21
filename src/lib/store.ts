@@ -175,6 +175,8 @@ export interface BillingSettings {
   terms?: string;
   primaryUnit?: Unit;
   customUnits?: string[];
+  /** Days after createdAt before an unpaid invoice is considered overdue. Default 30. */
+  invoiceDueDays?: number;
 }
 
 interface State {
