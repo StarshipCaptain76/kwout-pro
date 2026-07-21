@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { useStore, newId, BUILTIN_UNITS, DEFAULT_THEME, DEFAULT_BILLING_TERMS, useCan, type Unit, type Density } from "@/lib/store";
-import { BUSINESS_TYPES, MODULES, MODULE_KEYS, defaultModulesFor, type BusinessType, type ModuleKey } from "@/lib/modules";
+import { MODULES, MODULE_KEYS, defaultModulesFor, businessTypesByCategory, type BusinessType, type ModuleKey } from "@/lib/modules";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus, Search, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { toast } from "sonner";
@@ -169,8 +169,15 @@ function SettingsPage() {
                 >
                   <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {BUSINESS_TYPES.map((b) => (
-                      <SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>
+                    {businessTypesByCategory().map(({ category, types }) => (
+                      types.length === 0 ? null : (
+                        <SelectGroup key={category.key}>
+                          <SelectLabel>{category.label}</SelectLabel>
+                          {types.map((b) => (
+                            <SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )
                     ))}
                   </SelectContent>
                 </Select>
