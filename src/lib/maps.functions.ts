@@ -74,12 +74,33 @@ const point = z.object({
 
 export const routeDistance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ from: point, to: point }).parse(d))
+  .inputValidator((d) =>
+    z
+      .object({
+        from: point,
+        to: point,
+        /** Intermediate stops between From and To (max 23 per Google Routes API). */
+        stops: z.array(point).max(23).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
     const waypoint = (p: { address?: string; lat?: number; lng?: number }) =>
       p.lat != null && p.lng != null
         ? { location: { latLng: { latitude: p.lat, longitude: p.lng } } }
         : { address: p.address ?? "" };
+
+    const intermediates = (data.stops ?? [])
+      .filter((s) => (s.address && s.address.trim()) || (s.lat != null && s.lng != null))
+      .map(waypoint);
+
+    const body: Record<string, unknown> = {
+      origin: waypoint(data.from),
+      destination: waypoint(data.to),
+      travelMode: "DRIVE",
+      routingPreference: "TRAFFIC_UNAWARE",
+    };
+    if (intermediates.length) body.intermediates = intermediates;
 
     const res = await fetch(`${GATEWAY}/routes/directions/v2:computeRoutes`, {
       method: "POST",
@@ -87,12 +108,7 @@ export const routeDistance = createServerFn({ method: "POST" })
         ...headers(),
         "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
       },
-      body: JSON.stringify({
-        origin: waypoint(data.from),
-        destination: waypoint(data.to),
-        travelMode: "DRIVE",
-        routingPreference: "TRAFFIC_UNAWARE",
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`Route failed [${res.status}]: ${await res.text()}`);
     const j = (await res.json()) as { routes?: Array<{ distanceMeters?: number; duration?: string }> };
