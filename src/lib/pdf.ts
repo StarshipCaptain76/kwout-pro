@@ -13,7 +13,7 @@ function hexToRgb(hex: string): [number, number, number] {
 async function dataUrlToBase64Png(dataUrl: string): Promise<{ data: string; format: string } | null> {
   if (!dataUrl.startsWith("data:")) return null;
   const match = dataUrl.match(/^data:image\/(png|jpeg|jpg|webp)/i);
-  if (!match) return null; // svg not supported by jsPDF addImage
+  if (!match) return null;
   return { data: dataUrl, format: match[1].toUpperCase() === "JPG" ? "JPEG" : match[1].toUpperCase() };
 }
 
@@ -44,11 +44,23 @@ export async function generatePdf(
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(28);
   pdf.setTextColor(20, 20, 20);
-  pdf.text(doc.type === "quote" ? "QUOTE" : "TAX INVOICE", W - M, 20, { align: "right" });
+  const headerLabel =
+    doc.type === "quote" ? "QUOTE"
+    : doc.type === "job" ? "JOB"
+    : "TAX INVOICE";
+  pdf.text(headerLabel, W - M, 20, { align: "right" });
   pdf.setFontSize(10);
   pdf.setFont("helvetica", "normal");
   pdf.text(`No: ${doc.number}`, W - M, 27, { align: "right" });
-  pdf.text(`Date: ${new Date(doc.createdAt).toLocaleDateString()}`, W - M, 32, { align: "right" });
+  const dateLine = doc.scheduledTime
+    ? `Date: ${new Date(doc.createdAt).toLocaleDateString()} · ${doc.scheduledTime}`
+    : `Date: ${new Date(doc.createdAt).toLocaleDateString()}`;
+  pdf.text(dateLine, W - M, 32, { align: "right" });
+  if (doc.scheduledDate && doc.scheduledTime) {
+    pdf.text(`Scheduled: ${doc.scheduledDate} ${doc.scheduledTime}`, W - M, 37, { align: "right" });
+  } else if (doc.scheduledDate) {
+    pdf.text(`Scheduled: ${doc.scheduledDate}`, W - M, 37, { align: "right" });
+  }
 
   let y = 42;
   pdf.setFont("helvetica", "bold");
@@ -69,7 +81,6 @@ export async function generatePdf(
 
   y = 78;
 
-  // FROM / TO route block (optional — only when addresses are set).
   if (doc.fromAddress || doc.toAddress) {
     const ACCENT: [number, number, number] = hexToRgb(theme.accent);
     const boxX = M;
@@ -79,7 +90,6 @@ export async function generatePdf(
     const toLines = pdf.splitTextToSize(doc.toAddress || "—", colW - 4);
     const maxLines = Math.max(fromLines.length, toLines.length);
     const boxH = 8 + maxLines * 4 + 4;
-    // Soft accent fill (~8% mix on white) — avoids relying on GState.
     const mix = (c: number) => Math.round(255 - (255 - c) * 0.08);
     pdf.setFillColor(mix(ACCENT[0]), mix(ACCENT[1]), mix(ACCENT[2]));
     pdf.rect(boxX, y, boxW, boxH, "F");
@@ -101,7 +111,6 @@ export async function generatePdf(
     pdf.text(toLines, boxX + 3 + colW + 3, y + 10);
     y += boxH + 4;
   }
-
 
   pdf.setFillColor(20, 20, 20);
   pdf.rect(M, y, W - 2 * M, 8, "F");
@@ -165,11 +174,10 @@ export async function generatePdf(
     y += 6;
   }
 
-  // Module data (job details): render populated fields from enabled modules.
   const enabled = (company.enabledModules ?? []) as ModuleKey[];
   const moduleLines: Array<{ head: string; rows: Array<[string, string]> }> = [];
   for (const k of enabled) {
-    if (k === "location") continue; // covered by addresses/distance already
+    if (k === "location") continue;
     const m = MODULES[k];
     if (!m) continue;
     const data = (doc.moduleData?.[k] as Record<string, unknown> | undefined) ?? {};
@@ -241,11 +249,9 @@ export async function generatePdf(
     pdf.text(doc.notes, M, extraY);
   }
 
-
   pdf.setFillColor(...PRIMARY);
   pdf.rect(0, 293, W, 4, "F");
 
-  // Elegant, unobtrusive watermark
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(7);
   pdf.setTextColor(160, 160, 160);
