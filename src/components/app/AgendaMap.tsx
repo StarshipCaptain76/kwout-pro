@@ -41,22 +41,23 @@ function loadGoogleMaps(): Promise<void> {
   return scriptPromise;
 }
 
-type PinKind = "pickup" | "dropoff";
+type PinKind = "pickup" | "dropoff" | "stop";
 
 function pinIcon(color: string, label: string, kind: PinKind) {
-  // SVG data-URL marker. Pickup = filled circle w/ label; drop-off = ring (hollow).
-  const w = 88;
-  const h = 44;
-  const fill = kind === "pickup" ? color : "#ffffff";
+  // SVG data-URL marker. Pickup = filled; drop-off = hollow ring; stop = smaller.
+  const w = kind === "stop" ? 56 : 88;
+  const h = kind === "stop" ? 36 : 44;
+  const fill = kind === "pickup" ? color : kind === "stop" ? color : "#ffffff";
   const stroke = color;
-  const textColor = kind === "pickup" ? "#ffffff" : color;
+  const textColor = kind === "dropoff" ? color : "#ffffff";
+  const fontSize = kind === "stop" ? 11 : 13;
   const svg = `
     <svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}'>
       <rect x='1' y='1' width='${w - 2}' height='${h - 12}' rx='14' ry='14'
         fill='${fill}' stroke='${stroke}' stroke-width='2'/>
       <polygon points='${w / 2 - 6},${h - 12} ${w / 2 + 6},${h - 12} ${w / 2},${h - 2}'
         fill='${fill}' stroke='${stroke}' stroke-width='2'/>
-      <text x='${w / 2}' y='20' font-family='Inter,Arial,sans-serif' font-size='13' font-weight='700'
+      <text x='${w / 2}' y='${kind === "stop" ? 16 : 20}' font-family='Inter,Arial,sans-serif' font-size='${fontSize}' font-weight='700'
         text-anchor='middle' fill='${textColor}'>${label}</text>
     </svg>`.trim();
   return {
@@ -71,7 +72,6 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
   const overlaysRef = useRef<Array<{ setMap: (m: unknown) => void }>>([]);
   const mapInstRef = useRef<unknown>(null);
 
-  // color by ISO date -> palette index in `days`
   const dayColor = useMemo(() => {
     const m = new Map<string, string>();
     days.forEach((d, i) => m.set(format(d, "yyyy-MM-dd"), DAY_COLORS[i % DAY_COLORS.length]));
@@ -79,7 +79,12 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
   }, [days]);
 
   const jobsWithCoords = useMemo(
-    () => jobs.filter((j) => j.scheduledDate && (j.fromCoords || j.toCoords)),
+    () =>
+      jobs.filter(
+        (j) =>
+          j.scheduledDate &&
+          (j.fromCoords || j.toCoords || (j.stops ?? []).some((s) => s.coords)),
+      ),
     [jobs],
   );
 
@@ -92,7 +97,7 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
         const g = (window as unknown as { google: any }).google;
         if (!mapInstRef.current) {
           mapInstRef.current = new g.maps.Map(mapRef.current, {
-            center: { lat: -33.9249, lng: 18.4241 }, // fallback (Cape Town)
+            center: { lat: -33.9249, lng: 18.4241 },
             zoom: 10,
             mapTypeControl: false,
             streetViewControl: false,
@@ -101,7 +106,6 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
         }
         const map = mapInstRef.current as any;
 
-        // Clear old overlays
         overlaysRef.current.forEach((o) => o.setMap(null));
         overlaysRef.current = [];
 
@@ -113,9 +117,11 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
           const iso = j.scheduledDate!;
           const color = dayColor.get(iso) ?? "#64748b";
           const dLabel = format(parseISO(iso), "EEE d");
+          const path: Array<{ lat: number; lng: number }> = [];
 
           if (j.fromCoords) {
             const pos = { lat: j.fromCoords.lat, lng: j.fromCoords.lng };
+            path.push(pos);
             const marker = new g.maps.Marker({
               position: pos,
               map,
@@ -137,8 +143,34 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
             bounds.extend(pos);
           }
 
+          (j.stops ?? []).forEach((stop, si) => {
+            if (!stop.coords) return;
+            const pos = { lat: stop.coords.lat, lng: stop.coords.lng };
+            path.push(pos);
+            const marker = new g.maps.Marker({
+              position: pos,
+              map,
+              icon: pinIcon(color, `S${si + 1}`, "stop"),
+              title: `${j.customer.name} — stop ${si + 1} ${dLabel}`,
+            });
+            marker.addListener("click", () => {
+              info.setContent(
+                `<div style="font-family:Inter,sans-serif;font-size:13px;max-width:220px">
+                  <div style="font-weight:600;margin-bottom:2px">${escapeHtml(j.customer.name)}</div>
+                  <div style="color:#64748b;margin-bottom:4px">${escapeHtml(j.number)} · Stop ${si + 1} · ${escapeHtml(dLabel)}</div>
+                  <div style="margin-bottom:6px">${escapeHtml(stop.address ?? "")}</div>
+                  <a href="/doc/${encodeURIComponent(j.id)}" style="color:${color};font-weight:600">Open →</a>
+                </div>`,
+              );
+              info.open({ anchor: marker, map });
+            });
+            overlaysRef.current.push(marker as any);
+            bounds.extend(pos);
+          });
+
           if (j.toCoords) {
             const pos = { lat: j.toCoords.lat, lng: j.toCoords.lng };
+            path.push(pos);
             const marker = new g.maps.Marker({
               position: pos,
               map,
@@ -160,12 +192,9 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
             bounds.extend(pos);
           }
 
-          if (j.fromCoords && j.toCoords) {
+          if (path.length >= 2) {
             const line = new g.maps.Polyline({
-              path: [
-                { lat: j.fromCoords.lat, lng: j.fromCoords.lng },
-                { lat: j.toCoords.lat, lng: j.toCoords.lng },
-              ],
+              path,
               geodesic: true,
               strokeColor: color,
               strokeOpacity: 0.85,
@@ -184,7 +213,6 @@ export function AgendaMap({ jobs, days }: { jobs: Doc[]; days: Date[] }) {
 
         if (!bounds.isEmpty()) {
           map.fitBounds(bounds, 60);
-          // Prevent over-zoom when there's a single point
           const listener = g.maps.event.addListenerOnce(map, "idle", () => {
             if (map.getZoom() > 14) map.setZoom(14);
           });
