@@ -98,6 +98,8 @@ export interface Doc {
   status: DocStatus;
   createdAt: string;
   scheduledDate?: string;
+  /** Optional start time "HH:mm" (5-minute steps). */
+  scheduledTime?: string;
   scheduledEndDate?: string;
   dayOrder?: number;
   archived?: boolean;
@@ -130,6 +132,12 @@ export const DEFAULT_THEME: Theme = {
   accent: "#4F8C2E", // KWOUT green
 };
 
+export interface JobReminders {
+  enabled: boolean;
+  /** Minutes before scheduledTime to fire a notification. Default 30. */
+  leadMinutes: number;
+}
+
 export interface Company {
   name: string;
   tagline: string;
@@ -149,6 +157,8 @@ export interface Company {
   };
   /** Preferred accounting-package format for data exports. */
   accountingPackage?: import("./exports/accounting").AccountingPackage;
+  /** Device notification lead-time for upcoming scheduled jobs. */
+  jobReminders?: JobReminders;
 }
 
 export interface Banking {
@@ -229,9 +239,6 @@ interface State {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 // ============ per-user persistence key ============
-// The persisted store is namespaced by the currently signed-in user id.
-// This prevents one user's local data leaking into another account when
-// they sign in on the same device.
 const PERSIST_PREFIX = "app-store::";
 const LEGACY_KEY = "app-store-v1";
 let currentPersistKey = "anon";
@@ -240,9 +247,6 @@ function fullKey() {
   return `${PERSIST_PREFIX}${currentPersistKey}`;
 }
 
-// One-time: migrate the legacy shared key to the anon slot so any local
-// edits made before this change aren't lost. Never migrate into a signed-in
-// slot.
 if (typeof window !== "undefined") {
   try {
     const legacy = window.localStorage.getItem(LEGACY_KEY);
@@ -274,7 +278,6 @@ export function setPersistKey(userId: string | null) {
   const next = userId ?? "anon";
   if (next === currentPersistKey) return;
   currentPersistKey = next;
-  // Rehydrate from the new slot so the in-memory store reflects that user.
   void useStore.persist.rehydrate();
 }
 
@@ -294,6 +297,7 @@ export const useStore = create<State>()(
         email: "",
         logo: "/kwout-logo.png",
         theme: DEFAULT_THEME,
+        jobReminders: { enabled: false, leadMinutes: 30 },
       },
       banking: {
         accountName: "",
@@ -462,8 +466,6 @@ export const useStore = create<State>()(
         const s = get();
         const existingExp = new Set(s.expenses.map((e) => e.id));
         const existingDoc = new Set(s.docs.map((d) => d.id));
-        // Categories mutate ONLY on explicit user action — imports must never
-        // silently create new categories. Map unknown categories to "Other".
         const knownCats = new Set(s.expenseCategories.map((c) => c.toLowerCase()));
         const normalisedExp = p.expenses
           .filter((e) => !existingExp.has(e.id))
@@ -518,6 +520,7 @@ export const useStore = create<State>()(
             email: "",
             logo: "/kwout-logo.png",
             theme: DEFAULT_THEME,
+            jobReminders: { enabled: false, leadMinutes: 30 },
           },
           banking: {
             accountName: "",
@@ -559,11 +562,10 @@ export const useStore = create<State>()(
       },
     }),
     {
-      name: "app-store", // ignored; perUserStorage handles the real key
+      name: "app-store",
       storage: createJSONStorage(() => perUserStorage),
-      version: 8,
+      version: 9,
       partialize: (s) => {
-        // Never persist per-session identity or staff list to localStorage.
         const { staff: _s, currentUserId: _u, currentStaff: _c, currentWorkspaceOwnerId: _w, ...rest } = s;
         void _s; void _u; void _c; void _w;
         return rest as unknown as State;
@@ -599,6 +601,11 @@ export const useStore = create<State>()(
             if (s.billing.nextJobNo === undefined) s.billing.nextJobNo = 1001;
           }
         }
+        if (version < 9) {
+          if (s.company && !s.company.jobReminders) {
+            s.company.jobReminders = { enabled: false, leadMinutes: 30 };
+          }
+        }
         return s;
       },
     },
@@ -621,8 +628,6 @@ export function docTotals(d: Doc, vatPct: number) {
   return { subtotal, vat, total, deposit, balance };
 }
 
-// VAT portion of a VAT-inclusive amount at the given rate (percent).
-// e.g. computeVat(115, 15) === 15
 export function computeVat(amountInclusive: number, vatPct: number) {
   if (!amountInclusive || !vatPct || vatPct <= 0) return 0;
   const net = amountInclusive / (1 + vatPct / 100);
@@ -633,12 +638,10 @@ export function fmtMoney(n: number, cur = "$") {
   return `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** Derive display status for an invoice, applying the overdue rule. */
 export function invoiceView(d: Doc, dueDays: number = 30, now: Date = new Date()): InvoiceView {
   if (d.type !== "invoice") return "draft";
   if (d.status === "paid") return "paid";
   if (d.status === "draft") return "draft";
-  // sent / accepted / (legacy declined never applies to invoices) → unpaid or overdue
   const created = d.createdAt ? new Date(d.createdAt) : null;
   if (created && dueDays > 0) {
     const ageDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
@@ -647,18 +650,16 @@ export function invoiceView(d: Doc, dueDays: number = 30, now: Date = new Date()
   return "unpaid";
 }
 
-/** Derive display status for a quote. */
 export function quoteView(d: Doc): QuoteView {
   if (d.type !== "quote") return "draft";
   if (d.status === "draft") return "draft";
   if (d.status === "accepted") return "accepted";
   if (d.status === "declined") return "declined";
-  return "awaiting"; // sent
+  return "awaiting";
 }
 
 import { can as canRaw, type Action } from "./permissions";
 
-// Reactive: re-renders when currentStaff changes.
 export function useCan(action: Action): boolean {
   const cs = useStore((s) => s.currentStaff);
   return canRaw(cs?.role ?? null, cs?.permissions, action);
@@ -667,4 +668,3 @@ export function useIsOwner(): boolean {
   const cs = useStore((s) => s.currentStaff);
   return !cs || cs.role === "owner";
 }
-
