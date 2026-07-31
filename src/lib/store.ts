@@ -91,6 +91,13 @@ export interface Customer {
   address?: string;
 }
 
+/** Intermediate stop on a multi-leg route (between From and To). */
+export interface RouteStop {
+  id: string;
+  address: string;
+  coords?: { lat: number; lng: number };
+}
+
 export interface Doc {
   id: string;
   number: string;
@@ -114,6 +121,8 @@ export interface Doc {
   toAddress?: string;
   fromCoords?: { lat: number; lng: number };
   toCoords?: { lat: number; lng: number };
+  /** Ordered intermediate stops between From and To. */
+  stops?: RouteStop[];
   distanceKm?: number;
   assignedTo?: string; // staff user_id
   moduleData?: Partial<Record<import("./modules").ModuleKey, Record<string, unknown>>>;
