@@ -31,7 +31,7 @@ export interface StaffMember {
 export type Unit = string; // built-ins: "each" | "hour" | "km" | "job", plus user-defined
 export const BUILTIN_UNITS = ["each", "hour", "km", "job"] as const;
 export type PayMethod = "cash" | "eft" | "card";
-export type DocType = "quote" | "invoice";
+export type DocType = "quote" | "invoice" | "job";
 export type DocStatus = "draft" | "sent" | "accepted" | "declined" | "paid" | "cancelled";
 /** Derived invoice status used for status frames and /docs filtering. */
 export type InvoiceView = "draft" | "unpaid" | "overdue" | "paid";
@@ -169,8 +169,10 @@ export interface BillingSettings {
   vatNumber?: string;
   quotePrefix: string;
   invoicePrefix: string;
+  jobPrefix?: string;
   nextQuoteNo: number;
   nextInvoiceNo: number;
+  nextJobNo?: number;
   currency: string;
   terms?: string;
   primaryUnit?: Unit;
@@ -310,8 +312,10 @@ export const useStore = create<State>()(
         vatNumber: "",
         quotePrefix: "Q",
         invoicePrefix: "INV",
+        jobPrefix: "J",
         nextQuoteNo: 1001,
         nextInvoiceNo: 1001,
+        nextJobNo: 1001,
         currency: "R",
         terms: DEFAULT_BILLING_TERMS,
         primaryUnit: "km",
@@ -390,6 +394,12 @@ export const useStore = create<State>()(
           set({ billing: { ...b, nextQuoteNo: n + 1 } });
           pushCompanyProfile();
           return `${b.quotePrefix}-${n}`;
+        }
+        if (t === "job") {
+          const n = b.nextJobNo ?? 1001;
+          set({ billing: { ...b, nextJobNo: n + 1 } });
+          pushCompanyProfile();
+          return `${b.jobPrefix ?? "J"}-${n}`;
         }
         const n = b.nextInvoiceNo;
         set({ billing: { ...b, nextInvoiceNo: n + 1 } });
@@ -526,8 +536,10 @@ export const useStore = create<State>()(
             vatNumber: "",
             quotePrefix: "Q",
             invoicePrefix: "INV",
+            jobPrefix: "J",
             nextQuoteNo: 1001,
             nextInvoiceNo: 1001,
+            nextJobNo: 1001,
             currency: "R",
             terms: DEFAULT_BILLING_TERMS,
             primaryUnit: "km",
@@ -549,7 +561,7 @@ export const useStore = create<State>()(
     {
       name: "app-store", // ignored; perUserStorage handles the real key
       storage: createJSONStorage(() => perUserStorage),
-      version: 7,
+      version: 8,
       partialize: (s) => {
         // Never persist per-session identity or staff list to localStorage.
         const { staff: _s, currentUserId: _u, currentStaff: _c, currentWorkspaceOwnerId: _w, ...rest } = s;
@@ -580,6 +592,12 @@ export const useStore = create<State>()(
         }
         if (version < 7) {
           if (s.onboardingDismissed === undefined) s.onboardingDismissed = false;
+        }
+        if (version < 8) {
+          if (s.billing) {
+            if (s.billing.jobPrefix === undefined) s.billing.jobPrefix = "J";
+            if (s.billing.nextJobNo === undefined) s.billing.nextJobNo = 1001;
+          }
         }
         return s;
       },
