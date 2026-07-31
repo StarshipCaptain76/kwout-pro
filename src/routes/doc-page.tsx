@@ -192,6 +192,8 @@ export function DocPage() {
                   toCoords={doc.toCoords}
                   stops={doc.stops}
                   distanceKm={doc.distanceKm}
+                  ratePerKm={billing.ratePerKm}
+                  currency={billing.currency}
                   calcing={calcing}
                   disposalSite={company.disposalSite}
                   showDisposal={enabledModules.has("waste")}
