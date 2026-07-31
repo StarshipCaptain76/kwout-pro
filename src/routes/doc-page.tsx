@@ -167,7 +167,7 @@ export function DocPage() {
                   onType={(name) => updateCust({ name })}
                   onPick={(c) => upsertDoc({ ...doc, customer: { ...c } })}
                 />
-                <ContactImportButton onImport={(c) => updateCust(c)} />
+                <ContactImportButton onPick={(c) => updateCust(c)} />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
