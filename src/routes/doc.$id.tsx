@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CustomerCombobox } from "@/components/app/CustomerCombobox";
 import { ContactImportButton } from "@/components/app/ContactImportButton";
@@ -26,13 +25,12 @@ import { AddressAutocomplete } from "@/components/app/AddressAutocomplete";
 import { CatalogPicker } from "@/components/app/CatalogPicker";
 import { InlineTumbler } from "@/components/app/InlineTumbler";
 import { DatePicker } from "@/components/app/DatePicker";
+import { TimePicker } from "@/components/app/TimePicker";
 import { Slider } from "@/components/ui/slider";
 import { useServerFn } from "@tanstack/react-start";
 import { routeDistance } from "@/lib/maps.functions";
 import { flushSync } from "@/lib/sync";
 const nn = (v: number) => (isFinite(v) && v > 0 ? v : 0);
-
-
 
 export const Route = createFileRoute("/doc/$id")({
   component: DocPage,
@@ -60,8 +58,6 @@ function DocPage() {
   const distanceFn = useServerFn(routeDistance);
   const [calcing, setCalcing] = useState(false);
 
-  // Only surface customers explicitly added in the app — never the ones
-  // embedded on historical/imported docs.
   const allCustomers = useMemo(
     () =>
       customers
@@ -204,7 +200,6 @@ function DocPage() {
                   onChange={(v) => updateCust({ address: v.address })}
                 />
               </div>
-              {/* Route / distance only for quotes & invoices when location module is on */}
               {showLocation && !isJob && (
                 <>
                   <div className="col-span-2">
@@ -254,7 +249,6 @@ function DocPage() {
             </div>
           </Card>
 
-          {/* Line items — hidden for jobs */}
           {!isJob && (
             <Card className="p-4">
               <div className="flex items-center justify-between mb-3">
@@ -341,7 +335,7 @@ function DocPage() {
           </Card>
 
           {!isJob && (company.enabledModules ?? [])
-            .filter((k) => k !== "location") // location fields live inside the Customer card
+            .filter((k) => k !== "location")
             .map((k) => {
               const m = MODULES[k];
               if (!m) return null;
@@ -391,10 +385,13 @@ function DocPage() {
               );
             })}
 
-          {/* Schedule + assigned — always visible, including jobs */}
           <Card className="p-4">
             <Label className="flex items-center gap-1 mb-1"><CalendarIcon className="h-3.5 w-3.5" /> Scheduled date</Label>
             <DatePicker value={doc.scheduledDate} onChange={(iso) => update({ scheduledDate: iso })} clearable />
+            <div className="mt-3">
+              <Label className="text-xs mb-1 block">Start time (optional)</Label>
+              <TimePicker value={doc.scheduledTime} onChange={(t) => update({ scheduledTime: t })} />
+            </div>
             <label className="flex items-center gap-2 mt-3 text-sm cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -445,7 +442,6 @@ function DocPage() {
             )}
           </Card>
 
-          {/* Actions for jobs: mark paid / cancel only */}
           {isJob && (
             <Card className="p-4 space-y-2">
               <h3 className="font-semibold text-sm">Actions</h3>
@@ -468,7 +464,6 @@ function DocPage() {
           )}
         </div>
 
-        {/* Right column — quote/invoice only */}
         {!isJob && (
           <div className="space-y-4">
             <Card className="p-4">
