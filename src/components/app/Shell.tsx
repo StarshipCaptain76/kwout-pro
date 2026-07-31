@@ -47,10 +47,30 @@ function useVisibleNav() {
   return NAV_ITEMS.filter((n) => allowed[n.to]);
 }
 
+/** Auth session gate: null = still resolving, true = signed in, false = signed out. */
+function useAuthSession() {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setSignedIn(!!data.session);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(!!session);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+  return signedIn;
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const company = useStore((s) => s.company);
   const visibleNav = useVisibleNav();
+  const signedIn = useAuthSession();
 
   // Read the cookie only after hydration to avoid SSR/client mismatch.
   const [cookieBrand, setCookieBrand] = useState<{ name?: string; logo?: string } | null>(null);
@@ -63,6 +83,41 @@ export function Shell({ children }: { children: ReactNode }) {
   const name = company.name || cookieBrand?.name || "";
   const logo = company.logo || cookieBrand?.logo || "";
   const knowBrand = Boolean(name);
+
+  // Phase 4 — signed-out gate: no nav, no tab bar, no page data.
+  if (signedIn === false) {
+    return (
+      <div className="min-h-[100svh] bg-background text-foreground grid place-items-center p-4">
+        <div className="w-full max-w-sm text-center space-y-4">
+          {logo ? (
+            <img src={logo} alt={name || "KWOUT"} className="h-12 w-auto mx-auto rounded" />
+          ) : (
+            <div className="h-12 w-12 mx-auto rounded bg-primary text-primary-foreground grid place-items-center font-bold text-lg">
+              {(name || "K").slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          <div className="font-display text-3xl tracking-wide">SIGN IN REQUIRED</div>
+          <p className="text-sm text-muted-foreground">
+            Sign in to view your quotes, invoices, planner and expenses.
+          </p>
+          <Button asChild className="h-11 w-full">
+            <Link to="/auth">
+              <LogIn className="h-4 w-4 mr-2" /> Sign in
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Still resolving session — avoid a flash of gated or full UI.
+  if (signedIn === null) {
+    return (
+      <div className="min-h-[100svh] bg-background text-foreground grid place-items-center">
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" aria-label="Loading" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100svh] bg-background text-foreground">
@@ -367,7 +422,7 @@ function WorkspaceSwitcher() {
         className="px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 max-w-[180px]"
         title="Switch workspace"
       >
-        <Building2 className="h-3.5 w-3.5 shrink-0" />
+        <Building2 className="h-3.5 w-3 shrink-0" />
         <span className="truncate">{current.businessName}</span>
         <ChevronDown className="h-3 w-3 opacity-60 shrink-0" />
       </DropdownMenuTrigger>
@@ -416,4 +471,3 @@ function AdminNavLink({ path }: { path: string }) {
     </Link>
   );
 }
-
