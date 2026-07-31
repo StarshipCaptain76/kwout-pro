@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AddressAutocomplete } from "@/components/app/AddressAutocomplete";
-import { newId, type RouteStop } from "@/lib/store";
+import { newId, fmtMoney, type RouteStop } from "@/lib/store";
 import { Plus, Trash2, ChevronUp, ChevronDown, Route as RouteIcon, Recycle } from "lucide-react";
 
 interface Props {
@@ -11,6 +11,9 @@ interface Props {
   toCoords?: { lat: number; lng: number };
   stops?: RouteStop[];
   distanceKm?: number;
+  /** Per-km rate from billing settings — used only for on-screen trip estimate. */
+  ratePerKm?: number;
+  currency?: string;
   calcing: boolean;
   disposalSite?: { address: string; coords?: { lat: number; lng: number } | null };
   showDisposal: boolean;
@@ -26,6 +29,8 @@ export function RouteStopsEditor({
   toCoords,
   stops = [],
   distanceKm,
+  ratePerKm = 0,
+  currency = "R",
   calcing,
   disposalSite,
   showDisposal,
@@ -59,6 +64,11 @@ export function RouteStopsEditor({
     onFrom({ address: toAddress!, coords: toCoords });
     onTo({ address: "", coords: undefined });
   };
+
+  const tripEstimate =
+    distanceKm && ratePerKm > 0
+      ? Math.round(distanceKm * ratePerKm * 100) / 100
+      : null;
 
   return (
     <div className="col-span-2 space-y-3">
@@ -182,11 +192,21 @@ export function RouteStopsEditor({
         />
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <Button type="button" size="sm" variant="secondary" onClick={onCalc} disabled={calcing}>
           <RouteIcon className="h-4 w-4 mr-1" /> {calcing ? "Calculating…" : "Calculate distance"}
         </Button>
-        {distanceKm ? <span className="text-muted-foreground">{distanceKm} km</span> : null}
+        {distanceKm ? (
+          <span className="text-muted-foreground">
+            {distanceKm} km
+            {tripEstimate != null ? (
+              <>
+                {" · ≈ "}{fmtMoney(tripEstimate, currency)}
+                {" at "}{fmtMoney(ratePerKm, currency)}/km
+              </>
+            ) : null}
+          </span>
+        ) : null}
       </div>
     </div>
   );
