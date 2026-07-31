@@ -6,6 +6,7 @@ import {
   Cloud, CloudOff, Plus, FileText, Receipt, Wallet, LogIn, LogOut, User, Building2, ChevronDown, Check, Truck,
 } from "lucide-react";
 import { initSync, subscribeSync, switchWorkspace } from "@/lib/sync";
+import { startReminders } from "@/lib/reminders";
 import { useStore, newId, useCan, type Doc } from "@/lib/store";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -22,7 +23,6 @@ import { TrialBanner } from "@/components/app/TrialBanner";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { ShieldCheck } from "lucide-react";
 
-
 const NAV_ITEMS = [
   { to: "/", label: "Home", icon: LayoutDashboard, perm: null },
   { to: "/planner", label: "Planner", icon: Calendar, perm: "planner.view" as const },
@@ -30,7 +30,6 @@ const NAV_ITEMS = [
   { to: "/results", label: "Results", icon: BarChart3, perm: "reports.viewOwn" as const },
   { to: "/settings", label: "Settings", icon: Settings, perm: "settings.view" as const },
 ] as const;
-
 
 function useVisibleNav() {
   const canPlanner = useCan("planner.view");
@@ -47,7 +46,6 @@ function useVisibleNav() {
   return NAV_ITEMS.filter((n) => allowed[n.to]);
 }
 
-/** Auth session gate: null = still resolving, true = signed in, false = signed out. */
 function useAuthSession() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   useEffect(() => {
@@ -72,19 +70,16 @@ export function Shell({ children }: { children: ReactNode }) {
   const visibleNav = useVisibleNav();
   const signedIn = useAuthSession();
 
-  // Read the cookie only after hydration to avoid SSR/client mismatch.
   const [cookieBrand, setCookieBrand] = useState<{ name?: string; logo?: string } | null>(null);
   useEffect(() => {
     const b = readBrandCookie();
     if (b) setCookieBrand({ name: b.n, logo: b.l });
   }, []);
 
-
   const name = company.name || cookieBrand?.name || "";
   const logo = company.logo || cookieBrand?.logo || "";
   const knowBrand = Boolean(name);
 
-  // Phase 4 — signed-out gate: no nav, no tab bar, no page data.
   if (signedIn === false) {
     return (
       <div className="min-h-[100svh] bg-background text-foreground grid place-items-center p-4">
@@ -110,7 +105,6 @@ export function Shell({ children }: { children: ReactNode }) {
     );
   }
 
-  // Still resolving session — avoid a flash of gated or full UI.
   if (signedIn === null) {
     return (
       <div className="min-h-[100svh] bg-background text-foreground grid place-items-center">
@@ -223,7 +217,6 @@ function MobileTabBar() {
     : tabs.length === 3 ? "grid-cols-3"
     : "grid-cols-2";
 
-
   return (
     <>
       <nav
@@ -231,7 +224,6 @@ function MobileTabBar() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className={cn("grid h-16 max-w-md mx-auto", colsClass)}>
-
           {tabs.map((t) => {
             if ("fab" in t) {
               return (
@@ -307,6 +299,7 @@ function SyncBadge() {
   });
   useEffect(() => {
     initSync();
+    startReminders();
     const unsub = subscribeSync(setS);
     return () => {
       unsub();
@@ -342,7 +335,6 @@ function SyncBadge() {
     </span>
   );
 }
-
 
 function AuthButton() {
   const [email, setEmail] = useState<string | null>(null);
