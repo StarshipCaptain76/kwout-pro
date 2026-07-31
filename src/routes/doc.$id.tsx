@@ -79,6 +79,7 @@ function DocPage() {
     );
   }
 
+  const isJob = doc.type === "job";
   const t = docTotals(doc, billing.vatPct);
   const update = (patch: Partial<typeof doc>) => upsertDoc({ ...doc, ...patch });
   const updateCust = (patch: Partial<typeof doc.customer>) =>
@@ -152,16 +153,21 @@ function DocPage() {
     toast.success(`Marked paid (${m.toUpperCase()})`);
   };
 
+  const title =
+    doc.type === "quote" ? "QUOTE"
+    : doc.type === "invoice" ? "INVOICE"
+    : "JOB";
+
   return (
     <Shell>
       <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" aria-label="Back to dashboard" onClick={() => nav({ to: "/" })}><ArrowLeft className="h-4 w-4" /></Button>
-        <h1 className="font-display text-4xl tracking-wide">{doc.type === "quote" ? "QUOTE" : "INVOICE"} {doc.number}</h1>
+        <h1 className="font-display text-4xl tracking-wide">{title} {doc.number}</h1>
         <span className={`text-xs uppercase font-bold px-2 py-1 rounded ${doc.status === "paid" ? "bg-green-600 text-white" : doc.status === "declined" ? "bg-red-500 text-white" : "bg-muted"}`}>{doc.status}</span>
         <Button variant="ghost" size="icon" aria-label="Delete document" className="ml-auto" onClick={() => { deleteDoc(doc.id); nav({ to: "/" }); }}><Trash2 className="h-4 w-4" /></Button>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-4">
+      <div className={cn("grid gap-4", isJob ? "" : "lg:grid-cols-[1fr_320px]")}>
         <div className="space-y-4">
           <Card className="p-4">
             <h2 className="font-semibold mb-3">Customer</h2>
@@ -182,8 +188,14 @@ function DocPage() {
                   onPick={(c) => upsertDoc({ ...doc, customer: { ...c } })}
                 />
               </div>
-              <div><Label>Phone</Label><Input value={doc.customer.phone} onChange={(e) => updateCust({ phone: e.target.value })} placeholder="0821234567" /></div>
-              <div><Label>Email</Label><Input value={doc.customer.email} onChange={(e) => updateCust({ email: e.target.value })} /></div>
+              <div>
+                <Label>Phone{isJob ? " (optional)" : ""}</Label>
+                <Input value={doc.customer.phone} onChange={(e) => updateCust({ phone: e.target.value })} placeholder="0821234567" />
+              </div>
+              <div>
+                <Label>Email{isJob ? " (optional)" : ""}</Label>
+                <Input value={doc.customer.email} onChange={(e) => updateCust({ email: e.target.value })} />
+              </div>
               <div className="col-span-2">
                 <Label>Customer address</Label>
                 <AddressAutocomplete
@@ -192,7 +204,8 @@ function DocPage() {
                   onChange={(v) => updateCust({ address: v.address })}
                 />
               </div>
-              {showLocation && (
+              {/* Route / distance only for quotes & invoices when location module is on */}
+              {showLocation && !isJob && (
                 <>
                   <div className="col-span-2">
                     <Label>From address</Label>
@@ -241,70 +254,73 @@ function DocPage() {
             </div>
           </Card>
 
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Line items</h2>
-              <div className="flex gap-2">
-                <CatalogPicker
-                  catalog={catalog}
-                  currency={billing.currency}
-                  onPick={(c) => addItem({ description: c.name, price: c.price, unit: c.unit, qty: 1 })}
-                />
-                <Button variant="outline" onClick={() => setAddOpen(true)}>
-                  <Plus className="h-4 w-4 mr-1" /> New Item
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => addKm()}><Truck className="h-4 w-4 mr-1" /> KM</Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {doc.items.length === 0 && <p className="text-sm text-muted-foreground">No items yet.</p>}
-              {doc.items.map((it, i) => (
-                <div key={it.id} className="space-y-1.5 border rounded-md p-2">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={it.description}
-                      placeholder={it.isDistance ? "Transport (km)" : "Description"}
-                      onChange={(e) => updateItem(i, { description: e.target.value })}
-                      className="flex-1"
-                    />
-                    <Button size="icon" variant="ghost" aria-label="Remove item" onClick={() => removeItem(i)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-                        Qty ({it.unit})
-                      </div>
-                      <InlineTumbler
-                        value={it.qty}
-                        onChange={(v) => updateItem(i, { qty: nn(v) })}
-                        step={1}
-                        min={0}
-                        label="Quantity"
-                      />
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-                        Price ({billing.currency})
-                      </div>
-                      <InlineTumbler
-                        value={it.price}
-                        onChange={(v) => updateItem(i, { price: nn(v) })}
-                        step={10}
-                        fineStep={1}
-                        min={0}
-                        prefix={`${billing.currency} `}
-                        label="Price"
-                      />
-                    </div>
-                  </div>
+          {/* Line items — hidden for jobs */}
+          {!isJob && (
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold">Line items</h2>
+                <div className="flex gap-2">
+                  <CatalogPicker
+                    catalog={catalog}
+                    currency={billing.currency}
+                    onPick={(c) => addItem({ description: c.name, price: c.price, unit: c.unit, qty: 1 })}
+                  />
+                  <Button variant="outline" onClick={() => setAddOpen(true)}>
+                    <Plus className="h-4 w-4 mr-1" /> New Item
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => addKm()}><Truck className="h-4 w-4 mr-1" /> KM</Button>
                 </div>
-              ))}
-            </div>
-          </Card>
+              </div>
+              <div className="space-y-2">
+                {doc.items.length === 0 && <p className="text-sm text-muted-foreground">No items yet.</p>}
+                {doc.items.map((it, i) => (
+                  <div key={it.id} className="space-y-1.5 border rounded-md p-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={it.description}
+                        placeholder={it.isDistance ? "Transport (km)" : "Description"}
+                        onChange={(e) => updateItem(i, { description: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Button size="icon" variant="ghost" aria-label="Remove item" onClick={() => removeItem(i)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+                          Qty ({it.unit})
+                        </div>
+                        <InlineTumbler
+                          value={it.qty}
+                          onChange={(v) => updateItem(i, { qty: nn(v) })}
+                          step={1}
+                          min={0}
+                          label="Quantity"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+                          Price ({billing.currency})
+                        </div>
+                        <InlineTumbler
+                          value={it.price}
+                          onChange={(v) => updateItem(i, { price: nn(v) })}
+                          step={10}
+                          fineStep={1}
+                          min={0}
+                          prefix={`${billing.currency} `}
+                          label="Price"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
-          {(() => {
+          {!isJob && (() => {
             const termsText = (billing.terms ?? DEFAULT_BILLING_TERMS).trim();
             if (!termsText) return null;
             return (
@@ -316,11 +332,15 @@ function DocPage() {
           })()}
 
           <Card className="p-4">
-            <Label>Notes</Label>
-            <Textarea value={doc.notes ?? ""} onChange={(e) => update({ notes: e.target.value })} placeholder="Thanks, delivery info, etc." />
+            <Label>{isJob ? "What needs to be done" : "Notes"}</Label>
+            <Textarea
+              value={doc.notes ?? ""}
+              onChange={(e) => update({ notes: e.target.value })}
+              placeholder={isJob ? "Describe the work…" : "Thanks, delivery info, etc."}
+            />
           </Card>
 
-          {(company.enabledModules ?? [])
+          {!isJob && (company.enabledModules ?? [])
             .filter((k) => k !== "location") // location fields live inside the Customer card
             .map((k) => {
               const m = MODULES[k];
@@ -370,37 +390,8 @@ function DocPage() {
                 </Card>
               );
             })}
-        </div>
 
-        <div className="space-y-4">
-          <Card className="p-4">
-            <div className="text-sm space-y-1.5">
-              <Row label="Subtotal" v={fmtMoney(t.subtotal, billing.currency)} />
-              {billing.vatPct > 0 && <Row label={`VAT ${billing.vatPct}%`} v={fmtMoney(t.vat, billing.currency)} />}
-              <Row label="Total" v={fmtMoney(t.total, billing.currency)} bold />
-              <div className="pt-2 mt-2 border-t">
-                <div className="flex items-center justify-between mb-1">
-                  <Label>Deposit</Label>
-                  <span className="font-display text-xl tabular-nums">{doc.depositPct}%</span>
-                </div>
-                <Slider
-                  value={[doc.depositPct]}
-                  min={0}
-                  max={100}
-                  step={5}
-                  onValueChange={([v]) => update({ depositPct: v })}
-                  className="py-2"
-                />
-              </div>
-              <Row label="Deposit" v={fmtMoney(t.deposit, billing.currency)} />
-              <Row label="Balance" v={fmtMoney(t.balance, billing.currency)} bold />
-              <label className="flex items-center gap-2 pt-2">
-                <input type="checkbox" checked={doc.depositPaid} onChange={(e) => update({ depositPaid: e.target.checked })} />
-                Deposit paid
-              </label>
-            </div>
-          </Card>
-
+          {/* Schedule + assigned — always visible, including jobs */}
           <Card className="p-4">
             <Label className="flex items-center gap-1 mb-1"><CalendarIcon className="h-3.5 w-3.5" /> Scheduled date</Label>
             <DatePicker value={doc.scheduledDate} onChange={(iso) => update({ scheduledDate: iso })} clearable />
@@ -454,90 +445,147 @@ function DocPage() {
             )}
           </Card>
 
-          <Card className="p-4 space-y-2">
-            <h3 className="font-semibold text-sm">Send</h3>
-            <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => send("wa")}>
-              <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => send("email")}>
-              <Mail className="h-4 w-4 mr-2" /> Email
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => downloadPdf(doc, company, banking, billing)}>
-              <Download className="h-4 w-4 mr-2" /> PDF
-            </Button>
-          </Card>
-
-          <Card className="p-4 space-y-2">
-            <h3 className="font-semibold text-sm">Actions</h3>
-            {doc.type === "quote" && doc.status !== "declined" && (
-              <Button variant="secondary" className="w-full" onClick={convert}>
-                <Check className="h-4 w-4 mr-2" /> Accept → Invoice
-              </Button>
-            )}
-            {doc.type === "quote" && doc.status !== "declined" && doc.status !== "accepted" && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  update({ status: "declined" });
-                  void flushSync();
-                  toast.success("Quote marked declined");
-                }}
-              >
-                Mark declined
-              </Button>
-            )}
-            {doc.type === "quote" && doc.status === "declined" && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  update({ status: "sent" });
-                  void flushSync();
-                  toast.success("Quote reopened");
-                }}
-              >
-                Reopen quote
-              </Button>
-            )}
-            {doc.type === "invoice" && doc.status !== "paid" && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-full">Mark paid</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Payment method</DialogTitle></DialogHeader>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["cash","eft","card"] as PayMethod[]).map((m) => (
-                      <Button key={m} onClick={() => markPaid(m)} className="uppercase">{m}</Button>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
-          </Card>
+          {/* Actions for jobs: mark paid / cancel only */}
+          {isJob && (
+            <Card className="p-4 space-y-2">
+              <h3 className="font-semibold text-sm">Actions</h3>
+              {doc.status !== "paid" && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full">Mark paid</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Payment method</DialogTitle></DialogHeader>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["cash","eft","card"] as PayMethod[]).map((m) => (
+                        <Button key={m} onClick={() => markPaid(m)} className="uppercase">{m}</Button>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </Card>
+          )}
         </div>
+
+        {/* Right column — quote/invoice only */}
+        {!isJob && (
+          <div className="space-y-4">
+            <Card className="p-4">
+              <div className="text-sm space-y-1.5">
+                <Row label="Subtotal" v={fmtMoney(t.subtotal, billing.currency)} />
+                {billing.vatPct > 0 && <Row label={`VAT ${billing.vatPct}%`} v={fmtMoney(t.vat, billing.currency)} />}
+                <Row label="Total" v={fmtMoney(t.total, billing.currency)} bold />
+                <div className="pt-2 mt-2 border-t">
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Deposit</Label>
+                    <span className="font-display text-xl tabular-nums">{doc.depositPct}%</span>
+                  </div>
+                  <Slider
+                    value={[doc.depositPct]}
+                    min={0}
+                    max={100}
+                    step={5}
+                    onValueChange={([v]) => update({ depositPct: v })}
+                    className="py-2"
+                  />
+                </div>
+                <Row label="Deposit" v={fmtMoney(t.deposit, billing.currency)} />
+                <Row label="Balance" v={fmtMoney(t.balance, billing.currency)} bold />
+                <label className="flex items-center gap-2 pt-2">
+                  <input type="checkbox" checked={doc.depositPaid} onChange={(e) => update({ depositPaid: e.target.checked })} />
+                  Deposit paid
+                </label>
+              </div>
+            </Card>
+
+            <Card className="p-4 space-y-2">
+              <h3 className="font-semibold text-sm">Send</h3>
+              <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => send("wa")}>
+                <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => send("email")}>
+                <Mail className="h-4 w-4 mr-2" /> Email
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => downloadPdf(doc, company, banking, billing)}>
+                <Download className="h-4 w-4 mr-2" /> PDF
+              </Button>
+            </Card>
+
+            <Card className="p-4 space-y-2">
+              <h3 className="font-semibold text-sm">Actions</h3>
+              {doc.type === "quote" && doc.status !== "declined" && (
+                <Button variant="secondary" className="w-full" onClick={convert}>
+                  <Check className="h-4 w-4 mr-2" /> Accept → Invoice
+                </Button>
+              )}
+              {doc.type === "quote" && doc.status !== "declined" && doc.status !== "accepted" && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    update({ status: "declined" });
+                    void flushSync();
+                    toast.success("Quote marked declined");
+                  }}
+                >
+                  Mark declined
+                </Button>
+              )}
+              {doc.type === "quote" && doc.status === "declined" && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    update({ status: "sent" });
+                    void flushSync();
+                    toast.success("Quote reopened");
+                  }}
+                >
+                  Reopen quote
+                </Button>
+              )}
+              {doc.type === "invoice" && doc.status !== "paid" && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full">Mark paid</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Payment method</DialogTitle></DialogHeader>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["cash","eft","card"] as PayMethod[]).map((m) => (
+                        <Button key={m} onClick={() => markPaid(m)} className="uppercase">{m}</Button>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </Card>
+          </div>
+        )}
       </div>
-      <AddItemDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        currency={billing.currency}
-        defaultUnit={billing.primaryUnit ?? "each"}
-        units={Array.from(new Set([...(BUILTIN_UNITS as readonly string[]), ...(billing.customUnits ?? [])]))}
-        onSubmit={(it, { saveToCatalog }) => {
-          const desc = it.description ? `${it.name} — ${it.description}` : it.name;
-          addItem({ description: desc, qty: it.qty, price: it.price, unit: it.unit });
-          const dup = catalog.some((c) => c.name.trim().toLowerCase() === it.name.toLowerCase());
-          if (saveToCatalog && !dup) {
-            upsertCatalog({ id: newId(), name: it.name, price: it.price, unit: it.unit });
-            toast.success("Item added to quote and saved to catalog");
-          } else if (saveToCatalog && dup) {
-            toast.success("Item added to quote (already in catalog)");
-          } else {
-            toast.success("Item added to quote");
-          }
-        }}
-      />
+      {!isJob && (
+        <AddItemDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          currency={billing.currency}
+          defaultUnit={billing.primaryUnit ?? "each"}
+          units={Array.from(new Set([...(BUILTIN_UNITS as readonly string[]), ...(billing.customUnits ?? [])]))}
+          onSubmit={(it, { saveToCatalog }) => {
+            const desc = it.description ? `${it.name} — ${it.description}` : it.name;
+            addItem({ description: desc, qty: it.qty, price: it.price, unit: it.unit });
+            const dup = catalog.some((c) => c.name.trim().toLowerCase() === it.name.toLowerCase());
+            if (saveToCatalog && !dup) {
+              upsertCatalog({ id: newId(), name: it.name, price: it.price, unit: it.unit });
+              toast.success("Item added to quote and saved to catalog");
+            } else if (saveToCatalog && dup) {
+              toast.success("Item added to quote (already in catalog)");
+            } else {
+              toast.success("Item added to quote");
+            }
+          }}
+        />
+      )}
     </Shell>
   );
 }
