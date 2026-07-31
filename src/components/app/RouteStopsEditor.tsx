@@ -23,6 +23,7 @@ interface Props {
 export function RouteStopsEditor({
   fromAddress,
   toAddress,
+  toCoords,
   stops = [],
   distanceKm,
   calcing,
@@ -34,13 +35,29 @@ export function RouteStopsEditor({
   onCalc,
 }: Props) {
   const setStops = (next: RouteStop[]) => onStops(next.length ? next : undefined);
+  const fromEmpty = !(fromAddress ?? "").trim();
 
+  /** Reorder among stops, or promote first stop → From when From is empty. */
   const move = (i: number, dir: -1 | 1) => {
+    if (dir === -1 && i === 0 && fromEmpty) {
+      const stop = stops[0];
+      if (!stop) return;
+      onFrom({ address: stop.address, coords: stop.coords });
+      setStops(stops.slice(1));
+      return;
+    }
     const j = i + dir;
     if (j < 0 || j >= stops.length) return;
     const next = [...stops];
     [next[i], next[j]] = [next[j], next[i]];
     setStops(next);
+  };
+
+  /** Promote To → From when From is empty. */
+  const promoteToToFrom = () => {
+    if (!fromEmpty || !(toAddress ?? "").trim()) return;
+    onFrom({ address: toAddress!, coords: toCoords });
+    onTo({ address: "", coords: undefined });
   };
 
   return (
@@ -52,6 +69,11 @@ export function RouteStopsEditor({
           placeholder="Search address…"
           onChange={onFrom}
         />
+        {fromEmpty && (stops.length > 0 || (toAddress ?? "").trim()) && (
+          <p className="text-[11px] text-muted-foreground mt-1">
+            From is empty — use ↑ on Stop 1 or To to promote an address here.
+          </p>
+        )}
       </div>
 
       {stops.map((stop, i) => (
@@ -64,8 +86,9 @@ export function RouteStopsEditor({
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8"
-                disabled={i === 0}
-                aria-label="Move stop up"
+                disabled={i === 0 && !fromEmpty}
+                aria-label={i === 0 && fromEmpty ? "Promote stop to From" : "Move stop up"}
+                title={i === 0 && fromEmpty ? "Promote to From" : "Move up"}
                 onClick={() => move(i, -1)}
               >
                 <ChevronUp className="h-4 w-4" />
@@ -118,7 +141,22 @@ export function RouteStopsEditor({
       </Button>
 
       <div>
-        <Label>To address</Label>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <Label>To address</Label>
+          {fromEmpty && (toAddress ?? "").trim() ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              aria-label="Promote To to From"
+              title="Promote to From"
+              onClick={promoteToToFrom}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
         <AddressAutocomplete
           value={toAddress ?? ""}
           placeholder="Search address…"
