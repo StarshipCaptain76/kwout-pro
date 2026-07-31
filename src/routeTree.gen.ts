@@ -22,7 +22,6 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocIdRouteImport } from './routes/doc.$id'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as DocRouteImport } from './routes/doc.'
 import { Route as ApiPublicPayfastItnRouteImport } from './routes/api/public/payfast-itn'
 
 const StatementsRoute = StatementsRouteImport.update({
@@ -90,11 +89,6 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
-const DocRoute = DocRouteImport.update({
-  id: '/doc/',
-  path: '/doc/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicPayfastItnRoute = ApiPublicPayfastItnRouteImport.update({
   id: '/api/public/payfast-itn',
   path: '/api/public/payfast-itn',
@@ -113,7 +107,6 @@ export interface FileRoutesByFullPath {
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/statements': typeof StatementsRoute
-  '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
@@ -130,7 +123,6 @@ export interface FileRoutesByTo {
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/statements': typeof StatementsRoute
-  '/doc': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
@@ -148,7 +140,6 @@ export interface FileRoutesById {
   '/results': typeof ResultsRoute
   '/settings': typeof SettingsRoute
   '/statements': typeof StatementsRoute
-  '/doc/': typeof DocRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/doc/$id': typeof DocIdRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
@@ -167,7 +158,6 @@ export interface FileRouteTypes {
     | '/results'
     | '/settings'
     | '/statements'
-    | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
     | '/api/public/payfast-itn'
@@ -184,7 +174,6 @@ export interface FileRouteTypes {
     | '/results'
     | '/settings'
     | '/statements'
-    | '/doc'
     | '/auth/callback'
     | '/doc/$id'
     | '/api/public/payfast-itn'
@@ -201,7 +190,6 @@ export interface FileRouteTypes {
     | '/results'
     | '/settings'
     | '/statements'
-    | '/doc/'
     | '/auth/callback'
     | '/doc/$id'
     | '/api/public/payfast-itn'
@@ -219,7 +207,6 @@ export interface RootRouteChildren {
   ResultsRoute: typeof ResultsRoute
   SettingsRoute: typeof SettingsRoute
   StatementsRoute: typeof StatementsRoute
-  DocRoute: typeof DocRoute
   DocIdRoute: typeof DocIdRoute
   ApiPublicPayfastItnRoute: typeof ApiPublicPayfastItnRoute
 }
@@ -317,13 +304,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/doc/': {
-      id: '/doc/'
-      path: '/doc'
-      fullPath: '/doc/'
-      preLoaderRoute: typeof DocRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/payfast-itn': {
       id: '/api/public/payfast-itn'
       path: '/api/public/payfast-itn'
@@ -356,7 +336,6 @@ const rootRouteChildren: RootRouteChildren = {
   ResultsRoute: ResultsRoute,
   SettingsRoute: SettingsRoute,
   StatementsRoute: StatementsRoute,
-  DocRoute: DocRoute,
   DocIdRoute: DocIdRoute,
   ApiPublicPayfastItnRoute: ApiPublicPayfastItnRoute,
 }
