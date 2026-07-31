@@ -172,6 +172,7 @@ export function pushDoc(d: Doc) {
       to_address: d.toAddress ?? null,
       from_coords: (d.fromCoords ?? null) as unknown as never,
       to_coords: (d.toCoords ?? null) as unknown as never,
+      stops: (d.stops ?? []) as unknown as never,
       distance_km: d.distanceKm ?? null,
       assigned_to: d.assignedTo ?? null,
       module_data: (d.moduleData ?? null) as unknown as never,
@@ -361,6 +362,9 @@ async function loadAll() {
       toAddress: r.to_address ?? undefined,
       fromCoords: (r.from_coords as Doc["fromCoords"]) ?? undefined,
       toCoords: (r.to_coords as Doc["toCoords"]) ?? undefined,
+      stops: Array.isArray((r as { stops?: unknown }).stops)
+        ? ((r as { stops: Doc["stops"] }).stops ?? [])
+        : undefined,
       distanceKm: r.distance_km != null ? Number(r.distance_km) : undefined,
       assignedTo: (r as { assigned_to?: string | null }).assigned_to ?? undefined,
       moduleData: ((r as { module_data?: unknown }).module_data ?? undefined) as Doc["moduleData"],
