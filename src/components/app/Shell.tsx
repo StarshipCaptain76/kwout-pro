@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Calendar, BarChart3, Settings,
-  Cloud, CloudOff, Plus, FileText, Receipt, Wallet, LogIn, LogOut, User, Building2, ChevronDown, Check,
+  Cloud, CloudOff, Plus, FileText, Receipt, Wallet, LogIn, LogOut, User, Building2, ChevronDown, Check, Truck,
 } from "lucide-react";
 import { initSync, subscribeSync, switchWorkspace } from "@/lib/sync";
 import { useStore, newId, useCan, type Doc } from "@/lib/store";
@@ -183,7 +183,7 @@ function MobileTabBar() {
   const nav = useNavigate();
   const { billing, upsertDoc, nextDocNumber } = useStore();
 
-  const create = (type: "quote" | "invoice") => {
+  const create = (type: "quote" | "invoice" | "job") => {
     const id = newId();
     const d: Doc = {
       id,
@@ -193,8 +193,9 @@ function MobileTabBar() {
       createdAt: new Date().toISOString(),
       customer: { id: newId(), name: "", phone: "", email: "" },
       items: [],
-      depositPct: billing.defaultDepositPct,
+      depositPct: type === "job" ? 0 : billing.defaultDepositPct,
       depositPaid: false,
+      scheduledDate: type === "job" ? new Date().toISOString().slice(0, 10) : undefined,
     };
     upsertDoc(d);
     setNewOpen(false);
@@ -231,7 +232,7 @@ function MobileTabBar() {
       >
         <ul className={cn("grid h-16 max-w-md mx-auto", colsClass)}>
 
-          {tabs.map((t, i) => {
+          {tabs.map((t) => {
             if ("fab" in t) {
               return (
                 <li key="fab" className="relative">
@@ -271,14 +272,21 @@ function MobileTabBar() {
             <SheetTitle className="font-display text-3xl tracking-wide">CREATE NEW</SheetTitle>
           </SheetHeader>
           <div className="grid gap-3 mt-4 pb-[env(safe-area-inset-bottom)]">
-            <Button size="lg" className="h-16 text-lg justify-start" onClick={() => create("quote")}>
+            <Button size="lg" className="h-16 text-lg justify-start" onClick={() => create("job")}>
+              <Truck className="h-6 w-6 mr-3" />
+              <div className="text-left">
+                <div className="font-bold">New Job</div>
+                <div className="text-xs opacity-80 font-normal">Quick schedule — name, address, what to do</div>
+              </div>
+            </Button>
+            <Button size="lg" variant="secondary" className="h-16 text-lg justify-start" onClick={() => create("quote")}>
               <FileText className="h-6 w-6 mr-3" />
               <div className="text-left">
                 <div className="font-bold">New Quote</div>
                 <div className="text-xs opacity-80 font-normal">Send an estimate</div>
               </div>
             </Button>
-            <Button size="lg" variant="secondary" className="h-16 text-lg justify-start" onClick={() => create("invoice")}>
+            <Button size="lg" variant="outline" className="h-16 text-lg justify-start" onClick={() => create("invoice")}>
               <Receipt className="h-6 w-6 mr-3" />
               <div className="text-left">
                 <div className="font-bold">New Invoice</div>
