@@ -83,9 +83,10 @@ const CATEGORY_STYLES: Record<JobCategory, string> = {
   other:     "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 border-sky-200/70 dark:border-sky-800/60",
 };
 
+/** Small red dot for unpaid items; paid items show nothing (identical layout minus the dot). */
 function PaymentIndicator({ doc }: { doc: Doc }) {
-  if (doc.status === "paid") return <span className="h-2 w-2 rounded-full bg-green-500" title="Paid" />;
-  return <span className="text-[10px] uppercase font-bold px-1 py-0.5 rounded bg-red-500 text-white leading-none">unpaid</span>;
+  if (doc.status === "paid") return null;
+  return <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" title="Unpaid" />;
 }
 
 const todayIso = () => format(new Date(), "yyyy-MM-dd");
