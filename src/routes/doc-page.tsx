@@ -189,6 +189,7 @@ export function DocPage() {
                 <RouteStopsEditor
                   fromAddress={doc.fromAddress}
                   toAddress={doc.toAddress}
+                  toCoords={doc.toCoords}
                   stops={doc.stops}
                   distanceKm={doc.distanceKm}
                   calcing={calcing}
