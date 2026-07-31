@@ -11,7 +11,7 @@ import { useMemo, useState, useRef, useCallback } from "react";
 import { DndContext, useDraggable, useDroppable, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import {
   ChevronLeft, ChevronRight, ChevronDown, GripVertical, Check, X, CalendarDays, ExternalLink,
-  Link2, Archive,
+  Link2, Archive, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -45,11 +45,6 @@ export const Route = createFileRoute("/planner")({
   }),
 });
 
-
-
-
-
-// ---------- job category resolver ----------
 type JobCategory =
   | "rubble" | "garden" | "furniture" | "waste" | "sand" | "tree" | "labour" | "other";
 
@@ -71,7 +66,6 @@ function jobCategory(doc: Doc): JobCategory {
   return "other";
 }
 
-// Soft tinted backgrounds — readable in light and dark.
 const CATEGORY_STYLES: Record<JobCategory, string> = {
   rubble:    "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border-amber-200/70 dark:border-amber-800/60",
   garden:    "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 border-emerald-200/70 dark:border-emerald-800/60",
@@ -83,10 +77,27 @@ const CATEGORY_STYLES: Record<JobCategory, string> = {
   other:     "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 border-sky-200/70 dark:border-sky-800/60",
 };
 
-/** Small red dot for unpaid items; paid items show nothing (identical layout minus the dot). */
+/** Small red dot for unpaid items; paid items show nothing. */
 function PaymentIndicator({ doc }: { doc: Doc }) {
   if (doc.status === "paid") return null;
   return <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" title="Unpaid" />;
+}
+
+/** Compact HH:mm badge when a start time is set. */
+function TimeBadge({ time, small }: { time?: string; small?: boolean }) {
+  if (!time) return null;
+  return (
+    <span
+      className={cn(
+        "shrink-0 inline-flex items-center gap-0.5 rounded bg-black/10 dark:bg-white/10 font-mono font-semibold tabular-nums",
+        small ? "px-0.5 text-[8px]" : "px-1 text-[10px]",
+      )}
+      title={`Starts ${time}`}
+    >
+      {!small && <Clock className="h-2.5 w-2.5 opacity-70" />}
+      {time}
+    </span>
+  );
 }
 
 const todayIso = () => format(new Date(), "yyyy-MM-dd");
@@ -94,8 +105,6 @@ const paidDate = (doc: Doc) => {
   if (doc.status !== "paid" || !doc.paidAt) return undefined;
   return format(new Date(doc.paidAt), "yyyy-MM-dd");
 };
-// A doc renders on `iso` if it falls within its [scheduledDate, scheduledEndDate]
-// span, or (for closed jobs without a scheduled date) on its paidAt day.
 function docOccursOn(doc: Doc, iso: string): boolean {
   const start = doc.scheduledDate;
   if (start) {
@@ -114,8 +123,18 @@ function daySpanFor(doc: Doc, iso: string): { idx: number; n: number } | null {
   return { idx, n };
 }
 
-type View = "agenda" | "week" | "month";
+/** Sort: dayOrder first, then earlier start time, then number. */
+function sortDayJobs(a: Doc, b: Doc) {
+  const ao = a.dayOrder ?? 0;
+  const bo = b.dayOrder ?? 0;
+  if (ao !== bo) return ao - bo;
+  const at = a.scheduledTime ?? "99:99";
+  const bt = b.scheduledTime ?? "99:99";
+  if (at !== bt) return at.localeCompare(bt);
+  return (a.number || "").localeCompare(b.number || "");
+}
 
+type View = "agenda" | "week" | "month";
 
 function PlannerPage() {
   const canView = useCan("planner.view");
@@ -145,15 +164,12 @@ function PlannerPage() {
     );
   }
 
-
-  // Show any non-cancelled, non-archived doc — includes fresh drafts / sent quotes.
   const jobs = useMemo(
     () => docs.filter((d) => !d.archived && d.status !== "cancelled"),
     [docs],
   );
   const byDay = (iso: string) =>
-    jobs.filter((d) => docOccursOn(d, iso)).sort((a, b) => (a.dayOrder ?? 0) - (b.dayOrder ?? 0));
-  // Unscheduled = still needs a date. Exclude paid (historical) and archived.
+    jobs.filter((d) => docOccursOn(d, iso)).sort(sortDayJobs);
   const unscheduled = jobs.filter(
     (d) => !d.scheduledDate && d.status !== "paid" && !d.archived,
   );
@@ -169,7 +185,6 @@ function PlannerPage() {
       upsertDoc({ ...doc, scheduledDate: undefined, scheduledEndDate: undefined });
       return;
     }
-    // Preserve multi-day span: shift end date by the same delta as start.
     if (doc.scheduledDate && doc.scheduledEndDate && doc.scheduledEndDate > doc.scheduledDate) {
       const delta = differenceInCalendarDays(parseISO(overId), parseISO(doc.scheduledDate));
       const newEnd = format(addDays(parseISO(doc.scheduledEndDate), delta), "yyyy-MM-dd");
@@ -190,8 +205,6 @@ function PlannerPage() {
     setConfirmArchiveOpen(false);
   };
 
-
-  // Agenda: next 30 days that have jobs, plus today
   const agendaDays = useMemo(() => {
     const days: Date[] = [];
     for (let i = 0; i < 60; i++) days.push(addDays(agendaStart, i));
@@ -243,7 +256,6 @@ function PlannerPage() {
     <Shell>
      <JobActionsCtx.Provider value={openActions}>
       <h1 className="sr-only">Planner</h1>
-      {/* View switcher */}
       <div className="inline-flex rounded-lg border p-0.5 bg-muted mb-3 w-full sm:w-auto">
         {(["agenda", "week", "month"] as View[]).map((v) => (
           <button
@@ -259,7 +271,6 @@ function PlannerPage() {
         ))}
       </div>
 
-      {/* Navigation */}
       {view !== "agenda" ? (
         <div className="flex items-center gap-2 mb-3">
           <Button size="icon" variant="outline" aria-label="Previous period" className="h-10 w-10" onClick={() =>
@@ -290,7 +301,6 @@ function PlannerPage() {
         )
       )}
 
-      {/* Unscheduled pill */}
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         {unscheduled.length > 0 && (
           <div className="mb-3">
@@ -318,27 +328,24 @@ function PlannerPage() {
                   {unscheduled.map((d) => <JobCard key={d.id} doc={d} iso={undefined} currency={billing.currency} vat={billing.vatPct} />)}
                 </div>
               </DropZone>
-        )}
+            )}
 
-        <AlertDialog open={confirmArchiveOpen} onOpenChange={setConfirmArchiveOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Archive unscheduled jobs?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Archive all {unscheduled.length} unscheduled job{unscheduled.length === 1 ? "" : "s"}? They will be hidden from the planner.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmArchiveAll}>Archive</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
+            <AlertDialog open={confirmArchiveOpen} onOpenChange={setConfirmArchiveOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Archive unscheduled jobs?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Archive all {unscheduled.length} unscheduled job{unscheduled.length === 1 ? "" : "s"}? They will be hidden from the planner.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmArchiveAll}>Archive</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
-
-        
 
         <div {...swipe} style={{ touchAction: "pan-y" }}>
         {view === "agenda" && (
@@ -460,7 +467,9 @@ function JobActionSheet({
           <SheetTitle className="text-left">
             {doc?.customer.name || "—"}
             <div className="text-xs font-normal text-muted-foreground mt-0.5">
-              {doc?.number} · {doc?.scheduledDate ?? "unscheduled"}
+              {doc?.number}
+              {doc?.scheduledDate ? ` · ${doc.scheduledDate}` : " · unscheduled"}
+              {doc?.scheduledTime ? ` · ${doc.scheduledTime}` : ""}
             </div>
           </SheetTitle>
         </SheetHeader>
@@ -502,8 +511,6 @@ function JobActionSheet({
   );
 }
 
-
-
 function dayLabel(d: Date) {
   if (isToday(d)) return "Today";
   if (isTomorrow(d)) return "Tomorrow";
@@ -537,7 +544,6 @@ function AgendaDay({ date, iso, docs, currency, vat }: { date: Date; iso: string
   );
 }
 
-// ---------- shared 3-line layout ----------
 type Variant = "agenda" | "week" | "month";
 
 function JobCardLayout({
@@ -570,11 +576,12 @@ function JobCardLayout({
       {...(dragProps ?? {})}
     >
       <Link to="/doc/$id" params={{ id: doc.id }} className="block min-w-0">
-        {/* Line 1 */}
+        {/* Line 1: name + time + multi-day + unpaid dot */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span className={cn("font-semibold truncate min-w-0 flex-1", small ? "text-[10px]" : "text-sm")}>
             {doc.customer.name || "—"}
           </span>
+          <TimeBadge time={doc.scheduledTime} small={small} />
           {span && (
             <span className="shrink-0 inline-flex items-center gap-0.5 rounded bg-black/10 dark:bg-white/10 px-1 text-[9px] font-medium">
               <Link2 className="h-2.5 w-2.5" /> Day {span.idx}/{span.n}
@@ -595,7 +602,6 @@ function JobCardLayout({
             <span className="shrink-0 font-mono font-semibold text-[11px]">{fmtMoney(t.total, currency)}</span>
           )}
         </div>
-        {/* Notes for "other" jobs (skip on tiny month cells) */}
         {cat === "other" && !small && doc.notes && (
           <div
             className="mt-1 text-[10px] opacity-75 whitespace-pre-line"
