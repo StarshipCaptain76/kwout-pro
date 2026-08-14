@@ -10,7 +10,7 @@ import {
 import {
   format, parseISO, differenceInCalendarDays, eachDayOfInterval,
   eachMonthOfInterval, eachYearOfInterval, startOfMonth, startOfYear,
-  isWithinInterval, endOfDay, startOfDay,
+  isWithinInterval, endOfDay, startOfDay, subYears,
 } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { Download, TrendingDown, TrendingUp } from "lucide-react";
@@ -18,6 +18,7 @@ import { RangePicker, resolveRange, previousRange, type RangeValue } from "@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PayslipsTab } from "@/components/payslips/PayslipsTab";
 import { useCan, useIsOwner } from "@/lib/store";
+import { sameRangeYearsAgo, weightedForecast } from "@/lib/forecast";
 
 export const Route = createFileRoute("/results")({
   head: () => ({
@@ -73,29 +74,39 @@ function ResultsPage() {
   const { from, to, label } = useMemo(() => resolveRange(range), [range]);
   const prev = useMemo(() => previousRange(from, to), [from, to]);
   const days = Math.max(1, differenceInCalendarDays(to, from) + 1);
+  const yoy = useMemo(() => sameRangeYearsAgo(from, to, 1), [from, to]);
+  const [showYoY, setShowYoY] = useState(true);
 
   const paidAll = useMemo(() => docs.filter((d) => d.status === "paid" && d.paidAt), [docs]);
   const paid = useMemo(() => paidAll.filter((d) => inRange(d.paidAt, from, to)), [paidAll, from, to]);
   const paidPrev = useMemo(() => paidAll.filter((d) => inRange(d.paidAt, prev.from, prev.to)), [paidAll, prev.from, prev.to]);
   const exp = useMemo(() => expenses.filter((e) => inRange(e.date, from, to)), [expenses, from, to]);
   const expPrev = useMemo(() => expenses.filter((e) => inRange(e.date, prev.from, prev.to)), [expenses, prev.from, prev.to]);
+  const paidYoY = useMemo(() => paidAll.filter((d) => inRange(d.paidAt, yoy.from, yoy.to)), [paidAll, yoy]);
+  const expYoY = useMemo(() => expenses.filter((e) => inRange(e.date, yoy.from, yoy.to)), [expenses, yoy]);
 
   const sumRev = (arr: Doc[]) => arr.reduce((s, d) => s + docTotals(d, billing.vatPct).total, 0);
   const sumExp = (arr: Expense[]) => arr.reduce((s, e) => s + (e.amount || 0), 0);
 
-  // Owner-draw / personal-use spend — treated as the owner's salary, not a
-  // cost of doing business. Matches against category + vendor + description
-  // because the bank importer buckets many personal items into Other / Labour.
+  // Owner-draw / personal-use spend — treated as drawings, not a cost of
+  // doing business. Category + payroll staff names cover multi-user workspaces;
+  // generic grocery/restaurant keywords stay as a fallback for imported banks.
+  const staffNameHints = useMemo(
+    () =>
+      staff
+        .map((s) => (s.name || "").trim().toLowerCase())
+        .filter((n) => n.length >= 3),
+    [staff],
+  );
   const isSalary = (e: Expense) => {
     const cat = (e.category || "").toLowerCase();
     const txt = `${e.vendor ?? ""} ${e.description ?? ""}`.toLowerCase();
     if (/^(food|entertainment|salary|wages?)$/.test(cat)) return true;
-    if (/salary|dylan potgieter|send money.*dylan|owner|drawing|personal/.test(txt)) return true;
+    if (/salary|owner|drawing|personal|wages?/.test(txt)) return true;
     if (/atm cash|card cashback|geld trek/.test(txt)) return true;
-    if (/beauty|karlien van zyl/.test(txt)) return true;
-    if (/temu/.test(txt)) return true;
-    if (/supermarket|checkers|shoprite|pick n pay|woolworths|spar|tani|ok foods/.test(txt)) return true;
-    if (/restaurant|pub|lounge|bistro|cafe|kelder|seekombuis|plato|puffies|cigar/.test(txt)) return true;
+    if (staffNameHints.some((n) => txt.includes(n))) return true;
+    if (/supermarket|checkers|shoprite|pick n pay|woolworths|spar|ok foods/.test(txt)) return true;
+    if (/restaurant|pub|lounge|bistro|cafe/.test(txt)) return true;
     return false;
   };
   const sumSalary = (arr: Expense[]) => arr.filter(isSalary).reduce((s, e) => s + (e.amount || 0), 0);
@@ -116,6 +127,19 @@ function ResultsPage() {
   const paidCountPrev = paidPrev.length;
   const avg = paidCount ? revenue / paidCount : 0;
   const avgPrev = paidCountPrev ? revenuePrev / paidCountPrev : 0;
+
+  const revenueYoY = sumRev(paidYoY);
+  const totalExpYoY = sumExp(expYoY);
+  const salaryYoY = sumSalary(expYoY);
+  const grossProfitYoY = revenueYoY - (totalExpYoY - salaryYoY);
+  const netYoY = revenueYoY - totalExpYoY;
+  const marginYoY = revenueYoY > 0 ? (netYoY / revenueYoY) * 100 : 0;
+  const paidCountYoY = paidYoY.length;
+  const avgYoY = paidCountYoY ? revenueYoY / paidCountYoY : 0;
+  const hasYoY = paidYoY.length > 0 || expYoY.length > 0;
+  const yoyLabel = `${format(yoy.from, "d MMM yy")} – ${format(yoy.to, "d MMM yy")}`;
+  const yoyDelta = (cur: number, past: number, isCount = false) =>
+    hasYoY && past !== 0 ? delta(cur, past, isCount) : null;
 
   const now = new Date();
   const outstanding = docs
@@ -164,18 +188,10 @@ function ResultsPage() {
     endPrev.setDate(0);
     return { from: startOfMonth(d), to: endPrev };
   }, [monthNow]);
-  const yearAgo = useMemo(() => {
-    const f = new Date(from); f.setFullYear(f.getFullYear() - 1);
-    const t = new Date(to); t.setFullYear(t.getFullYear() - 1);
-    return { from: f, to: t };
-  }, [from, to]);
-
   const paidMom = paidAll.filter((d) => inRange(d.paidAt, monthNow.from, monthNow.to));
   const paidMomPrev = paidAll.filter((d) => inRange(d.paidAt, monthPrev.from, monthPrev.to));
   const expMom = expenses.filter((e) => inRange(e.date, monthNow.from, monthNow.to));
   const expMomPrev = expenses.filter((e) => inRange(e.date, monthPrev.from, monthPrev.to));
-  const paidYoy = paidAll.filter((d) => inRange(d.paidAt, yearAgo.from, yearAgo.to));
-  const expYoy = expenses.filter((e) => inRange(e.date, yearAgo.from, yearAgo.to));
 
   // Bucket selection
   const bucket: "day" | "month" | "year" = days <= 62 ? "day" : days <= 550 ? "month" : "year";
@@ -198,8 +214,37 @@ function ResultsPage() {
     const r = paid.filter((d) => d.paidAt?.startsWith(key)).reduce((s, d) => s + docTotals(d, billing.vatPct).total, 0);
     const e = exp.filter((x) => x.date.startsWith(key)).reduce((s, x) => s + (x.amount || 0), 0);
     const s = exp.filter((x) => x.date.startsWith(key) && isSalary(x)).reduce((a, x) => a + (x.amount || 0), 0);
-    return { label: bucketLabel(b), Revenue: Math.round(r), Expenses: Math.round(e), Salary: Math.round(s), Net: Math.round(r - e) };
-  }), [buckets, paid, exp, billing.vatPct, bucket]);
+    const lyKey = bucketKey(subYears(b, 1));
+    const lyRev = paidAll.filter((d) => d.paidAt?.startsWith(lyKey)).reduce((a, d) => a + docTotals(d, billing.vatPct).total, 0);
+    const lyExp = expenses.filter((x) => x.date.startsWith(lyKey)).reduce((a, x) => a + (x.amount || 0), 0);
+    return {
+      label: bucketLabel(b), date: b,
+      Revenue: Math.round(r), Expenses: Math.round(e), Salary: Math.round(s), Net: Math.round(r - e),
+      "Rev LY": Math.round(lyRev), "Exp LY": Math.round(lyExp),
+    };
+  }), [buckets, paid, exp, paidAll, expenses, billing.vatPct, bucket, staffNameHints]);
+
+  const running = from <= now && now <= to;
+  const revIn = (s: Date, e: Date) => sumRev(paidAll.filter((d) => inRange(d.paidAt, s, e)));
+  const expIn = (s: Date, e: Date) => sumExp(expenses.filter((x) => inRange(x.date, s, e)));
+  const fcRevenue = useMemo(
+    () => (running ? weightedForecast({ from, to, today: now, sumInWindow: revIn }) : null),
+    [running, from, to, paidAll, billing.vatPct],
+  );
+  const fcExpenses = useMemo(
+    () => (running ? weightedForecast({ from, to, today: now, sumInWindow: expIn }) : null),
+    [running, from, to, expenses],
+  );
+  const fcNet = fcRevenue && fcExpenses ? fcRevenue.projected - fcExpenses.projected : 0;
+
+  const chartData = useMemo(() => {
+    if (!fcRevenue) return cashflow;
+    const remaining = Math.max(0, fcRevenue.projected - fcRevenue.toDate);
+    const future = cashflow.filter((c) => c.date > now);
+    if (!future.length || remaining <= 0) return cashflow;
+    const per = Math.round(remaining / future.length);
+    return cashflow.map((c) => (c.date > now ? { ...c, Forecast: per } : { ...c, Forecast: 0 }));
+  }, [cashflow, fcRevenue]);
 
   const byMethod = useMemo(() => {
     const m: Record<string, number> = { cash: 0, eft: 0, card: 0 };
@@ -262,6 +307,27 @@ function ResultsPage() {
       lines.push(`Net VAT payable,${netVat.toFixed(2)}`);
     }
     lines.push("");
+    if (hasYoY) {
+      lines.push(`Year on year (${yoyLabel})`);
+      lines.push("Metric,This period,Same period last year,Change %");
+      const row = (n: string, a: number, b: number) =>
+        lines.push([n, a.toFixed(2), b.toFixed(2), b ? (((a - b) / Math.abs(b)) * 100).toFixed(1) : ""].map(esc).join(","));
+      row("Revenue", revenue, revenueYoY);
+      row("Expenses", totalExp, totalExpYoY);
+      row("Gross Profit", grossProfit, grossProfitYoY);
+      row("Net Profit", net, netYoY);
+      row("Invoices Paid", paidCount, paidCountYoY);
+      row("Avg Invoice", avg, avgYoY);
+      lines.push("");
+    }
+    if (fcRevenue && fcExpenses) {
+      lines.push("Forecast (period end)");
+      lines.push("Metric,To date,Projected,Basis,Confidence");
+      lines.push(["Revenue", fcRevenue.toDate.toFixed(2), fcRevenue.projected.toFixed(2), fcRevenue.basis, fcRevenue.confidence].map(esc).join(","));
+      lines.push(["Expenses", fcExpenses.toDate.toFixed(2), fcExpenses.projected.toFixed(2), fcExpenses.basis, fcExpenses.confidence].map(esc).join(","));
+      lines.push(["Net", (fcRevenue.toDate - fcExpenses.toDate).toFixed(2), fcNet.toFixed(2), "", ""].map(esc).join(","));
+      lines.push("");
+    }
     lines.push("Paid Invoices");
     lines.push("Number,Date Paid,Customer,Method,Total");
     paid.forEach((d) => lines.push([
@@ -314,17 +380,45 @@ function ResultsPage() {
       </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3">
-        <Stat label="Revenue" v={fmtMoney(revenue, billing.currency)} delta={delta(revenue, revenuePrev)} />
-        <Stat label="Expenses" v={fmtMoney(totalExp, billing.currency)} delta={delta(totalExp, totalExpPrev)} invert />
-        <Stat label="Gross Profit" v={fmtMoney(grossProfit, billing.currency)} delta={delta(grossProfit, grossProfitPrev)} sub="excl. salary/personal" />
-        <Stat label="Net Profit" v={fmtMoney(net, billing.currency)} delta={delta(net, netPrev)} />
-        <Stat label="Margin" v={`${margin.toFixed(1)}%`} delta={delta(margin, marginPrev, true)} />
+        <Stat label="Revenue" v={fmtMoney(revenue, billing.currency)} delta={delta(revenue, revenuePrev)} yoy={yoyDelta(revenue, revenueYoY)} />
+        <Stat label="Expenses" v={fmtMoney(totalExp, billing.currency)} delta={delta(totalExp, totalExpPrev)} yoy={yoyDelta(totalExp, totalExpYoY)} invert />
+        <Stat label="Gross Profit" v={fmtMoney(grossProfit, billing.currency)} delta={delta(grossProfit, grossProfitPrev)} yoy={yoyDelta(grossProfit, grossProfitYoY)} sub="excl. salary/personal" />
+        <Stat label="Net Profit" v={fmtMoney(net, billing.currency)} delta={delta(net, netPrev)} yoy={yoyDelta(net, netYoY)} />
+        <Stat label="Margin" v={`${margin.toFixed(1)}%`} delta={delta(margin, marginPrev, true)} yoy={yoyDelta(margin, marginYoY, true)} />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 mb-4">
-        <Stat label="Invoices Paid" v={String(paidCount)} delta={delta(paidCount, paidCountPrev, true)} />
-        <Stat label="Avg Invoice" v={fmtMoney(avg, billing.currency)} delta={delta(avg, avgPrev)} />
+        <Stat label="Invoices Paid" v={String(paidCount)} delta={delta(paidCount, paidCountPrev, true)} yoy={yoyDelta(paidCount, paidCountYoY, true)} />
+        <Stat label="Avg Invoice" v={fmtMoney(avg, billing.currency)} delta={delta(avg, avgPrev)} yoy={yoyDelta(avg, avgYoY)} />
         <Stat label="Overdue" v={String(overdueCount)} sub="unpaid, past date" />
       </div>
+
+      {hasYoY && (
+        <p className="text-[10px] text-muted-foreground -mt-2 mb-3">
+          YoY compares against {yoyLabel}.
+        </p>
+      )}
+
+      {fcRevenue && fcExpenses && (
+        <Card className="p-3 sm:p-4 mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-sm">Forecast to period end</h3>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {fcRevenue.basis} · {fcRevenue.confidence} confidence
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <Projected label="Revenue" toDate={fcRevenue.toDate} projected={fcRevenue.projected} cur={billing.currency} />
+            <Projected label="Expenses" toDate={fcExpenses.toDate} projected={fcExpenses.projected} cur={billing.currency} />
+            <Projected label="Net" toDate={fcRevenue.toDate - fcExpenses.toDate} projected={fcNet} cur={billing.currency} />
+          </div>
+          <div className="mt-2 h-1.5 bg-muted rounded overflow-hidden">
+            <div className="h-full bg-primary rounded" style={{ width: `${Math.round(fcRevenue.completion * 100)}%` }} />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Period typically {Math.round(fcRevenue.completion * 100)}% complete by today, based on the same period in prior years.
+          </p>
+        </Card>
+      )}
 
       {billing.vatPct > 0 && (
         <Card className="p-4 mb-4">
@@ -365,15 +459,28 @@ function ResultsPage() {
       )}
 
       <div className="space-y-3">
-        <ChartCard title={`Revenue trend (${bucket === "day" ? "daily" : bucket === "month" ? "monthly" : "yearly"})`}>
+        <ChartCard
+          title={`Revenue trend (${bucket === "day" ? "daily" : bucket === "month" ? "monthly" : "yearly"})`}
+          action={
+            <button
+              type="button"
+              onClick={() => setShowYoY((v) => !v)}
+              className={`px-2 h-7 rounded-full text-[10px] border transition-colors ${showYoY ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+            >
+              YoY
+            </button>
+          }
+        >
           <ResponsiveContainer width="100%" height={220}>
-            <ComposedChart data={cashflow} margin={{ left: -20, right: 8 }}>
+            <ComposedChart data={chartData} margin={{ left: -20, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => fmtMoney(v, billing.currency)} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="Revenue" fill="#E11D2E" />
+              <Bar dataKey="Revenue" stackId="rev" fill="#E11D2E" />
+              {fcRevenue && <Bar dataKey="Forecast" stackId="rev" fill="#E11D2E" fillOpacity={0.28} />}
+              {showYoY && <Line dataKey="Rev LY" stroke="#6B6B6B" strokeWidth={2} strokeDasharray="4 3" dot={false} />}
               <Line dataKey="Salary" stroke="#0A0A0A" strokeWidth={2} dot={{ r: 3 }} />
             </ComposedChart>
           </ResponsiveContainer>
@@ -389,6 +496,8 @@ function ResultsPage() {
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="Revenue" fill="#16A34A" />
               <Bar dataKey="Expenses" fill="#E11D2E" />
+              {showYoY && <Line dataKey="Rev LY" stroke="#16A34A" strokeWidth={2} strokeDasharray="4 3" dot={false} />}
+              {showYoY && <Line dataKey="Exp LY" stroke="#E11D2E" strokeWidth={2} strokeDasharray="4 3" dot={false} />}
               <Line dataKey="Net" stroke="#0A0A0A" strokeWidth={2} dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
@@ -518,7 +627,7 @@ function ResultsPage() {
             />
             <TrendBlock
               title="Year over year"
-              subtitle={`${format(from, "d MMM yy")}–${format(to, "d MMM yy")} vs ${format(yearAgo.from, "d MMM yy")}–${format(yearAgo.to, "d MMM yy")}`}
+              subtitle={`${format(from, "d MMM yy")}–${format(to, "d MMM yy")} vs ${format(yoy.from, "d MMM yy")}–${format(yoy.to, "d MMM yy")}`}
               cur={{
                 Revenue: revenue,
                 Expenses: totalExp,
@@ -526,10 +635,10 @@ function ResultsPage() {
                 Jobs: paidCount,
               }}
               prev={{
-                Revenue: sumRev(paidYoy),
-                Expenses: sumExp(expYoy),
-                Net: sumRev(paidYoy) - sumExp(expYoy),
-                Jobs: paidYoy.length,
+                Revenue: revenueYoY,
+                Expenses: totalExpYoY,
+                Net: netYoY,
+                Jobs: paidCountYoY,
               }}
               currency={billing.currency}
             />
@@ -563,13 +672,15 @@ function delta(cur: number, prev: number, isCount = false) {
 }
 
 function Stat({
-  label, v, delta, sub, invert,
+  label, v, delta, yoy, sub, invert,
 }: {
   label: string; v: string;
   delta?: { pct: number | null; up: boolean; raw: number; isCount: boolean } | null;
+  yoy?: { pct: number | null; up: boolean; raw: number; isCount: boolean } | null;
   sub?: string; invert?: boolean;
 }) {
   const good = delta ? (invert ? !delta.up : delta.up) : false;
+  const yoyGood = yoy ? (invert ? !yoy.up : yoy.up) : false;
   return (
     <Card className="p-3 sm:p-4">
       <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
@@ -580,12 +691,36 @@ function Stat({
           {delta.pct == null ? "new" : `${delta.pct >= 0 ? "+" : ""}${delta.pct.toFixed(0)}%`}
         </div>
       )}
+      {yoy && (
+        <div className={`text-[10px] mt-0.5 flex items-center gap-0.5 ${yoyGood ? "text-green-600" : "text-red-600"} opacity-80`}>
+          {yoy.up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+          {yoy.pct == null ? "new" : `${yoy.pct >= 0 ? "+" : ""}${yoy.pct.toFixed(0)}%`}
+          <span className="text-muted-foreground ml-0.5">YoY</span>
+        </div>
+      )}
       {sub && <div className="text-[10px] text-muted-foreground mt-1">{sub}</div>}
     </Card>
   );
 }
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return <Card className="p-3 sm:p-4"><h2 className="font-semibold text-sm mb-2">{title}</h2>{children}</Card>;
+function Projected({ label, toDate, projected, cur }: { label: string; toDate: number; projected: number; cur: string }) {
+  return (
+    <div className="rounded-lg border p-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-base sm:text-lg font-display truncate">{fmtMoney(projected, cur)}</div>
+      <div className="text-[10px] text-muted-foreground truncate">{fmtMoney(toDate, cur)} to date</div>
+    </div>
+  );
+}
+function ChartCard({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Card className="p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-semibold text-sm">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </Card>
+  );
 }
 
 function TrendBlock({
