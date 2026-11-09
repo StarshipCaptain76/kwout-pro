@@ -11,3 +11,4 @@
 
 - Keep permanent billing exemptions in the shared founding-user policy used by subscription checks, checkout, payment notifications, and admin metrics so free-access rules cannot diverge.
 - Share draft creation across onboarding and desktop/mobile controls so every entry point produces the same document and staff assignment.
+- Prepare PDF files before sharing clicks and use the shared PDF dispatcher so native file sharing retains user activation and cancellations never become successful sends.

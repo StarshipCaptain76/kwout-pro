@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Shell } from "@/components/app/Shell";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { downloadPdfFile, openEmailDraft, sharePdf } from "@/lib/share-pdf";
 import { buildShareMessage, shareSubject } from "@/lib/share-message";
 import { sendEmailWithPdf } from "@/lib/send-email";
 import { Card } from "@/components/ui/card";
@@ -10,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useStore, newId, docTotals, fmtMoney, BUILTIN_UNITS, type LineItem, type PayMethod } from "@/lib/store";
 import { AddItemDialog } from "@/components/app/AddItemDialog";
-import { downloadPdf } from "@/lib/pdf";
+import { downloadPdf, pdfFile } from "@/lib/pdf";
 import { Trash2, Plus, MessageCircle, Mail, Download, Check, ArrowLeft, Truck, Calendar as CalendarIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type ModuleKey } from "@/lib/modules";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -58,6 +59,23 @@ export function DocPage() {
   const enabledModules = new Set<ModuleKey>(company.enabledModules ?? []);
   const showLocation = enabledModules.has("location") || enabledModules.has("waste");
   const doc = docs.find((d) => d.id === id);
+  const [preparedPdf, setPreparedPdf] = useState<{ source: typeof doc; company: typeof company; banking: typeof banking; billing: typeof billing; file: File } | null>(null);
+  const [pdfError, setPdfError] = useState("");
+  const [sending, setSending] = useState(false);
+  const [attachmentChannel, setAttachmentChannel] = useState<"wa" | "email" | null>(null);
+  useEffect(() => {
+    let active = true;
+    setPdfError("");
+    if (doc && doc.type !== "job") {
+      void pdfFile(doc, company, banking, billing).then((file) => {
+        if (active) setPreparedPdf({ source: doc, company, banking, billing, file });
+      }).catch((error) => {
+        if (active) setPdfError(error instanceof Error ? error.message : "Could not create PDF");
+      });
+    }
+    return () => { active = false; };
+  }, [doc, company, banking, billing]);
+  const readyPdf = preparedPdf && preparedPdf.source === doc && preparedPdf.company === company && preparedPdf.banking === banking && preparedPdf.billing === billing ? preparedPdf.file : null;
   const distanceFn = useServerFn(routeDistance);
   const [calcing, setCalcing] = useState(false);
 
@@ -123,21 +141,20 @@ export function DocPage() {
 
   const send = async (channel: "wa" | "email") => {
     if (!doc.customer.name) return toast.error("Add customer name first");
+    if (channel === "wa" && !doc.customer.phone) return toast.error("Add customer phone");
+    if (channel === "email" && !doc.customer.email) return toast.error("Add customer email");
+    if (!readyPdf) return toast.error(pdfError || "PDF is still being prepared. Please try again.");
     const msg = buildShareMessage(doc, company, banking, billing);
-    if (channel === "wa") {
-      if (!doc.customer.phone) return toast.error("Add customer phone");
-      const ok = openWhatsApp(doc.customer.phone, msg);
-      if (!ok) return toast.error("Invalid phone number");
-    } else {
-      if (!doc.customer.email) return toast.error("Add customer email");
-      try {
-        await sendEmailWithPdf(doc, company, banking, billing, msg, shareSubject(doc, company));
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Email failed");
-        return;
-      }
+    setSending(true);
+    try {
+      const result = channel === "email"
+        ? await sendEmailWithPdf(readyPdf, msg, shareSubject(doc, company))
+        : await sharePdf(readyPdf, shareSubject(doc, company), msg);
+      if (result === "fallback") setAttachmentChannel(channel);
+      if (result === "shared" && doc.status === "draft") update({ status: "sent" });
+    } finally {
+      setSending(false);
     }
-    if (doc.status === "draft") update({ status: "sent" });
   };
 
   const convert = () => {
@@ -371,13 +388,13 @@ export function DocPage() {
             </Card>
 
             <Card className="p-4 space-y-2">
-              <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => send("wa")}>
+              <Button disabled={sending || (!readyPdf && !pdfError)} className="w-full bg-green-600 hover:bg-green-700" onClick={() => send("wa")}>
                 <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => send("email")}>
+              <Button disabled={sending || (!readyPdf && !pdfError)} variant="outline" className="w-full" onClick={() => send("email")}>
                 <Mail className="h-4 w-4 mr-2" /> Email
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => downloadPdf(doc, company, banking, billing)}>
+              <Button variant="outline" className="w-full" onClick={() => { void downloadPdf(doc, company, banking, billing).catch((error) => toast.error(error instanceof Error ? error.message : "Could not create PDF")); }}>
                 <Download className="h-4 w-4 mr-2" /> PDF
               </Button>
               {doc.type === "quote" && (
@@ -411,6 +428,21 @@ export function DocPage() {
           </div>
         )}
       </div>
+
+      {!isJob && (
+        <Dialog open={attachmentChannel !== null} onOpenChange={(open) => { if (!open) setAttachmentChannel(null); }}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Attach PDF to {attachmentChannel === "wa" ? "WhatsApp" : "email"}</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">This browser cannot attach files automatically. Download the PDF, then attach it to your message before sending.</p>
+            <Button disabled={!readyPdf} onClick={() => { if (readyPdf) downloadPdfFile(readyPdf); }}><Download className="mr-2 h-4 w-4" /> Download PDF</Button>
+            <Button variant="outline" onClick={() => {
+              const message = buildShareMessage(doc, company, banking, billing);
+              if (attachmentChannel === "wa") openWhatsApp(doc.customer.phone, message);
+              else openEmailDraft(doc.customer.email, shareSubject(doc, company), message);
+            }}>{attachmentChannel === "wa" ? <MessageCircle className="mr-2 h-4 w-4" /> : <Mail className="mr-2 h-4 w-4" />}Open {attachmentChannel === "wa" ? "WhatsApp" : "email draft"}</Button>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {!isJob && (
         <AddItemDialog
