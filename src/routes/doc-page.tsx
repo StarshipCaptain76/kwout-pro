@@ -20,6 +20,26 @@ import { cn } from "@/lib/utils";
 import { CustomerCombobox } from "@/components/app/CustomerCombobox";
 import { ContactImportButton } from "@/components/app/ContactImportButton";
 import { CatalogPicker } from "@/components/app/CatalogPicker";
+import { useMemo as useMemoCU } from "react";
+import { useStore as useStoreCU } from "@/lib/store";
+
+function useCatalogUsage() {
+  const docs = useStoreCU((s) => s.docs);
+  return useMemoCU(() => {
+    const out: Record<string, number> = {};
+    const now = Date.now();
+    const HALF = 60 * 86400000;
+    for (const d of docs) {
+      const t = new Date(d.createdAt || now).getTime();
+      const w = Math.pow(0.5, Math.max(0, now - t) / HALF);
+      for (const it of d.items ?? []) {
+        const k = (it.description || "").trim().toLowerCase();
+        if (k) out[k] = (out[k] ?? 0) + w;
+      }
+    }
+    return out;
+  }, [docs]);
+}
 import { InlineTumbler } from "@/components/app/InlineTumbler";
 import { DatePicker } from "@/components/app/DatePicker";
 import { TimePicker } from "@/components/app/TimePicker";
@@ -32,6 +52,7 @@ import { flushSync } from "@/lib/sync";
 export function DocPage() {
   const { id } = useParams({ from: "/doc/$id" });
   const nav = useNavigate();
+  const catalogUsage = useCatalogUsage();
   const { docs, company, banking, billing, catalog, customers, staff, upsertDoc, deleteDoc, upsertCatalog, nextDocNumber } = useStore();
   const [addOpen, setAddOpen] = useState(false);
   const enabledModules = new Set<ModuleKey>(company.enabledModules ?? []);
@@ -179,6 +200,12 @@ export function DocPage() {
                 <Label>Email{isJob ? " (optional)" : ""}</Label>
                 <Input value={doc.customer.email} onChange={(e) => updateCust({ email: e.target.value })} />
               </div>
+              {!isJob && (
+                <div>
+                  <Label>VAT / Tax no. (optional)</Label>
+                  <Input value={doc.customer.taxNumber ?? ""} onChange={(e) => updateCust({ taxNumber: e.target.value })} placeholder="4xxxxxxxxx" />
+                </div>
+              )}
             </div>
           </Card>
 
@@ -213,6 +240,7 @@ export function DocPage() {
                 <div className="flex gap-2">
                   <CatalogPicker
                     catalog={catalog}
+                    usage={catalogUsage}
                     currency={billing.currency}
                     onPick={(c) => addItem({ description: c.name, price: c.price, unit: c.unit, qty: 1 })}
                   />

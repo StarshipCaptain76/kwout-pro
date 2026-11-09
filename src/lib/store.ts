@@ -89,6 +89,8 @@ export interface Customer {
   phone: string;
   email: string;
   address?: string;
+  /** Customer VAT / tax registration number (printed on invoices). */
+  taxNumber?: string;
 }
 
 /** Intermediate stop on a multi-leg route (between From and To). */

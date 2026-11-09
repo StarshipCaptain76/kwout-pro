@@ -136,6 +136,7 @@ export function pushCustomer(c: Customer, throwOnError = false) {
       phone: c.phone,
       email: c.email,
       address: c.address ?? null,
+      tax_number: c.taxNumber ?? null,
     });
     if (error) throw error;
   }, throwOnError);
@@ -337,12 +338,21 @@ async function loadAll() {
       price: Number(r.price),
       unit: r.unit as CatalogItem["unit"],
     }));
+    {
+      const seen = new Set<string>();
+      const norm = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      for (let i = remoteCatalog.length - 1; i >= 0; i--) {
+        const k = norm(remoteCatalog[i].name);
+        if (seen.has(k)) remoteCatalog.splice(i, 1); else seen.add(k);
+      }
+    }
     const remoteCustomers: Customer[] = (custRes.data ?? []).map((r) => ({
       id: r.id,
       name: r.name,
       phone: r.phone,
       email: r.email,
       address: r.address ?? undefined,
+      taxNumber: r.tax_number ?? undefined,
     }));
     const remoteDocs: Doc[] = (docsRes.data ?? []).map((r) => ({
       id: r.id,
