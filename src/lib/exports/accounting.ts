@@ -5,6 +5,7 @@
 // no server round-trip needed.
 
 import type { Doc, Expense, Customer, BillingSettings } from "@/lib/store";
+import { escapeCsvCell } from "@/lib/csv";
 
 export type AccountingPackage = "csv" | "quickbooks" | "sage";
 
@@ -18,14 +19,8 @@ export type DataSet = "invoices" | "quotes" | "payments" | "expenses" | "custome
 
 // ─── CSV helpers ────────────────────────────────────────────────────────────
 const BOM = "\uFEFF"; // makes Excel open UTF-8 correctly
-function esc(v: unknown): string {
-  if (v === null || v === undefined) return "";
-  const s = String(v);
-  if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
 function toCsv(rows: Array<Array<unknown>>): string {
-  return BOM + rows.map((r) => r.map(esc).join(",")).join("\r\n");
+  return BOM + rows.map((r) => r.map(escapeCsvCell).join(",")).join("\r\n");
 }
 function money(n: number): string {
   return (Math.round(n * 100) / 100).toFixed(2);

@@ -17,19 +17,13 @@ import { listStaffCompensation, updateStaffCompensation, type PayType } from "@/
 import type { TaxStatus } from "@/lib/payroll";
 import { Plus, Trash2, KeyRound, Copy, Users } from "lucide-react";
 import { toast } from "sonner";
+import { randomPassword } from "@/lib/password";
 
 const ROLE_LABEL: Record<Role, string> = {
   owner: "Owner",
   manager: "Manager",
   staff: "Field staff",
 };
-
-function randomPassword() {
-  const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
 
 export function StaffSection() {
   const isOwner = useIsOwner();

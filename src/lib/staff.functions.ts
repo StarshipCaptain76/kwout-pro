@@ -535,6 +535,24 @@ export const resetStaffPassword = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), newPassword: z.string().min(6) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    // Verify a stored, workspace-scoped owner role before any privileged reads or writes.
+    const { data: ownerRole, error: roleError } = await context.supabase
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("workspace_owner_id", context.userId)
+      .eq("role", "owner")
+      .maybeSingle();
+    if (roleError || !ownerRole) throw new Error("Only the workspace owner can reset staff passwords.");
+    const { data: ownerStaff, error: ownerStaffError } = await context.supabase
+      .from("staff_members")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("workspace_owner_id", context.userId)
+      .eq("role", "owner")
+      .eq("active", true)
+      .maybeSingle();
+    if (ownerStaffError || !ownerStaff) throw new Error("Only the active workspace owner can reset staff passwords.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error: fErr } = await supabaseAdmin
       .from("staff_members")
@@ -550,8 +568,11 @@ export const resetStaffPassword = createServerFn({ method: "POST" })
     }
 
     // Refuse when this user is a member of, or owns, another workspace.
-    const others = await countStaffRowsForUser(targetUserId);
-    if (others > 1) {
+    const { count: memberships, error: membershipError } = await supabaseAdmin
+      .from("staff_members")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", targetUserId);
+    if (membershipError || memberships !== 1) {
       throw new Error(
         "This user works for another business on KWOUT too. Ask them to reset their password via Forgot password.",
       );

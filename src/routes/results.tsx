@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PayslipsTab } from "@/components/payslips/PayslipsTab";
 import { useCan, useIsOwner } from "@/lib/store";
 import { sameRangeYearsAgo, weightedForecast } from "@/lib/forecast";
+import { escapeCsvCell } from "@/lib/csv";
 
 export const Route = createFileRoute("/results")({
   head: () => ({
@@ -287,13 +288,10 @@ function ResultsPage() {
 
   const exportCsv = () => {
     const cur = billing.currency;
-    const esc = (s: unknown) => {
-      const str = String(s ?? "");
-      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-    };
+    const esc = escapeCsvCell;
     const lines: string[] = [];
     lines.push(`Revenue & Reports — ${label}`);
-    lines.push(`Currency,${cur}`);
+    lines.push(["Currency", cur].map(esc).join(","));
     lines.push("");
     lines.push("Summary");
     lines.push("Metric,Value");
