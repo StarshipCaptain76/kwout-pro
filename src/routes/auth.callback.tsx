@@ -5,7 +5,14 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/callback")({
   component: AuthCallback,
-  head: () => ({ meta: [{ title: "Signing you in…" }] }),
+  head: () => ({ meta: [
+    { title: "Verify your account — KWOUT" },
+    { name: "description", content: "Complete verification and sign in to KWOUT." },
+    { property: "og:title", content: "Verify your account — KWOUT" },
+    { property: "og:description", content: "Complete verification and sign in to KWOUT." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function AuthCallback() {

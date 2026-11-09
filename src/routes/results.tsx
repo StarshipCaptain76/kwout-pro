@@ -24,6 +24,8 @@ export const Route = createFileRoute("/results")({
   head: () => ({
     meta: [
       { title: "Revenue & Reports — KWOUT" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Revenue, expenses, cash flow and customer reports with flexible date ranges." },
       { property: "og:title", content: "Revenue & Reports — KWOUT" },
       { property: "og:description", content: "Cash-flow, revenue and expense reports for your business." },

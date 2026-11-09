@@ -30,12 +30,14 @@ type TabValue = (typeof TAB_VALUES)[number];
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: { tab?: unknown }) => ({
     tab: TAB_VALUES.includes(search.tab as TabValue) ? (search.tab as TabValue) : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Settings — KWOUT" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Manage your KWOUT subscription, company profile, banking, staff, catalog, billing and appearance." },
       { property: "og:title", content: "Settings — KWOUT" },
       { property: "og:description", content: "Company, subscription and workspace settings for KWOUT." },

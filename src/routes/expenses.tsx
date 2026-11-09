@@ -41,6 +41,8 @@ export const Route = createFileRoute("/expenses")({
   head: () => ({
     meta: [
       { title: "Expenses — KWOUT" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Track business expenses by month, snap receipts and capture VAT for quick reconciliation." },
       { property: "og:title", content: "Expenses — KWOUT" },
       { property: "og:description", content: "Snap receipts and track expenses month by month." },

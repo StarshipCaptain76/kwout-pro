@@ -16,7 +16,7 @@ export interface StatusRow {
   count: number;
   tone: PillTone;
   /** Search params applied when navigating to /docs. */
-  search: Record<string, string>;
+  search: { type?: "quote" | "invoice"; status?: "draft" | "unpaid" | "overdue" | "paid" | "awaiting" | "accepted" | "declined"; who?: "all" | "mine" | "unassigned" };
 }
 
 export function StatusFrame({ title, rows }: { title: string; rows: StatusRow[] }) {

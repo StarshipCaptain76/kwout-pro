@@ -10,7 +10,14 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
-  head: () => ({ meta: [{ title: "Reset password" }] }),
+  head: () => ({ meta: [
+    { title: "Reset password — KWOUT" },
+    { name: "description", content: "Securely reset your KWOUT account password." },
+    { property: "og:title", content: "Reset password — KWOUT" },
+    { property: "og:description", content: "Securely reset your KWOUT account password." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function ResetPasswordPage() {

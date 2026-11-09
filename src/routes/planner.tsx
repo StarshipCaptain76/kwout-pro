@@ -36,6 +36,8 @@ export const Route = createFileRoute("/planner")({
   head: () => ({
     meta: [
       { title: "Planner — KWOUT" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Schedule quotes and jobs by day, week or month. Drag-and-drop planner for entrepreneurs and small teams." },
       { property: "og:title", content: "Planner — KWOUT" },
       { property: "og:description", content: "Drag-and-drop calendar for quotes, jobs and invoices." },
