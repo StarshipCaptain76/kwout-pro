@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { assertBillableUser, foundingSubscription, isFoundingUser } from "@/lib/founding-users";
+import { validatePaymentOrigin } from "@/lib/payment-origin";
 
 export interface SubscriptionStatus {
   status: "trial" | "active" | "past_due" | "cancelled" | "legacy_free";
@@ -58,6 +59,7 @@ export const createPayfastCheckout = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     assertBillableUser(context.claims.email);
+    const origin = validatePaymentOrigin(data.origin, process.env.NODE_ENV === "development");
     const merchantId = process.env.PAYFAST_MERCHANT_ID;
     const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
     const passphrase = process.env.PAYFAST_PASSPHRASE ?? "";
@@ -72,9 +74,9 @@ export const createPayfastCheckout = createServerFn({ method: "POST" })
     const fields: Record<string, string> = {
       merchant_id: merchantId,
       merchant_key: merchantKey,
-      return_url: `${data.origin}/settings?billing=success`,
-      cancel_url: `${data.origin}/settings?billing=cancelled`,
-      notify_url: `${data.origin}/api/public/payfast-itn`,
+      return_url: `${origin}/settings?billing=success`,
+      cancel_url: `${origin}/settings?billing=cancelled`,
+      notify_url: `${origin}/api/public/payfast-itn`,
       name_first: "KWOUT",
       name_last: "Subscriber",
       email_address: email,
