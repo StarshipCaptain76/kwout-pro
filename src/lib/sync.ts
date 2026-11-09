@@ -58,7 +58,7 @@ function runningTask(): Status {
   return "synced";
 }
 
-async function withPush<T>(fn: () => Promise<T>): Promise<T | void> {
+async function withPush<T>(fn: () => Promise<T>, throwOnError = false): Promise<T | void> {
   if (suppressPush || !state.userId) return;
   state.pending += 1;
   state.status = "syncing";
@@ -72,6 +72,7 @@ async function withPush<T>(fn: () => Promise<T>): Promise<T | void> {
     state.error = e instanceof Error ? e.message : String(e);
     console.error("[sync push]", e);
     emit();
+    if (throwOnError) throw e;
   } finally {
     state.pending -= 1;
     if (state.status !== "error") state.status = runningTask();
@@ -121,10 +122,13 @@ export function deleteCatalogItemRow(id: string) {
   });
 }
 
-export function pushCustomer(c: Customer) {
+export function pushCustomer(c: Customer, throwOnError = false) {
   const uid = state.workspaceOwnerId ?? state.userId;
-  if (!uid) return;
-  void withPush(async () => {
+  if (!uid) {
+    if (throwOnError) return Promise.reject(new Error("Your business is still loading. Please try again shortly."));
+    return;
+  }
+  return withPush(async () => {
     const { error } = await supabase.from("customers").upsert({
       id: c.id,
       owner_user_id: uid,
@@ -134,7 +138,7 @@ export function pushCustomer(c: Customer) {
       address: c.address ?? null,
     });
     if (error) throw error;
-  });
+  }, throwOnError);
 }
 
 export function deleteCustomerRow(id: string) {
