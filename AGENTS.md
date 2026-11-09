@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep permanent billing exemptions in the shared founding-user policy used by subscription checks, checkout, payment notifications, and admin metrics so free-access rules cannot diverge.

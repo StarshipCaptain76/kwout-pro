@@ -1,14 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchAllRows } from "@/lib/pagination";
+import { isFoundingUser } from "@/lib/founding-users";
 
 
 const ADMIN_EMAILS = new Set(["dawie@polka.co.za", "julius@polka.co.za"]);
-const LEGACY_FREE_EMAILS = new Set([
-  "dawie@polka.co.za",
-  "julius@polka.co.za",
-  "nadia.jvr1668@gmail.com",
-]);
 const MONTHLY_PRICE_ZAR = 100;
 const TRIAL_DAYS = 30;
 const MS_PER_DAY = 86_400_000;
@@ -121,7 +117,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
 
     const legacyUserIds = new Set<string>();
     for (const u of allUsers) {
-      if (LEGACY_FREE_EMAILS.has((u.email ?? "").toLowerCase())) legacyUserIds.add(u.id);
+      if (isFoundingUser(u.email)) legacyUserIds.add(u.id);
     }
 
     const nowMs = now.getTime();
