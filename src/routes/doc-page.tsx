@@ -30,7 +30,7 @@ function useCatalogUsage() {
     const now = Date.now();
     const HALF = 60 * 86400000;
     for (const d of docs) {
-      const t = new Date(d.date || now).getTime();
+      const t = new Date(d.createdAt || now).getTime();
       const w = Math.pow(0.5, Math.max(0, now - t) / HALF);
       for (const it of d.items ?? []) {
         const k = (it.description || "").trim().toLowerCase();
