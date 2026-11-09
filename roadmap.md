@@ -1,3 +1,3 @@
 - [x] Restore customer creation and confirm saved customers survive refresh.
 - [x] Restore quote creation from getting started and desktop screens; confirm saved quotes survive refresh.
-- [ ] Repair PDF attachment sharing for WhatsApp and email; verify sharing and fallback downloads.
+- [x] Repair quote/invoice PDF attachment sharing for WhatsApp and email; verified PDF generation, sharing outcomes and cancellation with browser checks and regression tests. Actual recipient delivery remains unverified without a signed-in preview session.

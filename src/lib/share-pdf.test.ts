@@ -1,3 +1,4 @@
+/// <reference types="bun" />
 import { afterEach, describe, expect, it } from "bun:test";
 import { sharePdf } from "./share-pdf";
 
