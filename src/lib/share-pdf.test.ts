@@ -1,5 +1,5 @@
-/// <reference types="bun" />
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, it } from "node:test";
+import { strict as assert } from "node:assert";
 import { sharePdf } from "./share-pdf";
 
 const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
@@ -16,18 +16,18 @@ describe("PDF sharing", () => {
       canShare: () => true,
       share: async (data: ShareData) => { attachment = data.files?.[0]; },
     } });
-    expect(await sharePdf(file, "Quote", "Message")).toBe("shared");
-    expect(attachment).toBe(file);
+    assert.equal(await sharePdf(file, "Quote", "Message"), "shared");
+    assert.equal(attachment, file);
   });
   it("does not treat cancelling as sending or opening a fallback", async () => {
     Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
       canShare: () => true,
       share: async () => { throw new DOMException("Cancelled", "AbortError"); },
     } });
-    expect(await sharePdf(file, "Quote", "Message")).toBe("cancelled");
+    assert.equal(await sharePdf(file, "Quote", "Message"), "cancelled");
   });
   it("offers manual attachment when the browser cannot share files", async () => {
     Object.defineProperty(globalThis, "navigator", { configurable: true, value: { canShare: () => false, share: async () => {} } });
-    expect(await sharePdf(file, "Quote", "Message")).toBe("fallback");
+    assert.equal(await sharePdf(file, "Quote", "Message"), "fallback");
   });
 });
