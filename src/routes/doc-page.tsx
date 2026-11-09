@@ -75,7 +75,7 @@ export function DocPage() {
     }
     return () => { active = false; };
   }, [doc, company, banking, billing]);
-  const readyPdf = preparedPdf?.source === doc && preparedPdf.company === company && preparedPdf.banking === banking && preparedPdf.billing === billing ? preparedPdf.file : null;
+  const readyPdf = preparedPdf && preparedPdf.source === doc && preparedPdf.company === company && preparedPdf.banking === banking && preparedPdf.billing === billing ? preparedPdf.file : null;
   const distanceFn = useServerFn(routeDistance);
   const [calcing, setCalcing] = useState(false);
 
