@@ -26,6 +26,8 @@ export const Route = createFileRoute("/docs")({
   head: () => ({
     meta: [
       { title: "Quotes & Invoices — KWOUT" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Browse and filter your quotes and invoices, spot outstanding balances and assign work to staff." },
       { property: "og:title", content: "Quotes & Invoices — KWOUT" },
       { property: "og:description", content: "All your quotes and invoices in one list." },
@@ -33,7 +35,7 @@ export const Route = createFileRoute("/docs")({
     ],
     links: [{ rel: "canonical", href: "https://kwout.co.za/docs" }],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: { type?: unknown; status?: unknown; who?: unknown }) => ({
     type: search.type === "quote" || search.type === "invoice" ? search.type : undefined,
     status: STATUS_VALUES.includes(search.status as StatusFilter) ? (search.status as StatusFilter) : undefined,
     who: (search.who === "mine" || search.who === "unassigned" ? search.who : "all") as Assignee,
@@ -97,7 +99,7 @@ function DocsListPage() {
               key={k}
               size="sm"
               variant={effectiveWho === k ? "default" : "outline"}
-              onClick={() => nav({ search: (s: Record<string, unknown>) => ({ ...s, who: k }) })}
+              onClick={() => nav({ search: (s) => ({ ...s, who: k }) })}
               className="capitalize"
             >
               {k}

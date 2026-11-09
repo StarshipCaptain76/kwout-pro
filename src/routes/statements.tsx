@@ -17,6 +17,8 @@ export const Route = createFileRoute("/statements")({
   head: () => ({
     meta: [
       { title: "Customer Statements — KWOUT" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Monthly customer statements with 30/60/90/120 day aging, ready to download, WhatsApp or email." },
       { property: "og:title", content: "Customer Statements — KWOUT" },
       { property: "og:description", content: "Send aged customer statements in one tap." },

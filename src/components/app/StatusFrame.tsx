@@ -16,7 +16,7 @@ export interface StatusRow {
   count: number;
   tone: PillTone;
   /** Search params applied when navigating to /docs. */
-  search: Record<string, string>;
+  search: { type?: "quote" | "invoice"; status?: "draft" | "unpaid" | "overdue" | "paid" | "awaiting" | "accepted" | "declined"; who?: "all" | "mine" | "unassigned" };
 }
 
 export function StatusFrame({ title, rows }: { title: string; rows: StatusRow[] }) {
@@ -32,7 +32,7 @@ export function StatusFrame({ title, rows }: { title: string; rows: StatusRow[] 
           <li key={r.key}>
             <Link
               to="/docs"
-              search={r.search}
+              search={{ type: r.search.type, status: r.search.status, who: r.search.who ?? "all" }}
               className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors"
             >
               <span className="text-sm uppercase tracking-wider text-foreground/80">

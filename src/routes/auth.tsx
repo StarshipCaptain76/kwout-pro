@@ -24,12 +24,14 @@ const kwoutLogo = { url: "/kwout-logo.png" };
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: { tab?: unknown }) => ({
     tab: search.tab === "signup" ? ("signup" as const) : ("signin" as const),
   }),
   head: () => ({
     meta: [
       { title: "Sign in — KWOUT" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Sign in or create your KWOUT account. 30 days free, then R100/month." },
       { property: "og:title", content: "Sign in — KWOUT" },
       { property: "og:description", content: "Access your KWOUT accounting and billing workspace." },

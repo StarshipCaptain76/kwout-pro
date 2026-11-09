@@ -25,6 +25,7 @@ export const Route = createFileRoute("/legal")({
           "Privacy Policy, Terms & Conditions and Cookie Policy for KWOUT business stationery.",
       },
       { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:url", content: "https://kwout.co.za/legal" },
     ],
     links: [{ rel: "canonical", href: "https://kwout.co.za/legal" }],

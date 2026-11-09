@@ -23,12 +23,18 @@ export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Platform Console · KWOUT" },
+      { name: "description", content: "KWOUT platform acquisition, revenue and subscription metrics." },
+      { property: "og:title", content: "Platform Console · KWOUT" },
+      { property: "og:description", content: "KWOUT platform acquisition, revenue and subscription metrics." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
 });
 
 const STATUS_LABEL: Record<string, string> = {
+  legacy_free: "Founding user · Free forever",
   active: "Active",
   trial: "Trial",
   trial_expired: "Trial expired",

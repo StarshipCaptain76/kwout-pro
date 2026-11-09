@@ -20,6 +20,12 @@ export const Route = createFileRoute("/")({
   component: IndexRoute,
   head: () => ({
     meta: [
+      { title: "KWOUT — Quotes, invoices & business management" },
+      { name: "description", content: "Manage quotes, invoices, expenses and scheduled jobs with KWOUT." },
+      { property: "og:title", content: "KWOUT — Quotes, invoices & business management" },
+      { property: "og:description", content: "Manage quotes, invoices, expenses and scheduled jobs with KWOUT." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:url", content: "https://kwout.co.za/" },
     ],
     links: [{ rel: "canonical", href: "https://kwout.co.za/" }],
@@ -81,7 +87,7 @@ function Landing() {
           <span className="font-display text-2xl tracking-wide text-[#3FA34D]">KWOUT</span>
         </div>
         <button
-          onClick={() => navigate({ to: "/auth" })}
+          onClick={() => navigate({ to: "/auth", search: { tab: "signin" } })}
           className="text-sm font-medium underline underline-offset-4 hover:text-primary"
         >
           Sign in
@@ -202,7 +208,7 @@ function Landing() {
               <Button className="h-11" onClick={() => navigate({ to: "/auth", search: { tab: "signup" } })}>
                 Start my 30-day free trial
               </Button>
-              <Button variant="outline" className="h-11 bg-white" onClick={() => navigate({ to: "/auth" })}>
+              <Button variant="outline" className="h-11 bg-white" onClick={() => navigate({ to: "/auth", search: { tab: "signin" } })}>
                 Sign in
               </Button>
             </div>

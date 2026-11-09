@@ -6,6 +6,8 @@ export const Route = createFileRoute("/doc/$id")({
   head: ({ params }) => ({
     meta: [
       { title: `Document ${params.id} — KWOUT` },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: `View and manage document ${params.id} in KWOUT.` },
       { property: "og:title", content: `Document ${params.id} — KWOUT` },
       { property: "og:description", content: `View and manage document ${params.id} in KWOUT.` },
