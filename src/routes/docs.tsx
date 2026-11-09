@@ -7,6 +7,7 @@ import { ChevronRight, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { NewDocumentButton } from "@/components/app/NewDocumentButton";
 
 type Assignee = "all" | "mine" | "unassigned";
 type StatusFilter = "draft" | "unpaid" | "overdue" | "paid" | "awaiting" | "accepted" | "declined";
@@ -87,9 +88,10 @@ function DocsListPage() {
 
   return (
     <Shell>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <FileText className="h-5 w-5 text-primary" />
         <h1 className="font-display text-xl">{title}</h1>
+        <div className="ml-auto md:hidden"><NewDocumentButton /></div>
       </div>
 
       {!isFieldStaff && staff.length > 0 && (

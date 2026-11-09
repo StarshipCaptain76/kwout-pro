@@ -1,5 +1,7 @@
 import { useMemo } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { createDocument } from "@/lib/create-document";
 import { Card } from "@/components/ui/card";
 import { useStore } from "@/lib/store";
 import { Check, ChevronRight, Building2, User, Wallet, Landmark, Users, FileText, X } from "lucide-react";
@@ -15,6 +17,7 @@ interface Task {
 }
 
 export function OnboardingChecklist() {
+  const navigate = useNavigate();
   const { company, banking, billing, catalog, customers, docs, onboardingDismissed, setOnboardingDismissed } = useStore();
 
   const tasks = useMemo<Task[]>(() => {
@@ -127,7 +130,15 @@ export function OnboardingChecklist() {
       <ul className="divide-y">
         {tasks.map((t) => (
           <li key={t.key}>
-            <Link
+            {t.key === "doc" && !t.done ? <Button
+              variant="ghost"
+              className="w-full h-auto rounded-none justify-start gap-3 px-4 py-3 font-normal"
+              onClick={() => { const id = createDocument("quote"); void navigate({ to: "/doc/$id", params: { id } }); }}
+            >
+              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full shrink-0 bg-muted text-muted-foreground"><FileText className="h-4 w-4" /></span>
+              <span className="text-sm flex-1 text-left whitespace-normal">{t.label}</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Button> : <Link
               to={t.to}
               search={t.search}
               className={cn(
@@ -151,7 +162,7 @@ export function OnboardingChecklist() {
               ) : (
                 <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               )}
-            </Link>
+            </Link>}
           </li>
         ))}
       </ul>

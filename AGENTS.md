@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep permanent billing exemptions in the shared founding-user policy used by subscription checks, checkout, payment notifications, and admin metrics so free-access rules cannot diverge.
+- Share draft creation across onboarding and desktop/mobile controls so every entry point produces the same document and staff assignment.

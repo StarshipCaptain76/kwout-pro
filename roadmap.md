@@ -1,0 +1,2 @@
+- [x] Restore customer creation and confirm saved customers survive refresh.
+- [x] Restore quote creation from getting started and desktop screens; confirm saved quotes survive refresh.

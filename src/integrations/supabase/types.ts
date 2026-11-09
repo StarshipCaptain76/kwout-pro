@@ -153,7 +153,9 @@ export type Database = {
           payment_method: string | null
           scheduled_date: string | null
           scheduled_end_date: string | null
+          scheduled_time: string | null
           status: string
+          stops: Json
           to_address: string | null
           to_coords: Json | null
           type: string
@@ -180,7 +182,9 @@ export type Database = {
           payment_method?: string | null
           scheduled_date?: string | null
           scheduled_end_date?: string | null
+          scheduled_time?: string | null
           status?: string
+          stops?: Json
           to_address?: string | null
           to_coords?: Json | null
           type: string
@@ -207,7 +211,9 @@ export type Database = {
           payment_method?: string | null
           scheduled_date?: string | null
           scheduled_end_date?: string | null
+          scheduled_time?: string | null
           status?: string
+          stops?: Json
           to_address?: string | null
           to_coords?: Json | null
           type?: string

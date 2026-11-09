@@ -7,7 +7,9 @@ import {
 } from "lucide-react";
 import { initSync, subscribeSync, switchWorkspace } from "@/lib/sync";
 import { startReminders } from "@/lib/reminders";
-import { useStore, newId, useCan, type Doc } from "@/lib/store";
+import { useStore, useCan } from "@/lib/store";
+import { createDocument } from "@/lib/create-document";
+import { NewDocumentButton } from "@/components/app/NewDocumentButton";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -156,6 +158,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto md:ml-0 flex items-center gap-1">
+            <div className="hidden md:block"><NewDocumentButton /></div>
             <WorkspaceSwitcher />
             <SyncBadge />
           </div>
@@ -175,23 +178,8 @@ function MobileTabBar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [newOpen, setNewOpen] = useState(false);
   const nav = useNavigate();
-  const { billing, upsertDoc, nextDocNumber } = useStore();
-
   const create = (type: "quote" | "invoice" | "job") => {
-    const id = newId();
-    const d: Doc = {
-      id,
-      number: nextDocNumber(type),
-      type,
-      status: "draft",
-      createdAt: new Date().toISOString(),
-      customer: { id: newId(), name: "", phone: "", email: "" },
-      items: [],
-      depositPct: type === "job" ? 0 : billing.defaultDepositPct,
-      depositPaid: false,
-      scheduledDate: type === "job" ? new Date().toISOString().slice(0, 10) : undefined,
-    };
-    upsertDoc(d);
+    const id = createDocument(type);
     setNewOpen(false);
     nav({ to: "/doc/$id", params: { id } });
   };
