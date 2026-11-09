@@ -13,13 +13,19 @@ interface Props {
   currency: string;
   onPick: (c: CatalogItem) => void;
   triggerClassName?: string;
+  /** Recency-weighted usage score keyed by lowercase item name. */
+  usage?: Record<string, number>;
 }
 
-export function CatalogPicker({ catalog, currency, onPick, triggerClassName }: Props) {
+export function CatalogPicker({ catalog, currency, onPick, triggerClassName, usage }: Props) {
   const [open, setOpen] = useState(false);
   const sorted = useMemo(
-    () => [...catalog].sort((a, b) => a.name.localeCompare(b.name)),
-    [catalog],
+    () => [...catalog].sort((a, b) => {
+      const ua = usage?.[a.name.trim().toLowerCase()] ?? 0;
+      const ub = usage?.[b.name.trim().toLowerCase()] ?? 0;
+      return ub - ua || a.name.localeCompare(b.name);
+    }),
+    [catalog, usage],
   );
   return (
     <Popover open={open} onOpenChange={setOpen}>
