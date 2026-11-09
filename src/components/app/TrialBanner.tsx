@@ -24,7 +24,7 @@ export function TrialBanner() {
   });
 
   if (!authed || !data || dismissed) return null;
-  if (data.status === "active") return null;
+  if (data.status === "active" || data.status === "legacy_free") return null;
 
   const expired = data.trialExpired || data.status === "past_due" || data.status === "cancelled";
   const showReminder = data.status === "trial" && data.daysLeftInTrial <= 7;

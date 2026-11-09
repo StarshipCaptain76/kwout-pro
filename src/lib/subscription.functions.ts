@@ -2,9 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { createHash } from "crypto";
+import { assertBillableUser, foundingSubscription, isFoundingUser } from "@/lib/founding-users";
 
 export interface SubscriptionStatus {
-  status: "trial" | "active" | "past_due" | "cancelled";
+  status: "trial" | "active" | "past_due" | "cancelled" | "legacy_free";
   trialStartedAt: string;
   currentPeriodEnd: string | null;
   daysLeftInTrial: number;
@@ -19,6 +20,7 @@ export const getMySubscription = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<SubscriptionStatus> => {
     const { supabase, userId } = context;
+    if (isFoundingUser(context.claims.email)) return foundingSubscription();
     const { data, error } = await supabase
       .from("subscriptions")
       .select("status, trial_started_at, current_period_end")
@@ -55,6 +57,7 @@ export const createPayfastCheckout = createServerFn({ method: "POST" })
     z.object({ origin: z.string().url() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    assertBillableUser(context.claims.email);
     const merchantId = process.env.PAYFAST_MERCHANT_ID;
     const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
     const passphrase = process.env.PAYFAST_PASSPHRASE ?? "";
@@ -94,6 +97,7 @@ export const createPayfastCheckout = createServerFn({ method: "POST" })
 export const cancelMySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (isFoundingUser(context.claims.email)) return { ok: true };
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin

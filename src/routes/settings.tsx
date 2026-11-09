@@ -366,7 +366,7 @@ function SubscriptionSection() {
 
   const status = data?.status ?? "trial";
   const badgeClass =
-    status === "active"
+    status === "active" || status === "legacy_free"
       ? "bg-secondary text-secondary-foreground"
       : status === "past_due"
         ? "bg-destructive text-destructive-foreground"
@@ -374,7 +374,7 @@ function SubscriptionSection() {
           ? "bg-muted text-muted-foreground"
           : "bg-primary/10 text-primary";
   const badgeLabel =
-    status === "active"
+    status === "legacy_free" ? "Founding user · Free forever" : status === "active"
       ? "Active"
       : status === "past_due"
         ? "Past due"
@@ -388,7 +388,7 @@ function SubscriptionSection() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="font-display text-3xl tracking-wide">KWOUT</div>
-            <div className="text-sm text-muted-foreground">R100 / month · Everything included</div>
+            <div className="text-sm text-muted-foreground">{status === "legacy_free" ? "Free forever · Unlimited access · No charges" : "R100 / month · Everything included"}</div>
           </div>
           <span className={cn("rounded-full px-3 py-1 text-xs font-medium", badgeClass)}>{badgeLabel}</span>
         </div>
@@ -404,6 +404,8 @@ function SubscriptionSection() {
 
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Loading…</div>
+        ) : status === "legacy_free" ? (
+          <p className="text-sm text-muted-foreground">Your founding-user subscription never expires and will never be billed.</p>
         ) : status === "active" ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs text-muted-foreground">

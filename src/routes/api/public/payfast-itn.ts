@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
+import { isFoundingUser } from "@/lib/founding-users";
 
 // PayFast Instant Transaction Notification (ITN) webhook.
 // Verifies signature, validates against PayFast, and updates the user's subscription.
@@ -62,6 +63,9 @@ export const Route = createFileRoute("/api/public/payfast-itn")({
 
         if (userId && status) {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: account, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+          if (error) return new Response("user lookup failed", { status: 500 });
+          if (isFoundingUser(account.user?.email)) return new Response("ok");
           const nextEnd = new Date();
           nextEnd.setDate(nextEnd.getDate() + 31);
           const patch: {
