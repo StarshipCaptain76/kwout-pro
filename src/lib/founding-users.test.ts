@@ -1,22 +1,25 @@
-import { describe, expect, test } from "bun:test";
+import { describe, test } from "node:test";
+import { strict as assert } from "node:assert";
 import { assertBillableUser, foundingSubscription, isFoundingUser } from "./founding-users";
 
 describe("permanent founding-user access", () => {
   test("marlindakii.hugo@gmail.com is never billable", () => {
-    expect(isFoundingUser("marlindakii.hugo@gmail.com")).toBe(true);
-    expect(isFoundingUser("MARLINDAKII.HUGO@gmail.com")).toBe(true);
-    expect(() => assertBillableUser("marlindakii.hugo@gmail.com")).toThrow();
-    expect(foundingSubscription()).toMatchObject({
-      status: "legacy_free", needsPayment: false, trialExpired: false, currentPeriodEnd: null,
-    });
+    assert.equal(isFoundingUser("marlindakii.hugo@gmail.com"), true);
+    assert.equal(isFoundingUser("MARLINDAKII.HUGO@gmail.com"), true);
+    assert.throws(() => assertBillableUser("marlindakii.hugo@gmail.com"));
+    const subscription = foundingSubscription();
+    assert.equal(subscription.status, "legacy_free");
+    assert.equal(subscription.needsPayment, false);
+    assert.equal(subscription.trialExpired, false);
+    assert.equal(subscription.currentPeriodEnd, null);
   });
   test("existing free users keep their exemptions", () => {
     for (const email of ["dawie@polka.co.za", "julius@polka.co.za", "nadia.jvr1668@gmail.com"]) {
-      expect(isFoundingUser(email)).toBe(true);
+      assert.equal(isFoundingUser(email), true);
     }
   });
   test("ordinary users are not exempt", () => {
-    expect(isFoundingUser("ordinary@example.com")).toBe(false);
-    expect(() => assertBillableUser("ordinary@example.com")).not.toThrow();
+    assert.equal(isFoundingUser("ordinary@example.com"), false);
+    assert.doesNotThrow(() => assertBillableUser("ordinary@example.com"));
   });
 });

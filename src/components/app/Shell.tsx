@@ -96,7 +96,7 @@ export function Shell({ children }: { children: ReactNode }) {
             Sign in to view your quotes, invoices, planner and expenses.
           </p>
           <Button asChild className="h-11 w-full">
-            <Link to="/auth">
+            <Link to="/auth" search={{ tab: "signin" }}>
               <LogIn className="h-4 w-4 mr-2" /> Sign in
             </Link>
           </Button>
@@ -350,6 +350,7 @@ function AuthButton() {
     return (
       <Link
         to="/auth"
+        search={{ tab: "signin" }}
         className="ml-1 px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium bg-white/10 hover:bg-white/20"
         title="Sign in"
       >
@@ -365,7 +366,7 @@ function AuthButton() {
         useStore.getState().resetToDefaults();
         clearAnonPersist();
         toast.success("Signed out");
-        navigate({ to: "/auth", replace: true });
+        navigate({ to: "/auth", search: { tab: "signin" }, replace: true });
       }}
       title={`Signed in as ${email} — click to sign out`}
       className="ml-1 px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium bg-white/10 hover:bg-white/20"
